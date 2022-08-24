@@ -41,8 +41,6 @@ def get_model(cfg, _run, ex, tensorboard, inc_dataset):
 
 
 def get_data(cfg):
-    print('test_1')
-    print(cfg)
     return data.IncrementalDataset(
         trial_i=cfg['trial'],
         dataset_name=cfg["dataset"],

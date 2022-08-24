@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from .dataset import get_dataset
-from inclearn.deeprtc.libs import Tree
 from inclearn.tools.data_utils import construct_balanced_subset
 from collections import OrderedDict
 import warnings
@@ -35,14 +34,11 @@ class IncrementalDataset:
         self.increments = []
         self.random_order = random_order
         self.validation_split = validation_split
-        self._device = device
+
         # -------------------------------------
         # Dataset Info
         # -------------------------------------
-
-        # ds_name = 'imagenet-ilsvrc2012' if 'imagenet' in dataset_name else dataset_name
-        # self.data_folder = get_data_folder(data_folder, ds_name)
-        self.data_folder = data_folder
+        self.data_folder = get_data_folder(data_folder, dataset_name)
         self.dataset_name = dataset_name
         self.train_dataset = None
         self.test_dataset = None
@@ -54,6 +50,7 @@ class IncrementalDataset:
         self._seed = seed
         self._s_rate = sample_rate
         self._workers = workers
+        self._device = device
         self._shuffle = shuffle
         self._batch_size = batch_size
         self._resampling = resampling
@@ -69,7 +66,6 @@ class IncrementalDataset:
         self._setup_curriculum(dataset_class)
         self._current_task = 0
         self.taxonomy_tree = dataset_class.taxonomy_tree
-        self.current_partial_tree = Tree(self.dataset_name)
         self.current_ordered_dict = OrderedDict()
 
         # memory Mt
@@ -119,16 +115,18 @@ class IncrementalDataset:
         test_loader = self._get_loader(x_test, y_test, shuffle=False, mode="test")
 
         # task_until_now = self.curriculum[:self._current_task + 1]
-        # cur_parent_node = self.taxonomy_tree.get_task_parent(self.curriculum[self._current_task])
-        # self.current_ordered_dict[cur_parent_node] = self.curriculum[self._current_task]
-        self.taxonomy_tree.expand_tree(self.current_partial_tree, self.curriculum[self._current_task])
-        self.current_partial_tree.reset_params()
-        # self.current_partial_tree = self.taxonomy_tree.gen_partial_tree(task_until_now)
+        # cur_parent_nodes = self.taxonomy_tree.get_task_parent(self.curriculum[self._current_task])
+        # parent_node_order = [self.taxonomy_tree.get_task_parent(x) for x in task_until_now]
+        # self.current_ordered_dict[cur_parent_nodes] = self.curriculum[self._current_task]
+        task_until_now = self.curriculum[:self._current_task + 1]
+        cur_parent_node = self.taxonomy_tree.get_task_parent(self.curriculum[self._current_task])[0]
+        self.current_ordered_dict[cur_parent_node] = self.curriculum[self._current_task]
+        c = 9
         task_info = {
             "task": self._current_task,
             "task_size": len(self.curriculum[self._current_task]),
             "full_tree": self.taxonomy_tree,
-            "partial_tree": self.current_partial_tree,
+            "partial_tree": self.taxonomy_tree.gen_partial_tree(task_until_now),
             "n_train_data": len(x_train),
             "n_test_data": len(y_train),
         }
@@ -162,7 +160,6 @@ class IncrementalDataset:
 
     def _gen_label_map(self, name_coarse):
         label_map = {}
-        # TODO: fix bug
         for nc in name_coarse:
             lc = self.taxonomy_tree.nodes.get(nc).label_index
             name_map_single = self.taxonomy_tree.get_finest(nc)
@@ -175,8 +172,6 @@ class IncrementalDataset:
 
     def _select_from_idx(self, data_dict, label_map, train=True):
         x_selected = np.empty([0, 32, 32, 3], dtype=np.uint8)
-        if self.dataset_name == 'imagenet100':
-            x_selected = np.empty([0], dtype='<U74')
         y_selected = np.empty([0], dtype=np.uint8)
         if train:
             for lf in label_map:
@@ -190,12 +185,13 @@ class IncrementalDataset:
 
                 if self._device.type == 'cuda':
                     if data_frac > 0 and self.taxonomy:
-                        # sel_ind = random.sample(list(idx_available), round(data_frac * len(lfx_all)))
-                        sel_ind = random.sample(list(idx_available), round(data_frac * len(idx_available)))
-                        # sel_ind = random.sample(list(idx_available), 20)
+                        sel_ind = random.sample(list(idx_available), round(data_frac * len(lfx_all)))
                     else:
+                        # if len(self.memory_dict) == 0:
                         sel_ind = idx_available
-                        # sel_ind = random.sample(list(idx_available), 20)
+                        # else:
+                        #     memory_size = self.memory_dict[list(self.memory_dict.keys())[0]].shape[0]
+                        #     sel_ind = idx_available[:memory_size]
                 else:
                     sel_ind = random.sample(list(idx_available), 2)
                     # sel_ind = idx_available
@@ -207,12 +203,8 @@ class IncrementalDataset:
             for lf in label_map:
                 lfx_all = data_dict[lf]
                 lfy_all = np.array([label_map[lf][0]] * len(lfx_all))  # position 0: coarse label
-                # idx_available = np.arange(len(lfx_all))
-                # sel_ind = random.sample(list(idx_available), 1)
                 x_selected = np.concatenate((x_selected, lfx_all))
                 y_selected = np.concatenate((y_selected, lfy_all))
-                # x_selected = np.concatenate((x_selected, lfx_all[sel_ind]))
-                # y_selected = np.concatenate((y_selected, lfy_all[sel_ind]))
         return x_selected, y_selected
 
     def _sample_rate(self, leaf_depth, parent_depth):
@@ -236,15 +228,8 @@ class IncrementalDataset:
         self.data_val, self.targets_val = [], []
         self.dict_val, self.dict_train, self.dict_test = {}, {}, {}
         # current_class_idx = 0  # When using multiple datasets
-        self.train_dataset = dataset(self.data_folder, train=True, device=self._device)
-        self.test_dataset = dataset(self.data_folder, train=False, device=self._device)
-        if self.dataset_name == 'imagenet100':
-            train_idx = np.isin(self.train_dataset.targets, self.train_dataset.index_list)
-            test_idx = np.isin(self.test_dataset.targets, self.test_dataset.index_list)
-            self.train_dataset.data = self.train_dataset.data[train_idx]
-            self.train_dataset.targets = self.train_dataset.targets[train_idx]
-            self.test_dataset.data = self.test_dataset.data[test_idx]
-            self.test_dataset.targets = self.test_dataset.targets[test_idx]
+        self.train_dataset = dataset(self.data_folder, train=True)
+        self.test_dataset = dataset(self.data_folder, train=False)
         self.n_tot_cls = self.train_dataset.n_cls  # number of classes in whole dataset
 
         self._setup_data_for_raw_data(self.train_dataset, self.test_dataset)
@@ -256,17 +241,6 @@ class IncrementalDataset:
         self.data_test = np.concatenate(self.data_test)
         self.targets_test = np.concatenate(self.targets_test)
         self.dict_train_used = {y: np.zeros(len(self.dict_train[y])) for y in self.dict_train}
-
-    def re_index_imagenet(self, dataset):
-        n_array = np.empty([0], dtype='<U74')
-        for path in dataset.data:
-            x = path.split('\\')
-            n_array = np.concatenate((n_array, [x[-2]]))
-        dataset.targets = self.get_true_targets(n_array)
-
-    @staticmethod
-    def get_true_targets(n_array):
-        return 1
 
     def _setup_data_for_raw_data(self, train_dataset, test_dataset):
         x_train, y_train = train_dataset.data, np.array(train_dataset.targets)
@@ -467,8 +441,6 @@ class DummyDataset(torch.utils.data.Dataset):
 
         else:
             # Assume the dataset is ImageNet
-            # x = cv2.imread(x)
-            # x = x[:, :, ::-1]
             if idx < len(self.share_memory):
                 if self.share_memory[idx] is not None:
                     x = self.share_memory[idx]
