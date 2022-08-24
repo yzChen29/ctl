@@ -14,7 +14,8 @@ from easydict import EasyDict as edict
 from tensorboardX import SummaryWriter
 from copy import deepcopy
 
-repo_name = 'ctl'
+# repo_name = 'ctl'
+repo_name = 'ctl_yzChen29'
 base_dir = osp.realpath(".")[:osp.realpath(".").index(repo_name) + len(repo_name)]
 sys.path.append(base_dir)
 
@@ -60,11 +61,10 @@ def train(_run, _rnd, _seed):
         cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
         factory.set_device(cfg)
-    if cfg["device"].type == 'cuda':
-        cfg.data_folder = '/datasets'
-    else:
-        cfg.data_folder = osp.join(base_dir, "data")
-
+    # if cfg["device"].type == 'cuda':
+    #     cfg.data_folder = '/datasets'
+    # else:
+    #     cfg.data_folder = osp.join(base_dir, "data")
     start_time = time.time()
     _train(cfg, _run, ex, tensorboard)
     ex.logger.info("Training finished in {}s.".format(int(time.time() - start_time)))
