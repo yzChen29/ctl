@@ -56,11 +56,14 @@ def train(_run, _rnd, _seed):
     ex.logger.info(cfg)
 
     # adjust config
-    cfg.data_folder = osp.join(base_dir, "data")
     if cfg["device_auto_detect"]:
-        cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu", index=0)
+        cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
         factory.set_device(cfg)
+    if cfg["device"].type == 'cuda':
+        cfg.data_folder = '/datasets'
+    else:
+        cfg.data_folder = osp.join(base_dir, "data")
 
     start_time = time.time()
     _train(cfg, _run, ex, tensorboard)
@@ -91,13 +94,15 @@ def _train(cfg, _run, exp, tensorboard):
 
         if task_i >= cfg['retrain_from_task']:
             model.train_task()
-        elif task_i >= 1:
+        # elif task_i >= 1:
+        elif task_i == 19:
             # state_dict = torch.load(f'~/srip22/codes/DER-ClassIL.pytorch/codes/base/ckpts/step{task_i}.ckpt')
             state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/decouple_step{task_i}.ckpt")
             model._parallel_network.load_state_dict(state_dict)
         else:
-            state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/step{task_i}.ckpt")
-            model._parallel_network.load_state_dict(state_dict)
+            pass
+            # state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/step{task_i}.ckpt")
+            # model._parallel_network.load_state_dict(state_dict)
 
         if cfg['device'].type == 'cuda':
             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
@@ -110,6 +115,13 @@ def _train(cfg, _run, exp, tensorboard):
 
         if cfg['device'].type == 'cuda':
             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
+                "acc_details": True,
+                "acc_aux_details": True,
+                "preds_details": True,
+                "preds_aux_details": True
+            })
+
+            model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
                 "acc_details": True,
                 "acc_aux_details": True,
                 "preds_details": True,
