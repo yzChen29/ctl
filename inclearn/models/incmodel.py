@@ -711,10 +711,12 @@ class IncModel(IncrementalLearner):
             preds_sort = output.argsort(1)
             ind_range = min(output.size(1), 5)
             iscorrect_5 = torch.zeros(size=preds_sort[:, 0].size())
+            preds_sort = preds_sort.to(iscorrect_5.device)
+            targets = targets.to(iscorrect_5.device)
             for x in range(ind_range):
                 pred = preds_sort[:, x]
                 iscorrect_5 = torch.logical_or(iscorrect_5, pred == targets)
-            acc.update(float(iscorrect_5.count_nonzero() / iscorrect_5.size(0)), iscorrect_5.size(0))
+            acc_5.update(float(iscorrect_5.count_nonzero() / iscorrect_5.size(0)), iscorrect_5.size(0))
 
     def record_acc_details(self, output, targets, targets_0, acc):
         # targets is the real label

@@ -60,7 +60,7 @@ def train(_run, _rnd, _seed):
         cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
         factory.set_device(cfg)
-    if cfg["device"].type == 'cuda':
+    if (cfg["device"].type == 'cuda' and 'imagenet' in cfg['dataset']):
         cfg.data_folder = '/datasets'
     else:
         cfg.data_folder = osp.join(base_dir, "data")
