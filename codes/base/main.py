@@ -8,8 +8,6 @@ import os
 import os.path as osp
 import copy
 import time
-import torch.multiprocessing as mp
-import torch.distributed as dist
 from pathlib import Path
 import numpy as np
 from easydict import EasyDict as edict
@@ -21,7 +19,6 @@ base_dir = osp.realpath(".")[:osp.realpath(".").index(repo_name) + len(repo_name
 sys.path.append(base_dir)
 
 from sacred import Experiment
-
 ex = Experiment(base_dir=base_dir, save_git_info=False)
 
 import torch
@@ -53,21 +50,42 @@ def initialization(config, seed, mode, exp_id):
     return cfg, logger, tensorboard
 
 
-def _train(rank, cfg, world_size):
-    if cfg["is_distributed"]:
-        dist.init_process_group("nccl", rank=rank, world_size=world_size)
-        print('start process', rank)
-        torch.cuda.set_device(rank)
-        cfg["rank"] = rank
-        cfg["world_size"] = world_size
-        logger = factory.MyCustomLoader(rank=rank)
-    else:
-        logger = factory.MyCustomLoader(rank=0)
-    inc_dataset = factory.get_data(cfg)
-    model = factory.get_model(cfg, logger, inc_dataset)
+@ex.command
+def train(_run, _rnd, _seed):
+    cfg, ex.logger, tensorboard = initialization(_run.config, _seed, "train", _run._id)
+    ex.logger.info(cfg)
 
-    logger.info("curriculum")
-    logger.info(inc_dataset.curriculum)
+    # adjust config
+    if cfg["device_auto_detect"]:
+        cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        factory.set_device(cfg)
+    if (cfg["device"].type == 'cuda' and 'imagenet' in cfg['dataset']):
+        cfg.data_folder = '/datasets'
+    else:
+        cfg.data_folder = osp.join(base_dir, "data")
+
+    start_time = time.time()
+    _train(cfg, _run, ex, tensorboard)
+    ex.logger.info("Training finished in {}s.".format(int(time.time() - start_time)))
+    with open('results/' + cfg["exp"]["name"] + '/delete_warning.txt', 'w') as dw:
+        dw.write('This is a fully conducted experiment without errors and interruptions. Please be careful as deleting'
+                 ' it may lose important data and results. See log file for configuration details.')
+
+
+def _train(cfg, _run, exp, tensorboard):
+    inc_dataset = factory.get_data(cfg)
+    exp.logger.info("curriculum")
+    exp.logger.info(inc_dataset.curriculum)
+
+    model = factory.get_model(cfg, _run, exp, tensorboard, inc_dataset)
+
+    if _run.meta_info["options"]["--file_storage"] is not None:
+        _save_dir = osp.join(_run.meta_info["options"]["--file_storage"], str(_run._id))
+    else:
+        _save_dir = cfg['sp']['model']
+
+    results = results_utils.get_template_results(cfg)
 
     for task_i in range(inc_dataset.n_tasks):
     # for task_i in range(1):
@@ -77,15 +95,14 @@ def _train(rank, cfg, world_size):
         if task_i >= cfg['retrain_from_task']:
             model.train_task()
         # elif task_i >= 1:
-        # elif task_i == 19:
-        #     # state_dict = torch.load(f'~/srip22/codes/DER-ClassIL.pytorch/codes/base/ckpts/step{task_i}.ckpt')
-        #     state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/decouple_step{task_i}.ckpt")
-        #     model._parallel_network.load_state_dict(state_dict)
+        elif task_i == 19:
+            # state_dict = torch.load(f'~/srip22/codes/DER-ClassIL.pytorch/codes/base/ckpts/step{task_i}.ckpt')
+            state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/decouple_step{task_i}.ckpt")
+            model._parallel_network.load_state_dict(state_dict)
         else:
             pass
-            state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/decouple_step{task_i}.ckpt")
+            # state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/step{task_i}.ckpt")
             # model._parallel_network.load_state_dict(state_dict)
-            model._distributed_parallel_network.load_state_dict(state_dict)
 
         if cfg['device'].type == 'cuda':
             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
@@ -111,97 +128,8 @@ def _train(rank, cfg, world_size):
                 "preds_aux_details": True
             })
 
-
-@ex.command
-def train(_run, _rnd, _seed):
-    print('before multiprocess')
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "29500"
-    cfg, ex.logger, tensorboard = initialization(_run.config, _seed, "train", _run._id)
-    ex.logger.info(cfg)
-
-    # adjust config
-    if cfg["device_auto_detect"]:
-        cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        factory.set_device(cfg)
-    if cfg["device"].type == 'cuda' and 'imagenet' in cfg["dataset"]:
-        cfg.data_folder = '/datasets'
-    else:
-        cfg.data_folder = osp.join(base_dir, "data")
-
-    start_time = time.time()
-    if cfg["is_distributed"]:
-        gpu_num = torch.cuda.device_count()
-        mp.spawn(_train, args=(cfg, gpu_num), nprocs=gpu_num, join=True)
-    else:
-        _train(0, cfg, 1)
-
-    ex.logger.info("Training finished in {}s.".format(int(time.time() - start_time)))
-    with open('results/' + cfg["exp"]["name"] + '/delete_warning.txt', 'w') as dw:
-        dw.write('This is a fully conducted experiment without errors and interruptions. Please be careful as deleting'
-                 ' it may lose important data and results. See log file for configuration details.')
-
-
-# def _train(cfg, _run, exp):
-#     cfg["rank"] = 1
-#     cfg["world_size"] = 1
-#     inc_dataset = factory.get_data(cfg)
-#     exp.logger.info("curriculum")
-#     exp.logger.info(inc_dataset.curriculum)
-#
-#     model = factory.get_model(cfg, exp.logger, inc_dataset)
-#
-#     # if _run.meta_info["options"]["--file_storage"] is not None:
-#     #     _save_dir = osp.join(_run.meta_info["options"]["--file_storage"], str(_run._id))
-#     # else:
-#     #     _save_dir = cfg['sp']['model']
-#
-#     results = results_utils.get_template_results(cfg)
-#
-#     for task_i in range(inc_dataset.n_tasks):
-#     # for task_i in range(1):
-#         model.new_task()
-#         model.before_task(inc_dataset)
-#
-#         if task_i >= cfg['retrain_from_task']:
-#             model.train_task()
-#         # elif task_i >= 1:
-#         elif task_i == 19:
-#             # state_dict = torch.load(f'~/srip22/codes/DER-ClassIL.pytorch/codes/base/ckpts/step{task_i}.ckpt')
-#             state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/decouple_step{task_i}.ckpt")
-#             model._parallel_network.load_state_dict(state_dict)
-#         else:
-#             pass
-#             # state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/step{task_i}.ckpt")
-#             # model._parallel_network.load_state_dict(state_dict)
-#
-#         if cfg['device'].type == 'cuda':
-#             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
-#                 "acc_details": True,
-#                 "acc_aux_details": True,
-#                 "preds_details": True,
-#                 "preds_aux_details": True
-#             })
-#         model.after_task(inc_dataset)
-#
-#         if cfg['device'].type == 'cuda':
-#             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
-#                 "acc_details": True,
-#                 "acc_aux_details": True,
-#                 "preds_details": True,
-#                 "preds_aux_details": True
-#             })
-#
-#             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
-#                 "acc_details": True,
-#                 "acc_aux_details": True,
-#                 "preds_details": True,
-#                 "preds_aux_details": True
-#             })
-#
-#     if cfg["exp"]["name"]:
-#         results_utils.save_results(results, cfg["exp"]["name"])
+    # if cfg["exp"]["name"]:
+    #     results_utils.save_results(results, cfg["exp"]["name"])
 
 
 def do_pretrain(cfg, ex, model, device, train_loader, test_loader):

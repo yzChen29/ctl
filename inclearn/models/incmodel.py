@@ -6,7 +6,6 @@ from scipy.spatial.distance import cdist
 
 import torch
 from torch.nn import DataParallel
-from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.nn import functional as F
 
 from inclearn.convnet import network
@@ -27,16 +26,13 @@ EPSILON = 1e-8
 
 
 class IncModel(IncrementalLearner):
-    def __init__(self, cfg, logger, inc_dataset):
+    def __init__(self, cfg, _run, ex, tensorboard, inc_dataset):
         super().__init__()
         self.mode_train = True
         self._cfg = cfg
         self._device = cfg['device']
-        if cfg["is_distributed"]:
-            self._device = torch.device("cuda:{}".format(cfg["rank"]))
-            self._rank = self._cfg["rank"]
-        self._logger = logger
-        # self._run = _run  # the sacred _run object.
+        self._ex = ex
+        self._run = _run  # the sacred _run object.
 
         # Data
         self._train_from_task = cfg['retrain_from_task']
@@ -57,9 +53,9 @@ class IncModel(IncrementalLearner):
         self._decouple = cfg["decouple"]
 
         # Logging
-        # self._tensorboard = tensorboard
-        # if f"trial{self._trial_i}" not in self._run.info:
-        #     self._run.info[f"trial{self._trial_i}"] = {}
+        self._tensorboard = tensorboard
+        if f"trial{self._trial_i}" not in self._run.info:
+            self._run.info[f"trial{self._trial_i}"] = {}
         self._val_per_n_epoch = cfg["val_per_n_epoch"]
 
         # Model
@@ -72,13 +68,7 @@ class IncModel(IncrementalLearner):
             use_bias=cfg["use_bias"],
             dataset=cfg["dataset"],
         )
-        if self._cfg["is_distributed"]:
-            self._parallel_network = DDP(self._network, device_ids=[self._rank], output_device=self._rank)
-            self._parallel_network.to(self._device)
-        else:
-            self._parallel_network = DataParallel(self._network)
-        # self._distributed_parallel_network = DDP(self._network, device_ids=[self._rank], output_device=self._rank)
-        # self._distributed_parallel_network.to(self._device)
+        self._parallel_network = DataParallel(self._network)
         self._train_head = cfg["train_head"]
         self._infer_head = cfg["infer_head"]
         self._old_model = None
@@ -126,12 +116,9 @@ class IncModel(IncrementalLearner):
         self.sp = cfg['sp']
 
     def eval(self):
-        # self._parallel_network.eval()
         self._parallel_network.eval()
 
     def set_task_info(self, task_info):
-        if self._cfg["is_distributed"]:
-            self._logger.info(f'process {self._cfg["rank"]} begin set task info')
         self._task = task_info["task"]
         # task size for current task
         # n_classes for total number of classes (history + present)
@@ -149,20 +136,15 @@ class IncModel(IncrementalLearner):
 
     def train(self):
         if self._der:
-            # self._parallel_network.train()
-            # self._parallel_network.module.convnets[-1].train()
             self._parallel_network.train()
             self._parallel_network.module.convnets[-1].train()
             if self._task >= 1:
                 for i in range(self._task):
-                    # self._parallel_network.module.convnets[i].eval()
                     self._parallel_network.module.convnets[i].eval()
         else:
-            # self._parallel_network.train()
             self._parallel_network.train()
 
     def _new_task(self):
-        self._logger.info('begin new task')
         task_info, train_loader, val_loader, test_loader = self._inc_dataset.new_task()
         self.set_task_info(task_info)
         self._cur_train_loader = train_loader
@@ -170,12 +152,12 @@ class IncModel(IncrementalLearner):
         self._cur_test_loader = test_loader
 
     def _before_task(self, inc_dataset):
-        self._logger.info(f"Begin step {self._task}")
+        self._ex.logger.info(f"Begin step {self._task}")
 
         # Memory
         self._memory_size.update_n_classes(self._n_classes)
         self._memory_size.update_memory_per_cls(self._network, self._n_classes, self._task_size)
-        self._logger.info("Now {} examplars per class.".format(self._memory_per_class))
+        self._ex.logger.info("Now {} examplars per class.".format(self._memory_per_class))
 
         # Network
         self._network.current_tax_tree = self._current_tax_tree
@@ -189,21 +171,18 @@ class IncModel(IncrementalLearner):
     def set_optimizer(self, lr=None):
         if lr is None:
             lr = self._lr
-        # if self._cfg["is_distributed"]:
-        #     lr = lr * self._cfg["world_size"]
 
         if self._cfg["dynamic_weight_decay"]:
             # used in BiC official implementation
             weight_decay = self._weight_decay * self._cfg["task_max"] / (self._task + 1)
         else:
             weight_decay = self._weight_decay
-        self._logger.info("Step {} weight decay {:.5f}".format(self._task, weight_decay))
+        self._ex.logger.info("Step {} weight decay {:.5f}".format(self._task, weight_decay))
 
         # In DER model, freeze the previous network parameters
         # only updates parameters for the current network
         if self._der and self._task > 0:
             for i in range(self._task):
-                # for p in self._parallel_network.module.convnets[i].parameters():
                 for p in self._parallel_network.module.convnets[i].parameters():
                     p.requires_grad = False
 
@@ -227,10 +206,10 @@ class IncModel(IncrementalLearner):
     def _train_task(self):
         train_loader = self._cur_train_loader
         val_loader = self._cur_val_loader
-        self._logger.info(f"nb {len(train_loader.dataset)}")
+        self._ex.logger.info(f"nb {len(train_loader.dataset)}")
 
-        # utils.display_weight_norm(self._logger, self._parallel_network, self._increments, "Initial trainset")
-        # utils.display_feature_norm(self._logger, self._parallel_network, train_loader, self._n_classes,
+        # utils.display_weight_norm(self._ex.logger, self._parallel_network, self._increments, "Initial trainset")
+        # utils.display_feature_norm(self._ex.logger, self._parallel_network, train_loader, self._n_classes,
         #                            self._increments, "Initial trainset")
 
         self._optimizer.zero_grad()
@@ -257,20 +236,15 @@ class IncModel(IncrementalLearner):
                     if self._cfg['use_aux_cls']:
                         self._network.aux_classifier.reset_parameters()
 
-                    # self._parallel_network.to(self._device)
                     self._parallel_network.to(self._device)
             count = 0
             for i, data in enumerate(train_loader, start=1):
                 inputs, targets = data
                 inputs = inputs.to(self._device, non_blocking=True)
                 targets = targets.to(self._device, non_blocking=True)
-
-                # print(inputs)
-                # print(targets)
                 self.train()
                 self._optimizer.zero_grad()
 
-                # outputs = self._parallel_network(inputs)
                 outputs = self._parallel_network(inputs)
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, self.train_save_option)
                 ce_loss, loss_aux = self._compute_loss(outputs, targets, nlosses, stslosses, losses)
@@ -282,21 +256,24 @@ class IncModel(IncrementalLearner):
                 else:
                     total_loss = ce_loss
 
-                # if ce_loss < 0:
-                #     print('ce_loss: ', ce_loss)
-                # if loss_aux < 0:
-                #     print('loss_aux: ', loss_aux)
-                #     a = self._optimizer.param_groups[0]['params']
-                #     for x in range(len(a)):
-                #         if torch.sum(torch.isnan(a[x]) > 0):
-                #             print(x)
-                #             print(a[x])
+                if ce_loss < 0:
+                    print('ce_loss: ', ce_loss)
+                if loss_aux < 0:
+                    print('loss_aux: ', loss_aux)
+                    a = self._optimizer.param_groups[0]['params']
+                    for x in range(len(a)):
+                        if torch.sum(torch.isnan(a[x]) > 0):
+                            print(x)
+                            print(a[x])
 
-                # print(total_loss)
                 total_loss.backward()
 
                 # a = self._optimizer.param_groups[0]['params']
-                # print(a[0].grad)
+                # for x in range(len(a)):
+                #     if torch.sum(torch.isnan(a[x].grad) > 0):
+                #         print(x)
+                #         print(a[x].grad)
+                #         print(total_loss)
 
                 self._optimizer.step()
 
@@ -310,13 +287,19 @@ class IncModel(IncrementalLearner):
                 _ce_loss += ce_loss
                 _total_loss += total_loss
                 count += 1
+                #
+                # a = self._optimizer.param_groups[0]['params']
+                # for x in range(len(a)):
+                #     if torch.sum(torch.isnan(a[x]) > 0):
+                #         print(x)
+                #         print(a[x].grad)
 
             _ce_loss = _ce_loss.item()
             _loss_aux = _loss_aux.item()
             _total_loss = _total_loss.item()
             if not self._warmup:
                 self._scheduler.step()
-            self._logger.info(
+            self._ex.logger.info(
                 "Task {}/{}, Epoch {}/{} => Clf Avg Total Loss: {}, Clf Avg CE Loss: {}, Avg Aux Loss: {}, "
                 "Avg Acc: {}, Avg Aux Acc: {}".format(
                     self._task + 1,
@@ -408,8 +391,8 @@ class IncModel(IncrementalLearner):
 
             loss = nloss + stsloss * 0
             losses.update(loss.item(), batch_size)
-            # if stsloss < 0:
-                # print('stsloss: ', stsloss)
+            if stsloss < 0:
+                print('stsloss: ', stsloss)
         else:
             output = outputs['output']
             aux_output = outputs['aux_logit']
@@ -453,10 +436,9 @@ class IncModel(IncrementalLearner):
 
     def _after_task(self, inc_dataset):
         taski = self._task
-        # network = deepcopy(self._parallel_network)
         network = deepcopy(self._parallel_network)
         network.eval()
-        self._logger.info("save model")
+        self._ex.logger.info("save model")
         if taski >= self._train_from_task and taski in self._cfg["save_ckpt"]:
             # save_path = os.path.join(os.getcwd(), "ckpts")
             torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
@@ -472,8 +454,7 @@ class IncModel(IncrementalLearner):
             # finetuning
             # only hiernet on cuda needs .module
             self._network.classifier.reset_parameters()
-            finetune_last_layer(self._logger,
-                                # self._parallel_network,
+            finetune_last_layer(self._ex.logger,
                                 self._parallel_network,
                                 train_loader,
                                 self._n_classes,
@@ -487,7 +468,6 @@ class IncModel(IncrementalLearner):
                                 temperature=self._decouple["temperature"],
                                 save_path=f"{self.sp['acc_detail']['train']}/task_{self._task}_decouple",
                                 index_map=self._inc_dataset.targets_all_unique)
-            # network = deepcopy(self._parallel_network)
             network = deepcopy(self._parallel_network)
             if taski in self._cfg["save_ckpt"]:
                 # save_path = os.path.join(os.getcwd(), "ckpts")
@@ -498,11 +478,11 @@ class IncModel(IncrementalLearner):
             self._update_postprocessor(inc_dataset)
 
         if self._cfg["infer_head"] == 'NCM':
-            self._logger.info("compute prototype")
+            self._ex.logger.info("compute prototype")
             self.update_prototype()
 
         if self._cfg['memory_enable'] and self._memory_size.memsize != 0:
-            self._logger.info("build memory")
+            self._ex.logger.info("build memory")
 
             self.build_exemplars(inc_dataset, self._coreset_strategy)
 
@@ -519,10 +499,8 @@ class IncModel(IncrementalLearner):
                     os.makedirs(save_path)
                 if not (os.path.exists(f"{save_path}/mem_step{self._task}.ckpt") and self._cfg['load_mem']):
                     torch.save(memory, "{}/mem_step{}.ckpt".format(save_path, self._task))
-                    self._logger.info(f"Save step{self._task} memory!")
+                    self._ex.logger.info(f"Save step{self._task} memory!")
 
-        # self._parallel_network.eval()
-        # self._old_model = deepcopy(self._parallel_network)
         self._parallel_network.eval()
         self._old_model = deepcopy(self._parallel_network)
         self._old_model.module.freeze()
@@ -539,26 +517,23 @@ class IncModel(IncrementalLearner):
             raise ValueError()
 
     def _compute_accuracy_by_netout(self, data_loader, name='default', save_path='', save_option=None):
-        self._logger.info(f"Begin evaluation: {name}")
-        factory.print_dataset_info(data_loader)
+        self._ex.logger.info(f"Begin evaluation: {name}")
         acc = averageMeter()
         acc_5 = averageMeter()
         acc_aux = averageMeter()
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
 
-        # self._parallel_network.eval()
         self._parallel_network.eval()
 
         with torch.no_grad():
             for _, (inputs, targets) in enumerate(data_loader):
                 inputs = inputs.to(self._device, non_blocking=True)
                 targets = targets.to(self._device, non_blocking=True)
-                # outputs = self._parallel_network(inputs)
                 outputs = self._parallel_network(inputs)
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, save_option)
 
-        self._logger.info(f"Evaluation {name} acc: {acc.avg}, aux_acc: {acc_aux.avg}")
+        self._ex.logger.info(f"Evaluation {name} acc: {acc.avg}, aux_acc: {acc_aux.avg}")
         # save accuracy and preds info into files
         self.curr_acc_list = [acc]
         self.curr_acc_list_aux = [acc_aux]
@@ -594,13 +569,13 @@ class IncModel(IncrementalLearner):
                 bic_loader = inc_dataset._get_loader(xdata, ydata, shuffle=True, mode='train')
             bic_loss = None
             self._network.postprocessor.reset(n_classes=self._n_classes)
-            self._network.postprocessor.update(self._logger,
+            self._network.postprocessor.update(self._ex.logger,
                                                self._task_size,
                                                self._parallel_network,
                                                bic_loader,
                                                loss_criterion=bic_loss)
         elif self._cfg["postprocessor"]["type"].lower() == "wa":
-            self._logger.info("Post processor wa update !")
+            self._ex.logger.info("Post processor wa update !")
             self._network.postprocessor.update(self._network.classifier, self._task_size)
 
     def update_prototype(self):
@@ -627,7 +602,7 @@ class IncModel(IncrementalLearner):
                 memory_dict[class_i] = data_memory[targets_memory == class_i]
             self._inc_dataset.memory_dict = memory_dict
             self._herding_matrix = memory_states['herding']
-            self._logger.info(f"Load saved step{self._task} memory!")
+            self._ex.logger.info(f"Load saved step{self._task} memory!")
             return
 
         if coreset_strategy == "random":
@@ -637,7 +612,7 @@ class IncModel(IncrementalLearner):
                 self._n_classes,
                 self._task_size,
                 self._parallel_network,
-                self._logger,
+                self._ex.logger,
                 inc_dataset,
                 self._memory_per_class,
             )
@@ -647,12 +622,11 @@ class IncModel(IncrementalLearner):
                 else self._inc_dataset.data_inc
             self._inc_dataset.memory_dict = herding(
                 self._n_classes,
-                # self._parallel_network,
                 self._parallel_network,
                 inc_dataset,
                 data_inc,
                 self._memory_per_class,
-                self._logger,
+                self._ex.logger,
                 self._device
             )
             # self._inc_dataset.update_memory_array()
@@ -664,7 +638,7 @@ class IncModel(IncrementalLearner):
             self.update_prototype()
         ypred, ytrue = self._eval_task(data_loader)
         test_acc_stats = utils.compute_accuracy(ypred, ytrue, increments=self._increments, n_classes=self._n_classes)
-        self._logger.info(f"test top1acc:{test_acc_stats['top1']}")
+        self._ex.logger.info(f"test top1acc:{test_acc_stats['top1']}")
 
     def save_acc_details(self, save_name, save_path):
         class_index = []
@@ -733,14 +707,16 @@ class IncModel(IncrementalLearner):
     def record_accuracy(output, targets, acc, acc_5=None):
         iscorrect = (output.argmax(1) == targets)
         acc.update(float(iscorrect.count_nonzero() / iscorrect.size(0)), iscorrect.size(0))
-        # if acc_5 is not None:
-        #     preds_sort = output.argsort(1)
-        #     ind_range = min(output.size(1), 5)
-        #     iscorrect_5 = torch.zeros(size=preds_sort[:, 0].size())
-        #     for x in range(ind_range):
-        #         pred = preds_sort[:, x]
-        #         iscorrect_5 = torch.logical_or(iscorrect_5, pred == targets)
-        #     acc_5.update(float(iscorrect_5.count_nonzero() / iscorrect_5.size(0)), iscorrect_5.size(0))
+        if acc_5 is not None:
+            preds_sort = output.argsort(1)
+            ind_range = min(output.size(1), 5)
+            iscorrect_5 = torch.zeros(size=preds_sort[:, 0].size())
+            preds_sort = preds_sort.to(iscorrect_5.device)
+            targets = targets.to(iscorrect_5.device)
+            for x in range(ind_range):
+                pred = preds_sort[:, x]
+                iscorrect_5 = torch.logical_or(iscorrect_5, pred == targets)
+            acc_5.update(float(iscorrect_5.count_nonzero() / iscorrect_5.size(0)), iscorrect_5.size(0))
 
     def record_acc_details(self, output, targets, targets_0, acc):
         # targets is the real label

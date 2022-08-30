@@ -8,7 +8,6 @@ import albumentations as A
 import random
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torchvision import datasets, transforms
 
 from .dataset import get_dataset
@@ -24,16 +23,15 @@ def get_data_folder(data_folder, dataset_name):
 
 
 class IncrementalDataset:
-    def __init__(self, trial_i, dataset_name, is_distributed=False, random_order=False, shuffle=True, workers=10,
-                 device=None, batch_size=128, seed=1, sample_rate=0.3, increment=10, validation_split=0.0,
-                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None):
+    def __init__(self, trial_i, dataset_name, random_order=False, shuffle=True, workers=10, device=None,
+                 batch_size=128, seed=1, sample_rate=0.3, increment=10, validation_split=0.0, resampling=False,
+                 data_folder="./data", start_class=0, mode_train=True, taxonomy=None):
         # The info about incremental split
         self.trial_i = trial_i
         self.start_class = start_class
         self.mode_train = mode_train
         # the number of classes for each step in incremental stage
         self.task_size = increment
-        self.is_distributed = is_distributed
         self.increments = []
         self.random_order = random_order
         self.validation_split = validation_split
@@ -88,6 +86,8 @@ class IncrementalDataset:
         # Available data stored in cpu memory.
         self.shared_data_inc, self.shared_test_data = None, None
 
+        self.y_range = []
+
     @property
     def n_tasks(self):
         return len(self.curriculum)
@@ -117,22 +117,12 @@ class IncrementalDataset:
         val_loader = self._get_loader(x_val, y_val, shuffle=False, mode="test")
         test_loader = self._get_loader(x_test, y_test, shuffle=False, mode="test")
 
-        # old method
         # task_until_now = self.curriculum[:self._current_task + 1]
         # cur_parent_node = self.taxonomy_tree.get_task_parent(self.curriculum[self._current_task])
         # self.current_ordered_dict[cur_parent_node] = self.curriculum[self._current_task]
-        # self.current_partial_tree = self.taxonomy_tree.gen_partial_tree(task_until_now)
-
-        # new method
         self.taxonomy_tree.expand_tree(self.current_partial_tree, self.curriculum[self._current_task])
         self.current_partial_tree.reset_params()
-        # self.current_partial_tree = self.taxonomy_tree.reset_params_2(self.current_partial_tree)
-
-        print(self.current_partial_tree.label_dict_hier)
-        # self.current_partial_tree = Tree(self.current_partial_tree.dataset_name,
-        #                                  self.current_partial_tree.label_dict_hier,
-        #                                  self.taxonomy_tree.label_dict_index)
-
+        # self.current_partial_tree = self.taxonomy_tree.gen_partial_tree(task_until_now)
         task_info = {
             "task": self._current_task,
             "task_size": len(self.curriculum[self._current_task]),
@@ -171,6 +161,7 @@ class IncrementalDataset:
 
     def _gen_label_map(self, name_coarse):
         label_map = {}
+        # TODO: fix bug
         for nc in name_coarse:
             lc = self.taxonomy_tree.nodes.get(nc).label_index
             name_map_single = self.taxonomy_tree.get_finest(nc)
@@ -264,6 +255,13 @@ class IncrementalDataset:
         self.data_test = np.concatenate(self.data_test)
         self.targets_test = np.concatenate(self.targets_test)
         self.dict_train_used = {y: np.zeros(len(self.dict_train[y])) for y in self.dict_train}
+
+    def re_index_imagenet(self, dataset):
+        n_array = np.empty([0], dtype='<U74')
+        for path in dataset.data:
+            x = path.split('\\')
+            n_array = np.concatenate((n_array, [x[-2]]))
+        dataset.targets = self.get_true_targets(n_array)
 
     @staticmethod
     def get_true_targets(n_array):
@@ -378,7 +376,6 @@ class IncrementalDataset:
                 sampler = None
             else:
                 sampler = get_weighted_random_sampler(y)
-
             shuffle = False if resample_ is True else True
         elif "test" in mode:
             trsf = self.test_transforms
@@ -391,15 +388,15 @@ class IncrementalDataset:
             sampler = None
         else:
             raise NotImplementedError("Unknown mode {}.".format(mode))
-        # TODO: fix sampler
-        dataset = DummyDataset(x, y, trsf, trsf_type=self.transform_type, share_memory_=share_memory,
-                               dataset_name=self.dataset_name)
-        if self.is_distributed and 'train' in mode:
-            # TODO: fix the hardcode 4
-            sampler = DistributedSampler(dataset, num_replicas=4, drop_last=True)
-        return DataLoader(dataset,
+
+        return DataLoader(DummyDataset(x,
+                                       y,
+                                       trsf,
+                                       trsf_type=self.transform_type,
+                                       share_memory_=share_memory,
+                                       dataset_name=self.dataset_name),
                           batch_size=batch_size,
-                          shuffle=(sampler is None),
+                          shuffle=True,
                           num_workers=self._workers,
                           sampler=sampler,
                           pin_memory=False)
