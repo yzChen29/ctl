@@ -1,4 +1,8 @@
+import time
+
+import numpy as np
 import torch
+import torchvision
 from torch import nn
 from torch import optim
 
@@ -29,13 +33,13 @@ def get_convnet(convnet_type, **kwargs):
         raise NotImplementedError("Unknwon convnet type {}.".format(convnet_type))
 
 
-def get_model(cfg, _run, ex, tensorboard, inc_dataset):
+def get_model(cfg, logger, inc_dataset):
     if cfg["model"] == "incmodel":
-        return models.IncModel(cfg, _run, ex, tensorboard, inc_dataset)
+        return models.IncModel(cfg, logger, inc_dataset)
     if cfg["model"] == "weight_align":
-        return models.Weight_Align(cfg, _run, ex, tensorboard, inc_dataset)
+        return models.Weight_Align(cfg, logger, inc_dataset)
     if cfg["model"] == "bic":
-        return models.BiC(cfg, _run, ex, tensorboard, inc_dataset)
+        return models.BiC(cfg, logger, inc_dataset)
     else:
         raise NotImplementedError(cfg["model"])
 
@@ -44,6 +48,7 @@ def get_data(cfg):
     return data.IncrementalDataset(
         trial_i=cfg['trial'],
         dataset_name=cfg["dataset"],
+        is_distributed=cfg["is_distributed"],
         random_order=cfg["random_classes"],
         shuffle=True,
         batch_size=cfg["batch_size"],
@@ -70,3 +75,20 @@ def set_device(cfg):
 
 def set_acc_detail_path(cfg, mode):
     cfg["acc_detail_path"] += (cfg["exp"]["name"] + '/' + mode)
+
+
+def print_dataset_info(loader):
+    b1, b2 = np.unique(loader.dataset.y, return_counts=True)
+    print(b1)
+    print(b2)
+
+
+class MyCustomLoader:
+    def __init__(self, rank=0, print_rank=0):
+        self.rank = rank
+        self.print_enable = (self.rank == print_rank)
+
+    def info(self, content=''):
+        # assert isinstance(content, str)
+        if self.print_enable:
+            print(time.asctime(time.gmtime()) + ' | ' + str(content))
