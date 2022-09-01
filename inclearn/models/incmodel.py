@@ -168,6 +168,7 @@ class IncModel(IncrementalLearner):
         self._cur_train_loader = train_loader
         self._cur_val_loader = val_loader
         self._cur_test_loader = test_loader
+        # print(self._cur_val_loader.sampler)
 
     def _before_task(self, inc_dataset):
         self._logger.info(f"Begin step {self._task}")
@@ -445,7 +446,7 @@ class IncModel(IncrementalLearner):
             aux_targets = tgt_to_aux_tgt(targets, cur_labels, self._device)
             aux_loss = F.cross_entropy(aux_output, aux_targets)
         else:
-            if str(self._device) == 'cuda:0':
+            if self._device.type == 'cuda':
                 aux_loss = torch.zeros([1]).cuda()
             else:
                 aux_loss = torch.zeros([1])
@@ -541,22 +542,25 @@ class IncModel(IncrementalLearner):
     def _compute_accuracy_by_netout(self, data_loader, name='default', save_path='', save_option=None):
         self._logger.info(f"Begin evaluation: {name}")
         factory.print_dataset_info(data_loader)
+
         acc = averageMeter()
         acc_5 = averageMeter()
         acc_aux = averageMeter()
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
 
-        # self._parallel_network.eval()
         self._parallel_network.eval()
 
         with torch.no_grad():
             for _, (inputs, targets) in enumerate(data_loader):
                 inputs = inputs.to(self._device, non_blocking=True)
                 targets = targets.to(self._device, non_blocking=True)
-                # outputs = self._parallel_network(inputs)
                 outputs = self._parallel_network(inputs)
+                # print(inputs)
+                self._logger.info(inputs)
+                self._logger.info(targets)
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, save_option)
+
 
         self._logger.info(f"Evaluation {name} acc: {acc.avg}, aux_acc: {acc_aux.avg}")
         # save accuracy and preds info into files
