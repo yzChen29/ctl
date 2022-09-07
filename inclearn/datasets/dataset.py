@@ -6,6 +6,7 @@ from inclearn.deeprtc.libs import Tree
 from albumentations.pytorch import ToTensorV2
 
 from torchvision import datasets, transforms
+from collections import defaultdict, OrderedDict
 
 
 def get_datasets(dataset_names):
@@ -77,27 +78,51 @@ class iCIFAR100(iCIFAR10):
         transforms.ToTensor(),
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
     ])
-    data_name_hier_dict = {
-        'vehicles_1': {'motorcycle': {}, 'bus': {}, 'train': {}, 'bicycle': {}, 'pickup_truck': {}},
-        'trees': {'palm_tree': {}, 'willow_tree': {}, 'maple_tree': {}, 'oak_tree': {}, 'pine_tree': {}},
-        'large_man-made_outdoor_things': {'bridge': {}, 'road': {}, 'skyscraper': {}, 'house': {}, 'castle': {}},
-        'food_containers': {'can': {}, 'cup': {}, 'plate': {}, 'bowl': {}, 'bottle': {}},
-        'small_mammals': {'hamster': {}, 'mouse': {}, 'shrew': {}, 'rabbit': {}, 'squirrel': {}},
-        'large_omnivores_and_herbivores': {'cattle': {}, 'camel': {}, 'chimpanzee': {}, 'kangaroo': {}, 'elephant': {}},
-        'flowers': {'rose': {}, 'tulip': {}, 'poppy': {}, 'orchid': {}, 'sunflower': {}},
-        'large_natural_outdoor_scenes': {'forest': {}, 'plain': {}, 'cloud': {}, 'mountain': {}, 'sea': {}},
-        'reptiles': {'turtle': {}, 'crocodile': {}, 'dinosaur': {}, 'lizard': {}, 'snake': {}},
-        'household_furniture': {'wardrobe': {}, 'bed': {}, 'couch': {}, 'chair': {}, 'table': {}},
-        'fruit_and_vegetables': {'apple': {}, 'pear': {}, 'mushroom': {}, 'sweet_pepper': {}, 'orange': {}},
-        'large_carnivores': {'bear': {}, 'leopard': {}, 'tiger': {}, 'wolf': {}, 'lion': {}},
-        'vehicles_2': {'streetcar': {}, 'tractor': {}, 'tank': {}, 'lawn_mower': {}, 'rocket': {}},
-        'people': {'man': {}, 'boy': {}, 'girl': {}, 'baby': {}, 'woman': {}},
-        'insects': {'butterfly': {}, 'bee': {}, 'beetle': {}, 'caterpillar': {}, 'cockroach': {}},
-        'household_electrical_devices': {'lamp': {}, 'television': {}, 'telephone': {}, 'keyboard': {}, 'clock': {}},
-        'non-insect_invertebrates': {'crab': {}, 'snail': {}, 'lobster': {}, 'worm': {}, 'spider': {}},
-        'aquatic_mammals': {'dolphin': {}, 'whale': {}, 'otter': {}, 'seal': {}, 'beaver': {}},
+    # data_name_hier_dict = OrderedDict({
+    #     'vehicles_1': {'motorcycle': {}, 'bus': {}, 'train': {}, 'bicycle': {}, 'pickup_truck': {}},
+    #     'trees': {'palm_tree': {}, 'willow_tree': {}, 'maple_tree': {}, 'oak_tree': {}, 'pine_tree': {}},
+    #     'large_man-made_outdoor_things': {'bridge': {}, 'road': {}, 'skyscraper': {}, 'house': {}, 'castle': {}},
+    #     'food_containers': {'can': {}, 'cup': {}, 'plate': {}, 'bowl': {}, 'bottle': {}},
+    #     'small_mammals': {'hamster': {}, 'mouse': {}, 'shrew': {}, 'rabbit': {}, 'squirrel': {}},
+    #     'large_omnivores_and_herbivores': {'cattle': {}, 'camel': {}, 'chimpanzee': {}, 'kangaroo': {}, 'elephant': {}},
+    #     'flowers': {'rose': {}, 'tulip': {}, 'poppy': {}, 'orchid': {}, 'sunflower': {}},
+    #     'large_natural_outdoor_scenes': {'forest': {}, 'plain': {}, 'cloud': {}, 'mountain': {}, 'sea': {}},
+    #     'reptiles': {'turtle': {}, 'crocodile': {}, 'dinosaur': {}, 'lizard': {}, 'snake': {}},
+    #     'household_furniture': {'wardrobe': {}, 'bed': {}, 'couch': {}, 'chair': {}, 'table': {}},
+    #     'fruit_and_vegetables': {'apple': {}, 'pear': {}, 'mushroom': {}, 'sweet_pepper': {}, 'orange': {}},
+    #     'large_carnivores': {'bear': {}, 'leopard': {}, 'tiger': {}, 'wolf': {}, 'lion': {}},
+    #     'vehicles_2': {'streetcar': {}, 'tractor': {}, 'tank': {}, 'lawn_mower': {}, 'rocket': {}},
+    #     'people': {'man': {}, 'boy': {}, 'girl': {}, 'baby': {}, 'woman': {}},
+    #     'insects': {'butterfly': {}, 'bee': {}, 'beetle': {}, 'caterpillar': {}, 'cockroach': {}},
+    #     'household_electrical_devices': {'lamp': {}, 'television': {}, 'telephone': {}, 'keyboard': {}, 'clock': {}},
+    #     'non-insect_invertebrates': {'crab': {}, 'snail': {}, 'lobster': {}, 'worm': {}, 'spider': {}},
+    #     'aquatic_mammals': {'dolphin': {}, 'whale': {}, 'otter': {}, 'seal': {}, 'beaver': {}},
+    #     'fish': {'aquarium_fish': {}, 'flatfish': {}, 'ray': {}, 'trout': {}, 'shark': {}},
+    #     'medium_mammals': {'raccoon': {}, 'fox': {}, 'porcupine': {}, 'skunk': {}, 'possum': {}}
+    # })
+
+    data_name_hier_dict = OrderedDict({
+        'medium_mammals': {'raccoon': {}, 'fox': {}, 'porcupine': {}, 'skunk': {}, 'possum': {}},
         'fish': {'aquarium_fish': {}, 'flatfish': {}, 'ray': {}, 'trout': {}, 'shark': {}},
-        'medium_mammals': {'raccoon': {}, 'fox': {}, 'porcupine': {}, 'skunk': {}, 'possum': {}}}
+        'aquatic_mammals': {'dolphin': {}, 'whale': {}, 'otter': {}, 'seal': {}, 'beaver': {}},
+        'non-insect_invertebrates': {'crab': {}, 'snail': {}, 'lobster': {}, 'worm': {}, 'spider': {}},
+        'household_electrical_devices': {'lamp': {}, 'television': {}, 'telephone': {}, 'keyboard': {}, 'clock': {}},
+        'insects': {'butterfly': {}, 'bee': {}, 'beetle': {}, 'caterpillar': {}, 'cockroach': {}},
+        'people': {'man': {}, 'boy': {}, 'girl': {}, 'baby': {}, 'woman': {}},
+        'vehicles_2': {'streetcar': {}, 'tractor': {}, 'tank': {}, 'lawn_mower': {}, 'rocket': {}},
+        'large_carnivores': {'bear': {}, 'leopard': {}, 'tiger': {}, 'wolf': {}, 'lion': {}},
+        'fruit_and_vegetables': {'apple': {}, 'pear': {}, 'mushroom': {}, 'sweet_pepper': {}, 'orange': {}},
+        'household_furniture': {'wardrobe': {}, 'bed': {}, 'couch': {}, 'chair': {}, 'table': {}},
+        'reptiles': {'turtle': {}, 'crocodile': {}, 'dinosaur': {}, 'lizard': {}, 'snake': {}},
+        'large_natural_outdoor_scenes': {'forest': {}, 'plain': {}, 'cloud': {}, 'mountain': {}, 'sea': {}},
+        'flowers': {'rose': {}, 'tulip': {}, 'poppy': {}, 'orchid': {}, 'sunflower': {}},
+        'large_omnivores_and_herbivores': {'cattle': {}, 'camel': {}, 'chimpanzee': {}, 'kangaroo': {}, 'elephant': {}},
+        'small_mammals': {'hamster': {}, 'mouse': {}, 'shrew': {}, 'rabbit': {}, 'squirrel': {}},
+        'food_containers': {'can': {}, 'cup': {}, 'plate': {}, 'bowl': {}, 'bottle': {}},
+        'large_man-made_outdoor_things': {'bridge': {}, 'road': {}, 'skyscraper': {}, 'house': {}, 'castle': {}},
+        'trees': {'palm_tree': {}, 'willow_tree': {}, 'maple_tree': {}, 'oak_tree': {}, 'pine_tree': {}},
+        'vehicles_1': {'motorcycle': {}, 'bus': {}, 'train': {}, 'bicycle': {}, 'pickup_truck': {}}
+    })
 
     data_label_index_dict = {
         'medium_mammals': -20, 'fish': -19, 'aquatic_mammals': -18, 'non-insect_invertebrates': -17,
@@ -189,16 +214,22 @@ class iCIFAR100(iCIFAR10):
             ]
         elif trial_i == 5:
             label_list = [
-                # ['medium_mammals', 'fish', 'aquatic_mammals', 'non-insect_invertebrates',
-                #            'household_electrical_devices', 'insects', 'people', 'vehicles_2', 'large_carnivores',
-                #            'fruit_and_vegetables', 'household_furniture', 'reptiles', 'large_natural_outdoor_scenes',
-                #            'flowers', 'large_omnivores_and_herbivores', 'small_mammals', 'food_containers',
-                #            'large_man-made_outdoor_things', 'trees', 'vehicles_1'],
-                          ['vehicles_1', 'trees', 'large_man-made_outdoor_things', 'food_containers', 'small_mammals',
-                           'large_omnivores_and_herbivores', 'flowers', 'large_natural_outdoor_scenes', 'reptiles',
-                           'household_furniture', 'fruit_and_vegetables', 'large_carnivores', 'vehicles_2', 'people',
-                           'insects', 'household_electrical_devices', 'non-insect_invertebrates', 'aquatic_mammals',
-                           'fish', 'medium_mammals'],
+                ['medium_mammals', 'fish', 'aquatic_mammals', 'non-insect_invertebrates',
+                           'household_electrical_devices', 'insects', 'people', 'vehicles_2', 'large_carnivores',
+                           'fruit_and_vegetables', 'household_furniture', 'reptiles', 'large_natural_outdoor_scenes',
+                           'flowers', 'large_omnivores_and_herbivores', 'small_mammals', 'food_containers',
+                           'large_man-made_outdoor_things', 'trees', 'vehicles_1'],
+                #           ['vehicles_1', 'trees', 'large_man-made_outdoor_things', 'food_containers', 'small_mammals',
+                #            'large_omnivores_and_herbivores', 'flowers', 'large_natural_outdoor_scenes', 'reptiles',
+                #            'household_furniture', 'fruit_and_vegetables', 'large_carnivores', 'vehicles_2', 'people',
+                #            'insects', 'household_electrical_devices', 'non-insect_invertebrates', 'aquatic_mammals',
+                #            'fish', 'medium_mammals'],
+                        # ['household_furniture', 'large_man-made_outdoor_things', 'medium_mammals',
+                        #  'food_containers', 'reptiles', 'vehicles_2', 'large_natural_outdoor_scenes',
+                        #  'large_omnivores_and_herbivores', 'flowers', 'small_mammals', 'trees',
+                        #  'vehicles_1', 'large_carnivores', 'people', 'aquatic_mammals', 'fish',
+                        #  'insects', 'fruit_and_vegetables', 'non-insect_invertebrates',
+                        #  'household_electrical_devices'],
                           ['motorcycle', 'bus', 'train', 'bicycle', 'pickup_truck'],
                           ['palm_tree', 'willow_tree', 'maple_tree', 'oak_tree', 'pine_tree'],
                           ['bridge', 'road', 'skyscraper', 'house', 'castle'],
@@ -222,32 +253,31 @@ class iCIFAR100(iCIFAR10):
             return label_list
 
         elif trial_i == 6:
-            # label_list = [['medium_mammals', 'fish', 'aquatic_mammals', 'non-insect_invertebrates',
-            #                'household_electrical_devices', 'insects', 'people', 'vehicles_2', 'large_carnivores',
-            #                'fruit_and_vegetables', 'household_furniture', 'reptiles', 'large_natural_outdoor_scenes',
-            #                'flowers', 'large_omnivores_and_herbivores', 'small_mammals', 'food_containers',
-            #                'large_man-made_outdoor_things', 'trees', 'vehicles_1'],
-            #               ['hamster', 'mouse', 'shrew', 'rabbit', 'squirrel'],
-            #               ['man', 'boy', 'girl', 'baby', 'woman'],
-            #               ['crab', 'snail', 'lobster', 'worm', 'spider'],
-            #               ['dolphin', 'whale', 'otter', 'seal', 'beaver'],  #
-            #               ['aquarium_fish', 'flatfish', 'ray', 'trout', 'shark'],
-            #               ['motorcycle', 'bus', 'train', 'bicycle', 'pickup_truck'],
-            #               ['palm_tree', 'willow_tree', 'maple_tree', 'oak_tree', 'pine_tree'],
-            #               ['bridge', 'road', 'skyscraper', 'house', 'castle'],
-            #               ['can', 'cup', 'plate', 'bowl', 'bottle'],
-            #               ['cattle', 'camel', 'chimpanzee', 'kangaroo', 'elephant'],
-            #               ['rose', 'tulip', 'poppy', 'orchid', 'sunflower'],
-            #               ['forest', 'plain', 'cloud', 'mountain', 'sea'],
-            #               ['turtle', 'crocodile', 'dinosaur', 'lizard', 'snake'],  #
-            #               ['wardrobe', 'bed', 'couch', 'chair', 'table'],
-            #               ['apple', 'pear', 'mushroom', 'sweet_pepper', 'orange'],
-            #               ['bear', 'leopard', 'tiger', 'wolf', 'lion'],
-            #               ['streetcar', 'tractor', 'tank', 'lawn_mower', 'rocket'],
-            #               ['butterfly', 'bee', 'beetle', 'caterpillar', 'cockroach'],  #
-            #               ['lamp', 'television', 'telephone', 'keyboard', 'clock'],
-            #               ['raccoon', 'fox', 'porcupine', 'skunk', 'possum']]
-            label_list = []
+            label_list = [['medium_mammals', 'fish', 'aquatic_mammals', 'non-insect_invertebrates',
+                           'household_electrical_devices', 'insects', 'people', 'vehicles_2', 'large_carnivores',
+                           'fruit_and_vegetables', 'household_furniture', 'reptiles', 'large_natural_outdoor_scenes',
+                           'flowers', 'large_omnivores_and_herbivores', 'small_mammals', 'food_containers',
+                           'large_man-made_outdoor_things', 'trees', 'vehicles_1'],
+                          ['hamster', 'mouse', 'shrew', 'rabbit', 'squirrel'],
+                          ['man', 'boy', 'girl', 'baby', 'woman'],
+                          ['crab', 'snail', 'lobster', 'worm', 'spider'],
+                          ['dolphin', 'whale', 'otter', 'seal', 'beaver'],  #
+                          ['aquarium_fish', 'flatfish', 'ray', 'trout', 'shark'],
+                          ['motorcycle', 'bus', 'train', 'bicycle', 'pickup_truck'],
+                          ['palm_tree', 'willow_tree', 'maple_tree', 'oak_tree', 'pine_tree'],
+                          ['bridge', 'road', 'skyscraper', 'house', 'castle'],
+                          ['can', 'cup', 'plate', 'bowl', 'bottle'],
+                          ['cattle', 'camel', 'chimpanzee', 'kangaroo', 'elephant'],
+                          ['rose', 'tulip', 'poppy', 'orchid', 'sunflower'],
+                          ['forest', 'plain', 'cloud', 'mountain', 'sea'],
+                          ['turtle', 'crocodile', 'dinosaur', 'lizard', 'snake'],  #
+                          ['wardrobe', 'bed', 'couch', 'chair', 'table'],
+                          ['apple', 'pear', 'mushroom', 'sweet_pepper', 'orange'],
+                          ['bear', 'leopard', 'tiger', 'wolf', 'lion'],
+                          ['streetcar', 'tractor', 'tank', 'lawn_mower', 'rocket'],
+                          ['butterfly', 'bee', 'beetle', 'caterpillar', 'cockroach'],  #
+                          ['lamp', 'television', 'telephone', 'keyboard', 'clock'],
+                          ['raccoon', 'fox', 'porcupine', 'skunk', 'possum']]
             return label_list
 
         elif trial_i == -1:
