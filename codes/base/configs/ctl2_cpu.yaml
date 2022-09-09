@@ -34,6 +34,7 @@ load_mem: False
 task_max: 10
 lr_min: 0.00005
 lr: 0.1
+num_workers: 4
 weight_decay: 0.0005
 dynamic_weight_decay: False
 scheduler: 'multistep'
