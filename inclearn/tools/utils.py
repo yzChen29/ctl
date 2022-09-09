@@ -210,7 +210,18 @@ def plot_cls_detail(cls_detail):
 def set_save_paths(cfg, mode):
     if mode == 'train':
         cfg['exp']['mode_train'] = True
-        exp_path = 'results/' + cfg['exp']['name'] + '/'
+
+
+        exp_path = cfg['exp']['name'] + '/'
+
+        if cfg['save_result_path']:
+            if cfg['save_result_path'].endswith('/'):
+                exp_path = cfg['save_result_path'] + exp_path
+            else:
+                exp_path = cfg['save_result_path'] + '/' + exp_path
+        else:
+            exp_path = 'result/' + exp_path
+
         if cfg['overwrite_prevention'] and os.path.exists(exp_path):
             raise Exception('Experiment ' + cfg['exp']['name'] + ' already exists! To make sure existing files and '
                                                                  'data are not overwritten, please choose another'
@@ -227,8 +238,8 @@ def set_save_paths(cfg, mode):
                 'log': exp_path + 'train/logs/',
                 'tensorboard': exp_path + 'train/tensorboard/'
             }
-            if 'datasets' in cfg['save_ckpt_path']:
-                cfg['sp']['model'] = '/datasets/ckpts/' + cfg['exp']['name'] + '/'
+            # if 'datasets' in cfg['save_ckpt_path']:
+            #     cfg['sp']['model'] = '/datasets/ckpts/' + cfg['exp']['name'] + '/'
             if not os.path.exists(cfg['sp']['acc_detail']['train']):
                 os.makedirs(cfg['sp']['acc_detail']['train'])
             if not os.path.exists(cfg['sp']['acc_detail']['eval']):
