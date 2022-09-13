@@ -22,6 +22,7 @@ from inclearn.datasets.data import tgt_to_tgt0, tgt0_to_tgt, tgt_to_aux_tgt, aux
 
 import pandas as pd
 import time
+import pynvml
 
 # Constants
 EPSILON = 1e-8
@@ -274,6 +275,8 @@ class IncModel(IncrementalLearner):
             batch_start_time = time.time()
             for i, data in enumerate(train_loader, start=1):
                 load_end_time = time.time()
+                self.check_shm_usage('after_load_img')
+                self.check_cpu_info('after_load_img')
                 load_time_list.append(np.round(load_end_time - load_start_time, 3))
 
                 inputs, targets = data
@@ -290,6 +293,7 @@ class IncModel(IncrementalLearner):
                 para_net_start_time = time.time()
                 outputs = self._parallel_network(inputs)
                 para_net_end_time = time.time()
+                self.check_gpu_info('after_para_net')
                 para_net_time_list.append(np.round(para_net_end_time - para_net_start_time, 3))
 
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, self.train_save_option)
@@ -311,11 +315,11 @@ class IncModel(IncrementalLearner):
                 #         if torch.sum(torch.isnan(a[x]) > 0):
                 #             print(x)
                 #             print(a[x])
-
                 # print(total_loss)
                 backward_start_time = time.time()
                 total_loss.backward()
                 backward_end_time = time.time()
+                self.check_gpu_info('after_backward')
                 backward_time_list.append(np.round(backward_end_time - backward_start_time, 3))
 
                 # a = self._optimizer.param_groups[0]['params']
@@ -348,7 +352,7 @@ class IncModel(IncrementalLearner):
                 self._scheduler.step()
             self._logger.info(
                 "Task {}/{}, Epoch {}/{} => Clf Avg Total Loss: {}, Clf Avg CE Loss: {}, Avg Aux Loss: {}, "
-                "Avg Acc: {}, Avg Aux Acc: {}".format(
+                "Avg Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%".format(
                     self._task + 1,
                     self._n_tasks,
                     epoch + 1,
@@ -357,15 +361,7 @@ class IncModel(IncrementalLearner):
                     round(_ce_loss / i, 3),
                     round(_loss_aux / i, 3),
                     round(acc.avg, 3),
-                    round(acc_aux.avg, 3)
-                ))
-
-            self._logger.info(
-                "Task {}/{}, Epoch {}/{} => batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%".format(
-                    self._task + 1,
-                    self._n_tasks,
-                    epoch + 1,
-                    self._n_epochs,
+                    round(acc_aux.avg, 3),
                     round(np.mean(batch_total_time_list), 3),
                     round(np.mean(load_time_list), 3),
                     round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3),
@@ -828,3 +824,72 @@ class IncModel(IncrementalLearner):
             return x.cuda()
         else:
             return x
+
+    def check_shm_usage(self, pos_name):
+        process = os.popen('df -h')
+        preprocessed = process.read()
+        process.close()
+
+        shm_info = preprocessed.split('\n')[1:-1]
+        for ind in range(len(shm_info)):
+            device_info_ind = [i for i in shm_info[ind].split(' ') if i != '']
+            if device_info_ind[-1] == '/dev/shm':
+                self._logger.info(
+                    f'shm at {pos_name} Total {device_info_ind[3]}, Use {device_info_ind[2]} —— {device_info_ind[4]}')
+                break
+
+    def check_cpu_info(self, pos_name, cpu_count=10):
+        process = os.popen('top -b -n 1')
+        preprocessed = process.read()
+        process.close()
+        cpu_info = preprocessed.split('\n')[7:7 + cpu_count]
+        logger_mesg = ''
+        for ind in range(len(cpu_info)):
+            device_info_ind = [i for i in cpu_info[ind].split(' ') if i != '']
+            logger_mesg += f'CPU at {pos_name} PID {device_info_ind[0]}, Usage {device_info_ind[8]}%, Memory {
+            device_info_ind[9]}%'
+
+        self._logger.info(logger_mesg)
+
+    def nvidia_info(self):
+        nvidia_dict = {
+            "state": True,
+            "nvidia_version": "",
+            "nvidia_count": 4,
+            "gpus": []
+        }
+        try:
+            pynvml.nvmlInit()
+            nvidia_dict["nvidia_version"] = pynvml.nvmlSystemGetDriverVersion()
+            nvidia_dict["nvidia_count"] = pynvml.nvmlDeviceGetCount()
+            for i in range(nvidia_dict["nvidia_count"]):
+                handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+                memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                gpu = {
+                    "gpu_name": pynvml.nvmlDeviceGetName(handle),
+                    "total": memory_info.total,
+                    "free": memory_info.free,
+                    "used": memory_info.used,
+                    "temperature": f"{pynvml.nvmlDeviceGetTemperature(handle, 0)}℃",
+                    "powerStatus": pynvml.nvmlDeviceGetPowerState(handle)
+                }
+                nvidia_dict['gpus'].append(gpu)
+        except pynvml.NVMLError as _:
+            nvidia_dict["state"] = False
+        except Exception as _:
+            nvidia_dict["state"] = False
+        finally:
+            try:
+                pynvml.vmlShutdown()
+            except:
+                pass
+        return nvidia_dict
+
+    def check_gpu_info(self, pos_name):
+        gpus_info = self.nvidia_info()['gpus']
+        logger_mesg = ''
+        for i in range(len(gpus_info)):
+            gpu_info_i = gpus_info[i]
+            logger_mesg += f"GPU {i} at {pos_name} Name {gpu_info_i['gpu_name']}, Usage {np.round(gpu_info_i['used'] / gpu_info_i['total'] * 100, 3)}%"
+
+        self._logger.info(logger_mesg)
