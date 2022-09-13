@@ -21,6 +21,7 @@ from inclearn.deeprtc.utils import deep_rtc_nloss, deep_rtc_sts_loss
 from inclearn.datasets.data import tgt_to_tgt0, tgt0_to_tgt, tgt_to_aux_tgt, aux_tgt_to_tgt, tgt_to_tgt0_no_tax
 
 import pandas as pd
+import time
 
 # Constants
 EPSILON = 1e-8
@@ -261,7 +262,20 @@ class IncModel(IncrementalLearner):
                     # self._parallel_network.to(self._device)
                     self._parallel_network.to(self._device)
             count = 0
+
+            load_time_list = []
+            para_net_time_list = []
+            backward_time_list = []
+            step_time_list = []
+            batch_total_time_list = []
+
+            load_start_time = time.time()
+
+            batch_start_time = time.time()
             for i, data in enumerate(train_loader, start=1):
+                load_end_time = time.time()
+                load_time_list.append(np.round(load_end_time - load_start_time, 3))
+
                 inputs, targets = data
                 inputs = inputs.to(self._device, non_blocking=True)
                 targets = targets.to(self._device, non_blocking=True)
@@ -272,7 +286,12 @@ class IncModel(IncrementalLearner):
                 self._optimizer.zero_grad()
 
                 # outputs = self._parallel_network(inputs)
+
+                para_net_start_time = time.time()
                 outputs = self._parallel_network(inputs)
+                para_net_end_time = time.time()
+                para_net_time_list.append(np.round(para_net_end_time - para_net_start_time, 3))
+
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, self.train_save_option)
                 ce_loss, loss_aux = self._compute_loss(outputs, targets, nlosses, stslosses, losses)
                 # ce_loss, loss_aux, acc, acc_aux = \
@@ -294,12 +313,17 @@ class IncModel(IncrementalLearner):
                 #             print(a[x])
 
                 # print(total_loss)
+                backward_start_time = time.time()
                 total_loss.backward()
+                backward_end_time = time.time()
+                backward_time_list.append(np.round(backward_end_time - backward_start_time, 3))
 
                 # a = self._optimizer.param_groups[0]['params']
                 # print(a[0].grad)
-
+                step_start_time = time.time()
                 self._optimizer.step()
+                step_end_time = time.time()
+                step_time_list.append(np.round(step_end_time - step_start_time, 3))
 
                 if self._cfg["postprocessor"]["enable"]:
                     if self._cfg["postprocessor"]["type"].lower() == "wa":
@@ -311,6 +335,11 @@ class IncModel(IncrementalLearner):
                 _ce_loss += ce_loss
                 _total_loss += total_loss
                 count += 1
+
+                load_start_time = time.time()
+                batch_end_time = time.time()
+                batch_total_time_list.append(np.round(batch_end_time - batch_start_time, 3))
+                batch_start_time = time.time()
 
             _ce_loss = _ce_loss.item()
             _loss_aux = _loss_aux.item()
@@ -329,6 +358,23 @@ class IncModel(IncrementalLearner):
                     round(_loss_aux / i, 3),
                     round(acc.avg, 3),
                     round(acc_aux.avg, 3)
+                ))
+
+            self._logger.info(
+                "Task {}/{}, Epoch {}/{} => batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%".format(
+                    self._task + 1,
+                    self._n_tasks,
+                    epoch + 1,
+                    self._n_epochs,
+                    round(np.mean(batch_total_time_list), 3),
+                    round(np.mean(load_time_list), 3),
+                    round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                    round(np.mean(para_net_time_list), 3),
+                    round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                    round(np.mean(backward_time_list), 3),
+                    round(np.mean(backward_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                    round(np.mean(step_time_list), 3),
+                    round(np.mean(step_time_list) / np.mean(batch_total_time_list) * 100, 3),
                 ))
 
             if self._val_per_n_epoch > 0 and epoch % self._val_per_n_epoch == 0:
@@ -410,7 +456,7 @@ class IncModel(IncrementalLearner):
             loss = nloss + stsloss * 0
             losses.update(loss.item(), batch_size)
             # if stsloss < 0:
-                # print('stsloss: ', stsloss)
+            # print('stsloss: ', stsloss)
         else:
             output = outputs['output']
             aux_output = outputs['aux_logit']
@@ -560,7 +606,6 @@ class IncModel(IncrementalLearner):
                 # self._logger.info(inputs)
                 # self._logger.info(targets)
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, save_option)
-
 
         self._logger.info(f"Evaluation {name} acc: {acc.avg}, aux_acc: {acc_aux.avg}")
         # save accuracy and preds info into files

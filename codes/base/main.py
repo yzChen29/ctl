@@ -106,6 +106,7 @@ def _train(rank, cfg, world_size, logger=None):
                 "preds_aux_details": True
             })
 
+        if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
                 "acc_details": True,
                 "acc_aux_details": True,
