@@ -269,19 +269,31 @@ class IncModel(IncrementalLearner):
             backward_time_list = []
             step_time_list = []
             batch_total_time_list = []
+            test1_time_list = []  # to_device
+            test2_time_list = []  # cpu_gpu
 
             load_start_time = time.time()
 
             batch_start_time = time.time()
             for i, data in enumerate(train_loader, start=1):
                 load_end_time = time.time()
-                self.check_shm_usage('after_load_img')
-                self.check_cpu_info('after_load_img')
+
+                test2_start_time_1 = time.time()
+                if i % 50 == 1:
+                    self.check_shm_usage(f'ep{epoch}_ba{i}_after_load_img')
+                    self.check_cpu_info(f'ep{epoch}_ba{i}_after_load_img')
+                test2_end_time_1 = time.time()
+
                 load_time_list.append(np.round(load_end_time - load_start_time, 3))
+
+                test1_start_time = time.time()
 
                 inputs, targets = data
                 inputs = inputs.to(self._device, non_blocking=True)
                 targets = targets.to(self._device, non_blocking=True)
+
+                test1_end_time = time.time()
+                test1_time_list.append(np.round(test1_end_time - test1_start_time, 3))
 
                 # print(inputs)
                 # print(targets)
@@ -293,7 +305,12 @@ class IncModel(IncrementalLearner):
                 para_net_start_time = time.time()
                 outputs = self._parallel_network(inputs)
                 para_net_end_time = time.time()
-                self.check_gpu_info('after_para_net')
+
+                test2_start_time_2 = time.time()
+                if i % 50 == 1:
+                    self.check_gpu_info(f'ep{epoch}_ba{i}_after_para_net')
+                test2_end_time_2 = time.time()
+
                 para_net_time_list.append(np.round(para_net_end_time - para_net_start_time, 3))
 
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, self.train_save_option)
@@ -319,7 +336,13 @@ class IncModel(IncrementalLearner):
                 backward_start_time = time.time()
                 total_loss.backward()
                 backward_end_time = time.time()
-                self.check_gpu_info('after_backward')
+                test2_start_time_3 = time.time()
+                if i % 50 == 1:
+                    self.check_gpu_info(f'ep{epoch}_ba{i}_after_backward')
+                test2_end_time_3 = time.time()
+                test2_time_list.append(np.round(
+                    test2_start_time_1 - test2_end_time_1 + test2_start_time_2 - test2_end_time_2 + test2_start_time_3 - test2_end_time_3,
+                    3))
                 backward_time_list.append(np.round(backward_end_time - backward_start_time, 3))
 
                 # a = self._optimizer.param_groups[0]['params']
@@ -352,7 +375,7 @@ class IncModel(IncrementalLearner):
                 self._scheduler.step()
             self._logger.info(
                 "Task {}/{}, Epoch {}/{} => Clf Avg Total Loss: {}, Clf Avg CE Loss: {}, Avg Aux Loss: {}, "
-                "Avg Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%".format(
+                "Avg Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%, avg test1_time {}s —— {}%, avg test2_time {}s —— {}%".format(
                     self._task + 1,
                     self._n_tasks,
                     epoch + 1,
@@ -371,6 +394,11 @@ class IncModel(IncrementalLearner):
                     round(np.mean(backward_time_list) / np.mean(batch_total_time_list) * 100, 3),
                     round(np.mean(step_time_list), 3),
                     round(np.mean(step_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                    round(np.mean(test1_time_list), 3),
+                    round(np.mean(test1_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                    round(np.mean(test2_time_list), 3),
+                    round(np.mean(test2_time_list) / np.mean(batch_total_time_list) * 100, 3),
+
                 ))
 
             if self._val_per_n_epoch > 0 and epoch % self._val_per_n_epoch == 0:
@@ -838,7 +866,7 @@ class IncModel(IncrementalLearner):
                     f'shm at {pos_name} Total {device_info_ind[3]}, Use {device_info_ind[2]} —— {device_info_ind[4]}')
                 break
 
-    def check_cpu_info(self, pos_name, cpu_count=10):
+    def check_cpu_info(self, pos_name, cpu_count=4):
         process = os.popen('top -b -n 1')
         preprocessed = process.read()
         process.close()
@@ -847,7 +875,7 @@ class IncModel(IncrementalLearner):
         for ind in range(len(cpu_info)):
             device_info_ind = [i for i in cpu_info[ind].split(' ') if i != '']
             logger_mesg += f'CPU at {pos_name} PID {device_info_ind[0]}, Usage {device_info_ind[8]}%, Memory {
-            device_info_ind[9]}%'
+            device_info_ind[9]}%\t'
 
         self._logger.info(logger_mesg)
 
@@ -890,6 +918,9 @@ class IncModel(IncrementalLearner):
         logger_mesg = ''
         for i in range(len(gpus_info)):
             gpu_info_i = gpus_info[i]
-            logger_mesg += f"GPU {i} at {pos_name} Name {gpu_info_i['gpu_name']}, Usage {np.round(gpu_info_i['used'] / gpu_info_i['total'] * 100, 3)}%"
+            logger_mesg += f"GPU {i} at {pos_name} Name {gpu_info_i['gpu_name']}, Usage {np.round(
+                gpu_info_i['used'] / gpu_info_i['total'] * 100, 3)}%\n"
 
         self._logger.info(logger_mesg)
+
+

@@ -767,58 +767,61 @@ if __name__ == '__main__':
     taxonomy_tree = Tree('imagenet1000', data_name_hier_dict_100, data_label_index_dict)
 
     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
+    print(taxonomy_tree.nodes.get('carnivore'))
 
-    import pandas as pd
+    # import pandas as pd
+    #
+    # taxonomy_tree.show()
+    #
+    # task_order = class_order()
+    #
+    # data_label_index_dict_inv = {data_label_index_dict[i]:i for i in data_label_index_dict}
+    #
+    # prob_list =[153, 158, 185, 193, 212, 225, 246, 256, 264, 266, 268, 282, 298, 338, 342, 348, 356, 380]
+    #
+    #
+    # acc_csv = pd.read_csv('/Users/chenyuzhao/Downloads/_task_16-3.csv')
+    # avg_acc_list = list(acc_csv['avg_acc'][1:])
+    # class_index_list = list(acc_csv['class_index'][1:])
+    # count_list = list(acc_csv['count'][1:])
+    #
+    # acc_dict = {}
+    # for i in range(len(class_index_list)):
+    #     acc_dict[class_index_list[i]] = avg_acc_list[i]
+    #
+    # count_dict = {}
+    # for i in range(len(class_index_list)):
+    #     count_dict[class_index_list[i]] = count_list[i]
+    #
+    #
+    # res_list = []
+    # for i in prob_list:
+    #     for j in task_order:
+    #
+    #         if data_label_index_dict_inv[i] in j:
+    #             res_list.append(task_order.index(j))
+    #
+    # finest_dict = {}
+    # for i in range(len(task_order)):
+    #     for j in task_order[i]:
+    #         if j in taxonomy_tree.leaf_nodes.values():
+    #             if i not in finest_dict:
+    #                 finest_dict[i] = [j]
+    #             else:
+    #                 finest_dict[i].append(j)
+    #
+    # finest_acc_dict = {i: [acc_dict[str(data_label_index_dict[j])] for j in finest_dict[i]] for i in finest_dict}
+    #
+    #
+    # count_dict = {i: [count_dict[str(data_label_index_dict[j])] for j in finest_dict[i]] for i in finest_dict}
+    #
+    #
+    # for i in finest_acc_dict:
+    #     print(f'task {i+1}, with len {len(finest_acc_dict[i])}, mean {np.round(np.mean(finest_acc_dict[i]), 3)}, avg count {np.round(np.mean(count_dict[i]), 3)}')
+    #
+    # print(count_dict[10])
 
-    taxonomy_tree.show()
 
-    task_order = class_order()
-
-    data_label_index_dict_inv = {data_label_index_dict[i]:i for i in data_label_index_dict}
-
-    prob_list =[153, 158, 185, 193, 212, 225, 246, 256, 264, 266, 268, 282, 298, 338, 342, 348, 356, 380]
-
-
-    acc_csv = pd.read_csv('/Users/chenyuzhao/Downloads/_task_16-3.csv')
-    avg_acc_list = list(acc_csv['avg_acc'][1:])
-    class_index_list = list(acc_csv['class_index'][1:])
-    count_list = list(acc_csv['count'][1:])
-
-    acc_dict = {}
-    for i in range(len(class_index_list)):
-        acc_dict[class_index_list[i]] = avg_acc_list[i]
-
-    count_dict = {}
-    for i in range(len(class_index_list)):
-        count_dict[class_index_list[i]] = count_list[i]
-
-
-    res_list = []
-    for i in prob_list:
-        for j in task_order:
-
-            if data_label_index_dict_inv[i] in j:
-                res_list.append(task_order.index(j))
-
-    finest_dict = {}
-    for i in range(len(task_order)):
-        for j in task_order[i]:
-            if j in taxonomy_tree.leaf_nodes.values():
-                if i not in finest_dict:
-                    finest_dict[i] = [j]
-                else:
-                    finest_dict[i].append(j)
-
-    finest_acc_dict = {i: [acc_dict[str(data_label_index_dict[j])] for j in finest_dict[i]] for i in finest_dict}
-
-
-    count_dict = {i: [count_dict[str(data_label_index_dict[j])] for j in finest_dict[i]] for i in finest_dict}
-
-
-    for i in finest_acc_dict:
-        print(f'task {i+1}, with len {len(finest_acc_dict[i])}, mean {np.round(np.mean(finest_acc_dict[i]), 3)}, avg count {np.round(np.mean(count_dict[i]), 3)}')
-
-    print(count_dict[10])
     # print(finest_acc_dict)
 
 
