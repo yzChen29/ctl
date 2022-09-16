@@ -904,8 +904,8 @@ class IncModel(IncrementalLearner):
         logger_mesg = ''
         for ind in range(len(cpu_info)):
             device_info_ind = [i for i in cpu_info[ind].split(' ') if i != '']
-            logger_mesg += f'CPU at {pos_name} PID {device_info_ind[0]}, Usage {device_info_ind[8]}%, Memory {
-            device_info_ind[9]}%\t'
+            logger_mesg += f'CPU at {pos_name} PID {device_info_ind[0]}, Usage {device_info_ind[8]}%, '+ \
+                f'Memory {device_info_ind[9]}%\t'
 
         self._logger.info(logger_mesg)
 
@@ -948,8 +948,8 @@ class IncModel(IncrementalLearner):
         logger_mesg = ''
         for i in range(len(gpus_info)):
             gpu_info_i = gpus_info[i]
-            logger_mesg += f"GPU {i} at {pos_name} Name {gpu_info_i['gpu_name']}, Usage {np.round(
-                gpu_info_i['used'] / gpu_info_i['total'] * 100, 3)}%\n"
+            logger_mesg += f"GPU {i} at {pos_name} Name {gpu_info_i['gpu_name']}, " + \
+            f"Usage {np.round(gpu_info_i['used'] / gpu_info_i['total'] * 100, 3)}%\n"
 
         self._logger.info(logger_mesg)
 
