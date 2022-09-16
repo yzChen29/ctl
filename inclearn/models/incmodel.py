@@ -356,7 +356,7 @@ class IncModel(IncrementalLearner):
                 count += 1
 
 
-                batch_start_time = time.time()
+
                 check_cgpu_start_time_2 = time.time()
                 if self.check_cgpu_info and i % self.check_cgpu_batch_period == 1:
                     self.check_gpu_info(f'ep{epoch}_ba{i}_batch_final')
@@ -369,6 +369,7 @@ class IncModel(IncrementalLearner):
                 load_start_time = time.time()
                 batch_end_time = time.time()
                 batch_total_time_list.append(np.round(batch_end_time - batch_start_time, 3))
+                batch_start_time = time.time()
 
 
             _ce_loss = _ce_loss.item()
@@ -615,13 +616,13 @@ class IncModel(IncrementalLearner):
     def _compute_accuracy_by_netout(self, data_loader, name='default', save_path='', save_option=None):
         self._logger.info(f"Begin evaluation: {name}")
         factory.print_dataset_info(data_loader)
-
+        self._logger.info('eval point1 successful')
         acc = averageMeter()
         acc_5 = averageMeter()
         acc_aux = averageMeter()
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
-
+        self._logger.info('eval point2 successful')
         self._parallel_network.eval()
 
         batch_total_time_list = []
@@ -634,7 +635,7 @@ class IncModel(IncrementalLearner):
             batch_total_start_time = time.time()
             for i, (inputs, targets) in enumerate(data_loader):
                 load_end_time = time.time()
-                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 1:
+                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 0:
                     self.check_shm_usage(f'ev_ba{i}_after_load_img')
                     self.check_cpu_info(f'ev_ba{i}_after_load_img')
 
@@ -644,8 +645,12 @@ class IncModel(IncrementalLearner):
                 targets = targets.to(self._device, non_blocking=True)
                 to_device_end_time = time.time()
                 to_device_time_list.append(np.round(to_device_end_time - to_device_start_time, 3))
-
+                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 0:
+                    self._logger.info('eval point3 successful')
                 para_net_start_time = time.time()
+
+                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 0:
+                    self._logger.info('eval point4 successful')
                 outputs = self._parallel_network(inputs)
                 para_net_end_time = time.time()
 
@@ -657,7 +662,7 @@ class IncModel(IncrementalLearner):
                 batch_total_time_list.append(np.round(batch_total_end_time - batch_total_start_time, 3))
                 batch_total_start_time = time.time()
 
-                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 1:
+                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 0:
                     self.check_gpu_info(f'ev_ba{i}_batch_final')
 
         self._logger.info(f"Evaluation {name} acc: {acc.avg}, aux_acc: {acc_aux.avg}, batch_total_time {round(np.mean(batch_total_time_list), 3)}s, avg load_time {round(np.mean(load_time_list), 3)}s —— {round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— {round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time {round(np.mean(to_device_time_list), 3)}s —— {round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, ")
