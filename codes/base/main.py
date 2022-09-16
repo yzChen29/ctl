@@ -81,10 +81,10 @@ def _train(rank, cfg, world_size, logger=None):
         elif task_i == cfg['retrain_from_task']-1:
 
             if task_i == 0:
-                state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
+                state_dict = torch.load(f"result/{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
 
             else:
-                load_path = f"results/{cfg['exp']['load_model_name']}/train/ckpts"
+                load_path = f"result/{cfg['exp']['load_model_name']}/train/ckpts"
 
                 if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
                     state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')

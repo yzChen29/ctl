@@ -962,10 +962,8 @@ def imagenet1000_label_dict_index_trial3():
 
 
 # trial setting 1
-imagenet1000_label_dict_index = imagenet1000_label_dict_index_trial2
-
-
-# imagenet1000_label_dict_index = imagenet1000_label_dict_index_trial3
+# imagenet1000_label_dict_index = imagenet1000_label_dict_index_trial2
+imagenet1000_label_dict_index = imagenet1000_label_dict_index_trial3
 
 
 class iImageNet100(DataHandler):
@@ -1022,8 +1020,8 @@ class iImageNet100(DataHandler):
                          797, 129, 829, 837, 844, 847, 292, 282, 269, 380, 866, 875, 876, 880, 20, 340]
 
     # trial setting 2
-    index_list = index_list_trial2
-    #     index_list = index_list_trial3
+    # index_list = index_list_trial2
+    index_list = index_list_trial3
 
     # trial 2
     data_name_hier_dict_100_trial2 = {
@@ -1095,24 +1093,24 @@ class iImageNet100(DataHandler):
                                                 'unicycle': {}}}}
 
     # trial setting 3
-    data_name_hier_dict_100 = data_name_hier_dict_100_trial2
-    #     data_name_hier_dict_100 = data_name_hier_dict_100_trial3
+    # data_name_hier_dict_100 = data_name_hier_dict_100_trial2
+    data_name_hier_dict_100 = data_name_hier_dict_100_trial3
 
     data_label_index_dict = imagenet1000_label_dict_index()
 
     # trial setting 4
 
     # trial 2
-    data_label_index_dict['other_placentals'] = -400
-    data_label_index_dict['other_carnivores'] = -401
-    data_label_index_dict['other_canines'] = -402
-    data_label_index_dict['other_dogs'] = -403
-    data_label_index_dict['other_working_dog'] = -404
+    # data_label_index_dict['other_placentals'] = -400
+    # data_label_index_dict['other_carnivores'] = -401
+    # data_label_index_dict['other_canines'] = -402
+    # data_label_index_dict['other_dogs'] = -403
+    # data_label_index_dict['other_working_dog'] = -404
 
     # trial 3
-    #     data_label_index_dict['other_oscine'] = -450
-    #     data_label_index_dict['other_aquatic_bird'] = -451
-    #     data_label_index_dict['other_wheeled_vehicle'] = -452
+    data_label_index_dict['other_oscine'] = -450
+    data_label_index_dict['other_aquatic_bird'] = -451
+    data_label_index_dict['other_wheeled_vehicle'] = -452
 
     taxonomy_tree = Tree('imagenet1000', data_name_hier_dict_100, data_label_index_dict)
 
