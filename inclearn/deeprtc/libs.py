@@ -767,7 +767,9 @@ if __name__ == '__main__':
     taxonomy_tree = Tree('imagenet1000', data_name_hier_dict_100, data_label_index_dict)
 
     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
-    print(taxonomy_tree.nodes.get('carnivore'))
+    taxonomy_tree.show()
+
+
 
     # import pandas as pd
     #
