@@ -73,46 +73,54 @@ def _train(rank, cfg, world_size, logger=None):
     # for task_i in range(1):
         model.new_task()
         model.before_task(inc_dataset)
+        enforce_decouple = False
+
 
         if task_i >= cfg['retrain_from_task']:
             model.train_task()
-        else:
+        elif task_i == cfg['retrain_from_task']-1:
+
             if task_i == 0:
                 state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
-        # elif task_i >= 1:
-        # elif task_i == 19:
-        #     # state_dict = torch.load(f'~/srip22/codes/DER-ClassIL.pytorch/codes/base/ckpts/step{task_i}.ckpt')
-        #     state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/decouple_step{task_i}.ckpt")
-        #     model._parallel_network.load_state_dict(state_dict)
+
             else:
-                state_dict = torch.load(
-                    f"results/{cfg['exp']['load_model_name']}/train/ckpts/decouple_step{task_i}.ckpt")
+                load_path = f"results/{cfg['exp']['load_model_name']}/train/ckpts"
+
+                if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
+                    state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')
+                else:
+                    state_dict = torch.load(f'{load_path}/step{task_i}.ckpt')
+                    enforce_decouple = True
             model._parallel_network.load_state_dict(state_dict)
+        else:
+            print(f'passing task {task_i}')
 
-        if cfg['device'].type == 'cuda':
-            model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
-                "acc_details": True,
-                "acc_aux_details": True,
-                "preds_details": True,
-                "preds_aux_details": True
+        if task_i >= cfg['retrain_from_task'] - 1:
+
+            if cfg['device'].type == 'cuda':
+                model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
+                    "acc_details": True,
+                    "acc_aux_details": True,
+                    "preds_details": True,
+                    "preds_aux_details": True
+                })
+            model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
+
+            if cfg['device'].type == 'cuda':
+                model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
+                    "acc_details": True,
+                    "acc_aux_details": True,
+                    "preds_details": True,
+                    "preds_aux_details": True
             })
-        model.after_task(inc_dataset)
 
-        if cfg['device'].type == 'cuda':
-            model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
-                "acc_details": True,
-                "acc_aux_details": True,
-                "preds_details": True,
-                "preds_aux_details": True
-            })
-
-        # if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
-        #     model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
-        #         "acc_details": True,
-        #         "acc_aux_details": True,
-        #         "preds_details": True,
-        #         "preds_aux_details": True
-        #     })
+    #         if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
+    #             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
+    #                 "acc_details": True,
+    #                 "acc_aux_details": True,
+    #                 "preds_details": True,
+    #                 "preds_aux_details": True
+    #             })
 
 
 @ex.command
@@ -275,3 +283,4 @@ if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
     ex.add_config("./configs/default.yaml")
     ex.run_commandline()
+

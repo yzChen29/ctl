@@ -126,6 +126,8 @@ class IncModel(IncrementalLearner):
         # Save paths
         self.train_save_option = cfg['train_save_option']
         self.sp = cfg['sp']
+        self.check_cgpu_batch_period = self._cfg['check_cgpu_batch_period']
+        self.check_cgpu_info = self._cfg['check_cgpu_info']
 
     def eval(self):
         # self._parallel_network.eval()
@@ -279,14 +281,14 @@ class IncModel(IncrementalLearner):
                 load_end_time = time.time()
 
                 check_cgpu_start_time_1 = time.time()
-                if i % 10 == 1:
+
+                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 1:
                     self.check_shm_usage(f'ep{epoch}_ba{i}_after_load_img')
                     self.check_cpu_info(f'ep{epoch}_ba{i}_after_load_img')
+
                 check_cgpu_end_time_1 = time.time()
 
                 load_time_list.append(np.round(load_end_time - load_start_time, 3))
-                if i % 10 == 1:
-                    self.check_gpu_info(f'ep{epoch}_ba{i}_before_to_device')
                 to_device_start_time = time.time()
 
                 inputs, targets = data
@@ -294,9 +296,6 @@ class IncModel(IncrementalLearner):
                 targets = targets.to(self._device, non_blocking=True)
 
                 to_device_end_time = time.time()
-
-                if i % 10 == 1:
-                    self.check_gpu_info(f'ep{epoch}_ba{i}_after_to_device')
 
                 to_device_time_list.append(np.round(to_device_end_time - to_device_start_time, 3))
 
@@ -310,13 +309,6 @@ class IncModel(IncrementalLearner):
                 para_net_start_time = time.time()
                 outputs = self._parallel_network(inputs)
                 para_net_end_time = time.time()
-
-                check_cgpu_start_time_2 = time.time()
-                if i % 10 == 1:
-                    self.check_gpu_info(f'ep{epoch}_ba{i}_after_para_net')
-
-                check_cgpu_end_time_2 = time.time()
-
                 para_net_time_list.append(np.round(para_net_end_time - para_net_start_time, 3))
 
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, self.train_save_option)
@@ -339,16 +331,10 @@ class IncModel(IncrementalLearner):
                 #             print(x)
                 #             print(a[x])
                 # print(total_loss)
-                if i % 10 == 1:
-                    self.check_gpu_info(f'ep{epoch}_ba{i}_before_backward')
                 backward_start_time = time.time()
                 total_loss.backward()
                 backward_end_time = time.time()
-                check_cgpu_start_time_3 = time.time()
-                check_cgpu_end_time_3 = time.time()
-                check_cgpu_time_list.append(np.round(
-                    check_cgpu_start_time_1 - check_cgpu_end_time_1 + check_cgpu_start_time_2 - check_cgpu_end_time_2 + check_cgpu_start_time_3 - check_cgpu_end_time_3,
-                    3))
+
                 backward_time_list.append(np.round(backward_end_time - backward_start_time, 3))
 
                 # a = self._optimizer.param_groups[0]['params']
@@ -369,12 +355,21 @@ class IncModel(IncrementalLearner):
                 _total_loss += total_loss
                 count += 1
 
+
+                batch_start_time = time.time()
+                check_cgpu_start_time_2 = time.time()
+                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 1:
+                    self.check_gpu_info(f'ep{epoch}_ba{i}_batch_final')
+                check_cgpu_end_time_2 = time.time()
+
+                check_cgpu_time_list.append(np.round(
+                    check_cgpu_end_time_1 - check_cgpu_start_time_1 + check_cgpu_end_time_2 - check_cgpu_start_time_2,
+                    3))
+
                 load_start_time = time.time()
                 batch_end_time = time.time()
                 batch_total_time_list.append(np.round(batch_end_time - batch_start_time, 3))
-                batch_start_time = time.time()
-                if i % 10 == 1:
-                    self.check_gpu_info(f'ep{epoch}_ba{i}_batch_final')
+
 
             _ce_loss = _ce_loss.item()
             _loss_aux = _loss_aux.item()
@@ -530,18 +525,17 @@ class IncModel(IncrementalLearner):
                 aux_loss = torch.zeros([1])
         return aux_loss
 
-    def _after_task(self, inc_dataset):
+    def _after_task(self, inc_dataset, enforce_decouple=False):
         taski = self._task
         # network = deepcopy(self._parallel_network)
         network = deepcopy(self._parallel_network)
-        self.check_gpu_info('af_after_deepcopy1')
         network.eval()
         self._logger.info("save model")
         if taski >= self._train_from_task and taski in self._cfg["save_ckpt"]:
             # save_path = os.path.join(os.getcwd(), "ckpts")
             torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
 
-        if self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task:
+        if enforce_decouple or (self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task):
             if self._cfg["decouple"]["fullset"]:
                 train_loader = inc_dataset._get_loader(inc_dataset.data_inc, inc_dataset.targets_inc, mode="train")
             else:
@@ -568,9 +562,7 @@ class IncModel(IncrementalLearner):
                                 save_path=f"{self.sp['acc_detail']['train']}/task_{self._task}_decouple",
                                 index_map=self._inc_dataset.targets_all_unique)
             # network = deepcopy(self._parallel_network)
-            self.check_gpu_info('af_after_decouple')
             network = deepcopy(self._parallel_network)
-            self.check_gpu_info('af_after_deepcopy2')
             if taski in self._cfg["save_ckpt"]:
                 # save_path = os.path.join(os.getcwd(), "ckpts")
                 torch.save(network.cpu().state_dict(),
@@ -607,11 +599,9 @@ class IncModel(IncrementalLearner):
         # self._old_model = deepcopy(self._parallel_network)
         self._parallel_network.eval()
         self._old_model = deepcopy(self._parallel_network)
-        self.check_gpu_info('af_after_deepcopy3')
         self._old_model.module.freeze()
         del self._inc_dataset.shared_data_inc
         self._inc_dataset.shared_data_inc = None
-        self.check_gpu_info('af_after_del')
 
     def _eval_task(self, data_loader, save_path='', name='default', save_option=None):
         if self._infer_head == "softmax":
@@ -644,13 +634,11 @@ class IncModel(IncrementalLearner):
             batch_total_start_time = time.time()
             for i, (inputs, targets) in enumerate(data_loader):
                 load_end_time = time.time()
-                if i % 10 == 1:
+                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 1:
                     self.check_shm_usage(f'ev_ba{i}_after_load_img')
                     self.check_cpu_info(f'ev_ba{i}_after_load_img')
 
                 load_time_list.append(np.round(load_end_time - load_start_time, 3))
-                if i % 10 == 1:
-                    self.check_gpu_info(f'ev_ba{i}_before_to_device')
                 to_device_start_time = time.time()
                 inputs = inputs.to(self._device, non_blocking=True)
                 targets = targets.to(self._device, non_blocking=True)
@@ -669,7 +657,7 @@ class IncModel(IncrementalLearner):
                 batch_total_time_list.append(np.round(batch_total_end_time - batch_total_start_time, 3))
                 batch_total_start_time = time.time()
 
-                if i % 10 == 1:
+                if self.check_cgpu_info and i % self.check_cgpu_batch_period == 1:
                     self.check_gpu_info(f'ev_ba{i}_batch_final')
 
         self._logger.info(f"Evaluation {name} acc: {acc.avg}, aux_acc: {acc_aux.avg}, batch_total_time {round(np.mean(batch_total_time_list), 3)}s, avg load_time {round(np.mean(load_time_list), 3)}s —— {round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— {round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time {round(np.mean(to_device_time_list), 3)}s —— {round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, ")
@@ -731,6 +719,7 @@ class IncModel(IncrementalLearner):
 
     def build_exemplars(self, inc_dataset, coreset_strategy):
         save_path = self.sp['model'] + f'mem/mem_step{self._task}.ckpt'
+        save_path = save_path.replace(self._cfg['exp']['name'], self._cfg['exp']['load_model_name'])
         # save_path = os.path.join(os.getcwd(), f"ckpts/mem/mem_step{self._task}.ckpt")
         if self._cfg["load_mem"] and os.path.exists(save_path):
             memory_states = torch.load(save_path)
