@@ -81,10 +81,16 @@ def _train(rank, cfg, world_size, logger=None):
         elif task_i == cfg['retrain_from_task']-1:
 
             if task_i == 0:
-                state_dict = torch.load(f"result/{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
+#                 state_dict = torch.load(f"result/{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
+                state_dict = torch.load(f"{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
+
+
 
             else:
-                load_path = f"result/{cfg['exp']['load_model_name']}/train/ckpts"
+#                 load_path = f"result/{cfg['exp']['load_model_name']}/train/ckpts"
+                load_path = f"{cfg['exp']['load_model_name']}/train/ckpts"
+
+
 
                 if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
                     state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')
@@ -129,34 +135,43 @@ def _train(rank, cfg, world_size, logger=None):
 
 @ex.command
 def train(_run, _rnd, _seed):
-    print('before multiprocess')
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "29500"
-    cfg, ex.logger, tensorboard = initialization(_run.config, _seed, "train", _run._id)
-    ex.logger.info(cfg)
 
-    # adjust config
-    if cfg["device_auto_detect"]:
-        cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        factory.set_device(cfg)
-    if cfg["device"].type == 'cuda' and 'imagenet' in cfg["dataset"]:
-        cfg.data_folder = '/datasets'
-    else:
-        cfg.data_folder = osp.join(base_dir, "data")
+    try:
+        print('before multiprocess')
+        os.environ["MASTER_ADDR"] = "localhost"
+        os.environ["MASTER_PORT"] = "29500"
+        cfg, ex.logger, tensorboard = initialization(_run.config, _seed, "train", _run._id)
+        ex.logger.info(cfg)
 
-    start_time = time.time()
-    if cfg["is_distributed"]:
-        gpu_num = torch.cuda.device_count()
-        mp.spawn(_train, args=(cfg, gpu_num), nprocs=gpu_num, join=True)
-    else:
-        _train(0, cfg, 1, ex.logger)
+        # adjust config
+        if cfg["device_auto_detect"]:
+            cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            factory.set_device(cfg)
+        if cfg["device"].type == 'cuda' and 'imagenet' in cfg["dataset"]:
+            cfg.data_folder = '/datasets'
+        else:
+            cfg.data_folder = osp.join(base_dir, "data")
 
-    ex.logger.info("Training finished in {}s.".format(int(time.time() - start_time)))
-    with open('results/' + cfg["exp"]["name"] + '/delete_warning.txt', 'w') as dw:
-        dw.write('This is a fully conducted experiment without errors and interruptions. Please be careful as deleting'
-                 ' it may lose important data and results. See log file for configuration details.')
+        start_time = time.time()
+        if cfg["is_distributed"]:
+            gpu_num = torch.cuda.device_count()
+            mp.spawn(_train, args=(cfg, gpu_num), nprocs=gpu_num, join=True)
+        else:
+            _train(0, cfg, 1, ex.logger)
 
+        ex.logger.info("Training finished in {}s.".format(int(time.time() - start_time)))
+        with open('results/' + cfg["exp"]["name"] + '/delete_warning.txt', 'w') as dw:
+            dw.write('This is a fully conducted experiment without errors and interruptions. Please be careful as deleting'
+                     ' it may lose important data and results. See log file for configuration details.')
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc(file=open(
+            '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial3_DFS_seed500_retrain_from_task1/terminal_log.txt','a'))
+        print('Error Message', e)
+        print('\n\n\n\n')
+        raise('Error')
 
 # def _train(cfg, _run, exp):
 #     cfg["rank"] = 1
@@ -287,4 +302,5 @@ if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
     ex.add_config("./configs/default.yaml")
     ex.run_commandline()
+
 

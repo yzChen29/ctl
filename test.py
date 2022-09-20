@@ -77,4 +77,3 @@ while True:
             f.write(f'{i}\n')
 
     break
-

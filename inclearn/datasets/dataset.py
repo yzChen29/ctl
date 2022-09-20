@@ -1177,6 +1177,7 @@ class iImageNet100(DataHandler):
             ]
 
         elif trial_i == 3:
+            # trial setting 5
             # BFS
             # return [
             #     ['mammal', 'bird', 'device', 'container'],  # init
@@ -1246,6 +1247,7 @@ class iImageNet100(DataHandler):
                 ['streetcar', 'forklift', 'tank', 'tractor', 'recreational_vehicle'],  # self-propelled_vehicle
                 ['barrow', 'freight_car', 'jinrikisha', 'motor_scooter', 'unicycle'],  # other_wheeled_vehicle
             ]
+
 
 
 
