@@ -1,6 +1,6 @@
 exp:
   name: "ctl_rtc_imagenet100_trial2_seed500_2gpu_bs64"
-  load_model_name: 'ctl_rtc_imagenet100_trial2_seed500_2gpu_bs64'
+  load_model_name: '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial2_seed500_2gpu_bs64'
   debug: False
 
 # Model Cfg

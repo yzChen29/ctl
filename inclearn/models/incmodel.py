@@ -355,8 +355,6 @@ class IncModel(IncrementalLearner):
                 _total_loss += total_loss
                 count += 1
 
-
-
                 check_cgpu_start_time_2 = time.time()
                 if self.check_cgpu_info and i % self.check_cgpu_batch_period == 1:
                     self.check_gpu_info(f'ep{epoch}_ba{i}_batch_final')
@@ -370,7 +368,6 @@ class IncModel(IncrementalLearner):
                 batch_end_time = time.time()
                 batch_total_time_list.append(np.round(batch_end_time - batch_start_time, 3))
                 batch_start_time = time.time()
-
 
             _ce_loss = _ce_loss.item()
             _loss_aux = _loss_aux.item()
@@ -532,6 +529,7 @@ class IncModel(IncrementalLearner):
         network = deepcopy(self._parallel_network)
         network.eval()
         self._logger.info("save model")
+
         if taski >= self._train_from_task and taski in self._cfg["save_ckpt"]:
             # save_path = os.path.join(os.getcwd(), "ckpts")
             torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
@@ -578,7 +576,6 @@ class IncModel(IncrementalLearner):
 
         if self._cfg['memory_enable'] and self._memory_size.memsize != 0:
             self._logger.info("build memory")
-
             self.build_exemplars(inc_dataset, self._coreset_strategy)
 
             if self._cfg["save_mem"]:
@@ -665,7 +662,11 @@ class IncModel(IncrementalLearner):
                 if self.check_cgpu_info and i % self.check_cgpu_batch_period == 0:
                     self.check_gpu_info(f'ev_ba{i}_batch_final')
 
-        self._logger.info(f"Evaluation {name} acc: {acc.avg}, aux_acc: {acc_aux.avg}, batch_total_time {round(np.mean(batch_total_time_list), 3)}s, avg load_time {round(np.mean(load_time_list), 3)}s —— {round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— {round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time {round(np.mean(to_device_time_list), 3)}s —— {round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, ")
+        self._logger.info(f"Evaluation {name} acc: {acc.avg}, aux_acc: {acc_aux.avg}, " + \
+                          f"batch_total_time {round(np.mean(batch_total_time_list), 3)}s, avg load_time {round(np.mean(load_time_list), 3)}s —— " +
+                          f"{round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— " +
+                          f"{round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time " +
+                          f"{round(np.mean(to_device_time_list), 3)}s —— {round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, ")
         # save accuracy and preds info into files
         self.curr_acc_list = [acc]
         self.curr_acc_list_aux = [acc_aux]
@@ -724,8 +725,7 @@ class IncModel(IncrementalLearner):
 
     def build_exemplars(self, inc_dataset, coreset_strategy):
         save_path = self.sp['model'] + f'mem/mem_step{self._task}.ckpt'
-        save_path = save_path.replace(self._cfg['exp']['name'], self._cfg['exp']['load_model_name'])
-        # save_path = os.path.join(os.getcwd(), f"ckpts/mem/mem_step{self._task}.ckpt")
+        save_path = save_path.replace(self._cfg['exp']['name'], self._cfg['exp']['load_model_name'].split('/')[-1])
         if self._cfg["load_mem"] and os.path.exists(save_path):
             memory_states = torch.load(save_path)
             data_memory = memory_states['x']
@@ -909,8 +909,8 @@ class IncModel(IncrementalLearner):
         logger_mesg = ''
         for ind in range(len(cpu_info)):
             device_info_ind = [i for i in cpu_info[ind].split(' ') if i != '']
-            logger_mesg += f'CPU at {pos_name} PID {device_info_ind[0]}, Usage {device_info_ind[8]}%, '+ \
-                f'Memory {device_info_ind[9]}%\t'
+            logger_mesg += f'CPU at {pos_name} PID {device_info_ind[0]}, Usage {device_info_ind[8]}%, ' + \
+                           f'Memory {device_info_ind[9]}%\t'
 
         self._logger.info(logger_mesg)
 
@@ -954,8 +954,9 @@ class IncModel(IncrementalLearner):
         for i in range(len(gpus_info)):
             gpu_info_i = gpus_info[i]
             logger_mesg += f"GPU {i} at {pos_name} Name {gpu_info_i['gpu_name']}, " + \
-            f"Usage {np.round(gpu_info_i['used'] / gpu_info_i['total'] * 100, 3)}%\n"
+                           f"Usage {np.round(gpu_info_i['used'] / gpu_info_i['total'] * 100, 3)}%\n"
 
         self._logger.info(logger_mesg)
+
 
 

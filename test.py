@@ -1,79 +1,62 @@
 import os
-import time
 import datetime
+import time
 
 
-def check_shm_usage():
-    process = os.popen('df -h')
+
+def check_yaml(pod_name: object) -> object:
+    process = os.popen(f'kubectl get pod {pod_name} -o yaml')
     preprocessed = process.read()
     process.close()
+    return preprocessed
 
-    shm_info = preprocessed.split('\n')[1:-1]
-    for ind in range(len(shm_info)):
-        device_info_ind = [i for i in shm_info[ind].split(' ') if i != '']
-        if device_info_ind[-1] == '/dev/shm':
-            return int(device_info_ind[4][:-1])
+def check_desc(pod_name):
+    process = os.popen(f'kubectl describe pod {pod_name}')
+    preprocessed = process.read()
+    process.close()
+    return preprocessed
 
+def check_logs(pod_name):
+    process = os.popen(f'kubectl logs {pod_name}')
+    preprocessed = process.read()
+    process.close()
+    return preprocessed
 
-def check_dmesg():
-    process = os.popen('dmesg')
+def check_cpu_usage(pod_name):
+    process = os.popen(f'kubectl top pod {pod_name}')
     preprocessed = process.read()
     process.close()
     return preprocessed
 
 
-def while_loop(prev_flag):
-    if prev_flag != 0:
-        if check_shm_usage():
-            return prev_flag, _, _
-        else:
-            dmesg = check_dmesg()
-            return prev_flag + 1, dmesg, (datetime.datetime.now() - datetime.timedelta(hours=7)).strftime(
-                '%Y-%m-%d %H:%M:%S')
-
-    flag = True
-    while flag:
-        shm_num = check_shm_usage()
-        with open('./checking_time.txt', 'a') as f:
-            f.write(f"checking at {(datetime.datetime.now() - datetime.timedelta(hours=7)).strftime(
-                '%Y-%m-%d %H:%M:%S')}\t shm={shm_num}%\n")
-        print(f"checking at {(datetime.datetime.now() - datetime.timedelta(hours=7)).strftime(
-            '%Y-%m-%d %H:%M:%S')}\t shm={shm_num}%")
-
-        # checking groundtruth
-        flag = (shm_num != 0)
-        if not flag:
-            dmesg = check_dmesg()
-            return prev_flag + 1, dmesg, (datetime.datetime.now() - datetime.timedelta(hours=7)).strftime(
-                '%Y-%m-%d %H:%M:%S')
-        # checking period
-        time.sleep(60)
+pod_name = 'ctl-imagenet-8cpu-2gpu-64mem-pvc-datasets2-4-7d698488cc-vnjcn'
+save_path = f'/Users/chenyuzhao/Downloads/checking_pods/{pod_name}'
+task_name = 'ctl_rtc_imagenet100_trial2_seed500_2gpu_bs64_8num_wk'
 
 
 while True:
-    prev_flag = 0
-    prev_flag, prev_demesg1, time_1 = while_loop(prev_flag)
+
+    curr_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+
+    mesg = ''
+    mesg += f'pod_name: {pod_name}\n'
+    mesg += f'task_name: {task_name}\n'
+    mesg += f'checking_time: {curr_time}\n'
+    mesg += f'\n\n\ncheck_yaml\n'
+    mesg += check_yaml(pod_name)
+    mesg += '\n\n\ncheck_yaml\n'
+    mesg += check_desc(pod_name)
+    mesg += '\n\n\ncheck_yaml\n'
+    mesg += check_logs(pod_name)
+    mesg += '\n\n\ncheck_cpu_usage\n'
+    mesg += check_cpu_usage(pod_name)
+
+    with open(f'{save_path}/{curr_time}.txt', 'a') as f:
+        f.write(mesg)
+
+    print(f'finsh at {curr_time}')
+
+    if not check_yaml(pod_name):
+        break
+
     time.sleep(1200)
-    prev_flag, prev_demesg2, time_2 = while_loop(prev_flag)
-    if prev_flag == 1:
-        continue
-    time.sleep(1200)
-    prev_flag, prev_demesg3, time_3 = while_loop(prev_flag)
-
-    if prev_flag == 2:
-        continue
-
-    with open('./dmesg.txt', 'a') as f:
-
-        f.write(f'dmesg_1 at {time_1}\n')
-        for i in prev_demesg1.split('\n')[-50:]:
-            f.write(f'{i}\n')
-        f.write(f'\n\ndmesg_2 at {time_2}\n')
-        for i in prev_demesg2.split('\n')[-50:]:
-            f.write(f'{i}\n')
-
-        f.write(f'\n\ndmesg_3 at {time_3}\n')
-        for i in prev_demesg3.split('\n')[-50:]:
-            f.write(f'{i}\n')
-
-    break

@@ -22,8 +22,16 @@ def check_logs(pod_name):
     process.close()
     return preprocessed
 
-pod_name = 'ctl-imagenet-4cpu-1gpu-16mem-pvc-datasets2-3-67566c5654-bcd2s2'
+def check_cpu_usage(pod_name):
+    process = os.popen(f'kubectl top pod {pod_name}')
+    preprocessed = process.read()
+    process.close()
+    return preprocessed
+
+
+pod_name = 'ctl-imagenet-4cpu-1gpu-16mem-pvc-datasets2-3-67566c5654-bcd2s'
 save_path = f'/Users/chenyuzhao/Downloads/checking_pods/{pod_name}'
+task_name = 'ctl_rtc_imagenet100_trial3_DFS_seed500_retrain_from_task6'
 
 
 while True:
@@ -32,6 +40,7 @@ while True:
 
     mesg = ''
     mesg += f'pod_name: {pod_name}\n'
+    mesg += f'task_name: {task_name}\n'
     mesg += f'checking_time: {curr_time}\n'
     mesg += f'\n\n\ncheck_yaml\n'
     mesg += check_yaml(pod_name)
@@ -39,6 +48,8 @@ while True:
     mesg += check_desc(pod_name)
     mesg += '\n\n\ncheck_yaml\n'
     mesg += check_logs(pod_name)
+    mesg += '\n\n\ncheck_cpu_usage\n'
+    mesg += check_cpu_usage(pod_name)
 
     with open(f'{save_path}/{curr_time}.txt', 'a') as f:
         f.write(mesg)
@@ -48,4 +59,4 @@ while True:
     if not check_yaml(pod_name):
         break
 
-    time.sleep(1800)
+    time.sleep(1200)
