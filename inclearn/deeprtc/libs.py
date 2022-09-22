@@ -348,7 +348,7 @@ def partial_copy_dict(dict_full, name_list, key_order=None):
 
 
 if __name__ == '__main__':
-    def imagenet1000_label_dict_index():
+    def imagenet1000_label_dict_index_trial3():
         return {'physical_entity': -1, 'abstraction': -2, 'matter': -3, 'causal_agent': -4, 'object': -5, 'bubble': 971,
                 'communication': -6, 'food': -7, 'food_1': -8, 'substance': -9, 'person': -10, 'whole': -11,
                 'geological_formation': -12, 'traffic_light': 920, 'street_sign': 919, 'nutriment': -13,
@@ -668,108 +668,99 @@ if __name__ == '__main__':
                 'chesapeake_bay_retriever': 209, 'curly-coated_retriever': 206, 'standard_schnauzer': 198,
                 'miniature_schnauzer': 196, 'giant_schnauzer': 197, 'lakeland_terrier': 189, 'sealyham_terrier': 190,
                 'american_staffordshire_terrier': 180, 'staffordshire_bullterrier': 179, 'english_springer': 217,
-                'welsh_springer_spaniel': 218, 'sled_dog': -375}
+                'welsh_springer_spaniel': 218, 'sled_dog': -375, 'other_oscine': -450, 'other_aquatic_bird': -451,
+                'other_wheeled_vehicle': -452}
 
 
+    index_list_trial3 = [398, 146, 279, 414, 428, 438, 337, 100, 10, 464, 16, 138, 471, 378, 479, 480, 491, 293, 492,
+                         19, 513,
+                         519, 527, 274, 136, 561, 565, 368, 11, 99, 583, 338, 584, 333, 594, 351, 595, 344, 12, 379,
+                         276, 352,
+                         14, 17, 612, 13, 145, 618, 135, 291, 131, 18, 636, 637, 336, 268, 666, 670, 676, 683, 345, 694,
+                         695,
+                         86, 371, 84, 709, 283, 725, 728, 334, 739, 81, 746, 748, 85, 755, 757, 139, 82, 769, 771, 772,
+                         776,
+                         797, 129, 829, 837, 844, 847, 292, 282, 269, 380, 866, 875, 876, 880, 20, 340]
 
-    index_list = [
-        212, 250, 193, 217, 147, 387, 285, 350, 283, 286, 353, 334, 150, 249, 362, 246, 166, 218, 172, 177, 148,
-        357, 386, 178, 202, 194, 271, 229, 290, 175, 163, 191, 276, 299, 197, 380, 364, 339, 359, 251, 165, 157,
-        361, 179, 268, 233, 356, 266, 264, 225, 349, 335, 375, 282, 204, 352, 272, 187, 256, 294, 277, 174, 234,
-        351, 176, 280, 223, 154, 262, 203, 190, 370, 298, 384, 292, 170, 342, 241, 340, 348, 245, 365, 253, 288,
-        239, 153, 185, 158, 211, 192, 382, 224, 216, 284, 367, 228, 160, 152, 376, 338
-    ]
+    data_name_hier_dict_100_trial3 = {
+        'mammal': {'ungulate': {'hippopotamus': {}, 'ox': {}, 'hartebeest': {}, 'impala': {}, 'zebra': {}},
+                   'rodent': {'guinea_pig': {}, 'marmot': {}, 'porcupine': {}, 'hamster': {}, 'beaver': {}},
+                   'primate': {'titi': {}, 'capuchin': {}, 'howler_monkey': {}, 'patas': {}, 'gibbon': {}},
+                   'feline': {'tiger_cat': {}, 'tiger': {}, 'persian_cat': {}, 'cheetah': {}, 'lion': {}},
+                   'canine': {'hyena': {}, 'dhole': {}, 'mexican_hairless': {}, 'arctic_fox': {}, 'timber_wolf': {}}},
+        'bird': {'game_bird': {'ruffed_grouse': {}, 'peacock': {}, 'ptarmigan': {}, 'partridge': {}, 'quail': {}},
+                 'finch': {'goldfinch': {}, 'junco': {}, 'brambling': {}, 'indigo_bunting': {}, 'house_finch': {}},
+                 'wading_bird': {'bustard': {}, 'ruddy_turnstone': {}, 'little_blue_heron': {}, 'limpkin': {},
+                                 'spoonbill': {}},
+                 'other_oscine': {'bulbul': {}, 'jay': {}, 'magpie': {}, 'chickadee': {}, 'water_ouzel': {}},
+                 'other_aquatic_bird': {'goose': {}, 'black_swan': {}, 'european_gallinule': {}, 'king_penguin': {},
+                                        'albatross': {}}},
+        'device': {'instrument': {'sunglasses': {}, 'cannon': {}, 'rule': {}, 'radio_telescope': {}, 'guillotine': {}},
+                   'restraint': {'buckle': {}, 'padlock': {}, 'hair_slide': {}, 'safety_pin': {}, 'muzzle': {}},
+                   'mechanism': {'paddlewheel': {}, 'potters_wheel': {}, 'puck': {}, 'car_wheel': {}, 'switch': {}},
+                   'musical_instrument': {'harp': {}, 'sax': {}, 'trombone': {}, 'oboe': {}, 'cornet': {}},
+                   'machine': {'chain_saw': {}, 'cash_machine': {}, 'abacus': {}, 'harvester': {},
+                               'desktop_computer': {}}},
+        'container': {'vessel': {'mortar': {}, 'ladle': {}, 'tub': {}, 'pitcher': {}, 'beaker': {}},
+                      'box': {'safe': {}, 'pencil_box': {}, 'mailbox': {}, 'crate': {}, 'chest': {}},
+                      'bag': {'backpack': {}, 'sleeping_bag': {}, 'mailbag': {}, 'purse': {}, 'plastic_bag': {}},
+                      'self-propelled_vehicle': {'streetcar': {}, 'forklift': {}, 'tank': {}, 'tractor': {},
+                                                 'recreational_vehicle': {}},
+                      'other_wheeled_vehicle': {'barrow': {}, 'freight_car': {}, 'jinrikisha': {}, 'motor_scooter': {},
+                                                'unicycle': {}}}}
 
-    data_name_hier_dict_100 = {
-        'carnivore': {
-            'canine': {
-                'hunting_dog': {
-                    'sporting_dog': {'english_setter': {}, 'english_springer': {}, 'welsh_springer_spaniel': {},
-                                     'clumber': {}, 'vizsla': {}},
-                    'terrier': {'australian_terrier': {}, 'soft-coated_wheaten_terrier': {}, 'dandie_dinmont': {},
-                                'airedale': {}, 'giant_schnauzer': {}, 'staffordshire_bullterrier': {},
-                                'lhasa': {}, 'yorkshire_terrier': {}, 'west_highland_white_terrier': {},
-                                'sealyham_terrier': {}, 'norfolk_terrier': {}, 'cairn': {}},
-                    'hound': {'walker_hound': {}, 'whippet': {}, 'scottish_deerhound': {}, 'weimaraner': {},
-                              'otterhound': {}, 'bloodhound': {}, 'black-and-tan_coonhound': {},
-                              'norwegian_elkhound': {}, 'saluki': {}, 'irish_wolfhound': {}, 'afghan_hound': {}}
-                },
-                'working_dog': {
-                    'shepherd_dog': {'old_english_sheepdog': {}, 'bouvier_des_flandres': {}, 'malinois': {},
-                                     'groenendael': {}, 'rottweiler': {}, 'komondor': {}},
-                    'other_working_dog': {'siberian_husky': {}, 'malamute': {}, 'great_dane': {}, 'schipperke': {},
-                                          'entlebucher': {}, 'bernese_mountain_dog': {}, 'french_bulldog': {}}
-                },
-                'other_dogs': {'dalmatian': {}, 'papillon': {}, 'pekinese': {}, 'maltese_dog': {},
-                               'toy_terrier': {}, 'japanese_spaniel': {}, 'mexican_hairless': {},
-                               'miniature_poodle': {}, 'cardigan_1': {}, 'newfoundland': {},
-                               'brabancon_griffon': {}, 'basenji': {}},
+    imagenet1000_label_dict_index = imagenet1000_label_dict_index_trial3
+    index_list = index_list_trial3
+    data_name_hier_dict_100 = data_name_hier_dict_100_trial3
 
-                'other_canines': {'red_wolf': {}, 'coyote': {}, 'hyena': {}, 'red_fox': {}, 'grey_fox': {}}
-            },
-            'feline': {'egyptian_cat': {}, 'persian_cat': {}, 'tiger_cat': {}, 'siamese_cat': {}, 'cougar': {},
-                       'jaguar': {}, 'tiger': {}, 'leopard': {}},
-            'other_carnivores': {'badger': {}, 'mink': {}, 'black-footed_ferret': {}, 'skunk': {}, 'weasel': {},
-                                 'meerkat': {}, 'mongoose': {}, 'brown_bear': {}, 'lesser_panda': {}}
-        },
-        'primate': {'titi': {}, 'squirrel_monkey': {}, 'colobus': {}, 'guenon': {}, 'proboscis_monkey': {},
-                    'indri': {}, 'orangutan': {}, 'chimpanzee': {}},
-        'ungulate': {'ibex': {}, 'gazelle': {}, 'impala': {}, 'hartebeest': {}, 'bighorn': {}, 'ram': {},
-                     'wild_boar': {}, 'sorrel': {}, 'zebra': {}},
-        'other_placentals': {'grey_whale': {}, 'killer_whale': {}, 'sea_lion': {}, 'fox_squirrel': {},
-                             'guinea_pig': {}, 'porcupine': {}, 'three-toed_sloth': {}, 'african_elephant': {}},
-    }
-
+    data_label_index_dict = imagenet1000_label_dict_index()
+    data_label_index_dict['other_oscine'] = -450
+    data_label_index_dict['other_aquatic_bird'] = -451
+    data_label_index_dict['other_wheeled_vehicle'] = -452
 
     def class_order():
 
         return [
-                ['carnivore', 'primate', 'ungulate', 'other_placentals'],  # placental
-                ['canine', 'feline', 'other_carnivores'],  # carnivore
-                ['titi', 'squirrel_monkey', 'colobus', 'guenon', 'proboscis_monkey', 'indri', 'orangutan',
-                 'chimpanzee'],  # primate
-                # ungulate
-                ['ibex', 'gazelle', 'impala', 'hartebeest', 'bighorn', 'ram', 'wild_boar', 'sorrel', 'zebra'],
-                ['grey_whale', 'killer_whale', 'sea_lion', 'fox_squirrel', 'guinea_pig', 'porcupine',
-                 'three-toed_sloth', 'african_elephant'],  # other_placentals
-                ['hunting_dog', 'working_dog', 'other_dogs', 'other_canines'],  # canine
+                ['mammal', 'bird', 'device', 'container'],  # init
+                ['ungulate', 'rodent', 'primate', 'feline', 'canine'],  # mammal
+                ['game_bird', 'finch', 'wading_bird', 'other_oscine', 'other_aquatic_bird'],  # bird
+                ['instrument', 'restraint', 'mechanism', 'musical_instrument', 'machine'],  # device
+                ['vessel', 'box', 'bag', 'self-propelled_vehicle', 'other_wheeled_vehicle'],  # container
 
-                # feline
-                ['egyptian_cat', 'persian_cat', 'tiger_cat', 'siamese_cat', 'cougar', 'jaguar', 'tiger', 'leopard'],
-                ['badger', 'mink', 'black-footed_ferret', 'skunk', 'weasel', 'meerkat', 'mongoose', 'brown_bear',
-                 'lesser_panda'],  # other carnivores
-                ['sporting_dog', 'terrier', 'hound'],  # hunting_dog
-                ['shepherd_dog', 'other_working_dog'],  # working_dog
-                # other dogs
-                ['dalmatian', 'papillon', 'pekinese', 'maltese_dog', 'toy_terrier', 'japanese_spaniel',
-                 'mexican_hairless', 'miniature_poodle', 'cardigan_1', 'newfoundland', 'brabancon_griffon', 'basenji'],
-                ['red_wolf', 'coyote', 'hyena', 'red_fox', 'grey_fox'], # other canines
 
-                ['english_setter', 'english_springer', 'welsh_springer_spaniel', 'clumber', 'vizsla'],
-                ['australian_terrier', 'soft-coated_wheaten_terrier', 'dandie_dinmont', 'airedale', 'giant_schnauzer',
-                 'staffordshire_bullterrier', 'lhasa', 'yorkshire_terrier', 'west_highland_white_terrier',
-                 'sealyham_terrier', 'norfolk_terrier', 'cairn'],
-                ['walker_hound', 'whippet', 'scottish_deerhound', 'weimaraner', 'otterhound', 'bloodhound',
-                 'black-and-tan_coonhound', 'norwegian_elkhound', 'saluki', 'irish_wolfhound', 'afghan_hound'],
-                ['old_english_sheepdog', 'bouvier_des_flandres', 'malinois', 'groenendael', 'rottweiler', 'komondor'],
-                ['siberian_husky', 'malamute', 'great_dane', 'schipperke', 'entlebucher', 'bernese_mountain_dog',
-                 'french_bulldog']
+                ['hippopotamus', 'ox', 'hartebeest', 'impala', 'zebra'],  # ungulate
+                ['guinea_pig', 'marmot', 'porcupine', 'hamster', 'beaver'],  # rodent
+                ['titi', 'capuchin', 'howler_monkey', 'patas', 'gibbon'],  # primate
+                ['tiger_cat', 'tiger', 'persian_cat', 'cheetah', 'lion'],  # feline
+                ['hyena', 'dhole', 'mexican_hairless', 'arctic_fox', 'timber_wolf'],  # canine
+                ['ruffed_grouse', 'peacock', 'ptarmigan', 'partridge', 'quail'],  # game_bird
+                ['goldfinch', 'junco', 'brambling', 'indigo_bunting', 'house_finch'],  # finch
+                ['bustard', 'ruddy_turnstone', 'little_blue_heron', 'limpkin', 'spoonbill'],  # wading_bird
+                ['bulbul', 'jay', 'magpie', 'chickadee', 'water_ouzel'],  # other_oscine
+                ['goose', 'black_swan', 'european_gallinule', 'king_penguin', 'albatross'],  # other_aquatic_bird
+                ['sunglasses', 'cannon', 'rule', 'radio_telescope', 'guillotine'],  # instrument
+                ['buckle', 'padlock', 'hair_slide', 'safety_pin', 'muzzle'],  # restraint
+                ['paddlewheel', 'potters_wheel', 'puck', 'car_wheel', 'switch'],  # mechanism
+                ['harp', 'sax', 'trombone', 'oboe', 'cornet'],  # musical_instrument
+                ['chain_saw', 'cash_machine', 'abacus', 'harvester', 'desktop_computer'],  # machine
+                ['mortar', 'ladle', 'tub', 'pitcher', 'beaker'],  # vessel
+
+
+                ['safe', 'pencil_box', 'mailbox', 'crate', 'chest'],  # box
+                ['backpack', 'sleeping_bag', 'mailbag', 'purse', 'plastic_bag'],  # bag
+                ['streetcar', 'forklift', 'tank', 'tractor', 'recreational_vehicle'],  # self-propelled_vehicle
+                ['barrow', 'freight_car', 'jinrikisha', 'motor_scooter', 'unicycle'],  # other_wheeled_vehicle
             ]
 
 
 
+
     data_label_index_dict = imagenet1000_label_dict_index()
-    data_label_index_dict['other_placentals'] = -400
-    data_label_index_dict['other_carnivores'] = -401
-    data_label_index_dict['other_canines'] = -402
-    data_label_index_dict['other_dogs'] = -403
     data_label_index_dict['other_working_dog'] = -404
     taxonomy_tree = Tree('imagenet1000', data_name_hier_dict_100, data_label_index_dict)
 
     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
     taxonomy_tree.show()
-
-
 
     # import pandas as pd
     #
