@@ -57,6 +57,7 @@ class IncrementalDataset:
         self.n_tot_cls = -1
         # datasets is the object
         dataset_class = get_dataset(dataset_name)
+
         self._setup_data(dataset_class)
 
         # Currently, don't support multiple datasets

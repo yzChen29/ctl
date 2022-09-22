@@ -1083,35 +1083,7 @@ class iImageNet100(DataHandler):
                       'other_wheeled_vehicle': {'barrow': {}, 'freight_car': {}, 'jinrikisha': {}, 'motor_scooter': {},
                                                 'unicycle': {}}}}
 
-    #     # trial setting 1
-    #     # imagenet1000_label_dict_index = imagenet1000_label_dict_index_trial2
-    #     imagenet1000_label_dict_index = imagenet1000_label_dict_index_trial3
-
-    #     # trial setting 2
-    #     # index_list = index_list_trial2
-    #     index_list = index_list_trial3
-
-    #     # trial setting 3
-    #     # data_name_hier_dict_100 = data_name_hier_dict_100_trial2
-    #     data_name_hier_dict_100 = data_name_hier_dict_100_trial3
-
-    #     data_label_index_dict = imagenet1000_label_dict_index()
-
-    #     # trial setting 4
-
-    #     # trial 2
-    #     # data_label_index_dict['other_placentals'] = -400
-    #     # data_label_index_dict['other_carnivores'] = -401
-    #     # data_label_index_dict['other_canines'] = -402
-    #     # data_label_index_dict['other_dogs'] = -403
-    #     # data_label_index_dict['other_working_dog'] = -404
-
-    #     # trial 3
-    #     data_label_index_dict['other_oscine'] = -450
-    #     data_label_index_dict['other_aquatic_bird'] = -451
-    #     data_label_index_dict['other_wheeled_vehicle'] = -452
-
-    #     trial_setting
+    # trial setting 1
 
     trial_setting = 'trial_3_BFS'  # ['trial_3_BFS', 'trial_3_DFS', 'trial_2']
 
@@ -1202,7 +1174,8 @@ class iImageNet100(DataHandler):
             ]
 
         elif trial_i == 3:
-            # trial setting 5
+            # trial setting 2
+            trial_setting = 'trial_3_BFS'       # ['trial_3_BFS', 'trial_3_DFS']
 
             if trial_setting == 'trial_3_BFS':
                 # BFS
