@@ -31,7 +31,7 @@ def check_cpu_usage(pod_name):
 
 pod_name = 'ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-5-db4cddccc-9cw95'
 save_path = f'/Users/chenyuzhao/Downloads/checking_pods/{pod_name}'
-task_name = 'ctl_rtc_imagenet100_trial3_BFS_seed500_retrain_from_task21_2'
+task_name = 'ctl_rtc_imagenet100_trial3_DFS_seed600'
 
 
 while True:
