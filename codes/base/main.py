@@ -161,7 +161,7 @@ def train(_run, _rnd, _seed):
             _train(0, cfg, 1, ex.logger)
 
         ex.logger.info("Training finished in {}s.".format(int(time.time() - start_time)))
-        with open('results/' + cfg["exp"]["name"] + '/delete_warning.txt', 'w') as dw:
+        with open(cfg["exp"]["name"] + '/delete_warning.txt', 'a') as dw:
             dw.write('This is a fully conducted experiment without errors and interruptions. Please be careful as deleting'
                      ' it may lose important data and results. See log file for configuration details.')
 

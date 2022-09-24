@@ -1,7 +1,8 @@
-# cfg_check_0
+# for cifar100
+
 exp:
-  name: "ctl_rtc_imagenet100_trial3_test"
-  load_model_name: ''
+  name: "ctl_rtc_imagenet100_trial3_BFS_seed500"
+  load_model_name: '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial3_BFS_seed500_retrain_from_task21'
   debug: False
 
 
@@ -10,10 +11,10 @@ exp:
 # cfg_check_1
 # sample_rate & epoch
 sample_rate: 0.3    # 0.3 or 0.001
-epochs: 2             # 170 or 2
+epochs: 170             # 170 or 2
 decouple:
   enable: True
-  epochs: 2          # 50 or 2
+  epochs: 50           # 50 or 2
   fullset: False
   lr: 0.05            # 0.05 or 0.025
   scheduling:

@@ -1,3 +1,5 @@
+# for cifar100
+
 exp:
   name: "ctl_rtc_imagenet100_trial3_BFS_seed500_retrain_from_task21_3"
   load_model_name: '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial3_BFS_seed500_retrain_from_task21'

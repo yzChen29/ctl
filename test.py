@@ -29,9 +29,9 @@ def check_cpu_usage(pod_name):
     return preprocessed
 
 
-pod_name = 'ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-3-f7ccd4d47-g7kcc'
+pod_name = 'ctl-imagenet-4cpu-1gpu-24mem-pvc-datasets2-2-586b75cb5c-2hzdc'
 save_path = f'/Users/chenyuzhao/Downloads/checking_pods/{pod_name}'
-task_name = 'ctl_rtc_imagenet100_trial3_BFS_seed600'
+task_name = 'ZH_using_DER'
 
 
 while True:
