@@ -111,7 +111,12 @@ def _train(rank, cfg, world_size, logger=None):
                     "preds_aux_details": True
                 })
 
-
+        model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
+            "acc_details": True,
+            "acc_aux_details": True,
+            "preds_details": True,
+            "preds_aux_details": True
+        })
         model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
 
         if task_i >= cfg['retrain_from_task'] - 1:
@@ -168,7 +173,7 @@ def train(_run, _rnd, _seed):
     except Exception as e:
         import traceback
         traceback.print_exc(file=open(
-            '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial3_DFS_seed500_retrain_from_task1/terminal_log.txt','a'))
+            '/datasets/imagenet100_results/terminal_log.txt','a'))
         print('Error Message', e)
         print('\n\n\n\n')
         raise('Error')
