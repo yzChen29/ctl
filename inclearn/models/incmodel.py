@@ -435,7 +435,7 @@ class IncModel(IncrementalLearner):
         self.record_accuracy(output, targets_0, acc, acc_5)
         # record to self.curr_acc_list
         if save_option["acc_details"]:
-            self.record_acc_details(output, targets, targets_0, acc)
+            self.record_acc_details(output, targets, targets_0, acc, acc_5)
         if save_option["preds_details"]:
             self.curr_preds = torch.cat((self.curr_preds, output), 0)
             self.curr_targets = torch.cat((self.curr_targets, targets), 0)
@@ -843,16 +843,12 @@ class IncModel(IncrementalLearner):
     def record_accuracy(output, targets, acc, acc_5=None):
         iscorrect = (output.argmax(1) == targets)
         acc.update(float(iscorrect.count_nonzero() / iscorrect.size(0)), iscorrect.size(0))
-        # if acc_5 is not None:
-        #     preds_sort = output.argsort(1)
-        #     ind_range = min(output.size(1), 5)
-        #     iscorrect_5 = torch.zeros(size=preds_sort[:, 0].size())
-        #     for x in range(ind_range):
-        #         pred = preds_sort[:, x]
-        #         iscorrect_5 = torch.logical_or(iscorrect_5, pred == targets)
-        #     acc_5.update(float(iscorrect_5.count_nonzero() / iscorrect_5.size(0)), iscorrect_5.size(0))
+        if acc_5 is not None:
+            _, pred = output.topk(max((1,5)), 1, True, True)
+            iscorrect_5 = (pred == targets.view(-1,1)).sum(1).bool()
+            acc_5.update(float(iscorrect_5.count_nonzero() / iscorrect_5.size(0)), iscorrect_5.size(0))
 
-    def record_acc_details(self, output, targets, targets_0, acc):
+    def record_acc_details(self, output, targets, targets_0, acc, acc_5=None):
         # targets is the real label
         # targets_0 is the re-indexed label that starts from 0, it still can be the same with targets
         max_z = torch.max(output, dim=1)[0]
@@ -861,6 +857,17 @@ class IncModel(IncrementalLearner):
         acc_update_info = self.update_acc_detail(list(np.array(targets.cpu())), list(np.array(iscorrect.cpu())),
                                                  list((np.sum(np.array(preds.cpu()), 1) > 1) * 1))
         acc.update_detail(acc_update_info)
+
+        if acc_5 is not None:
+            pred_num, pred = output.topk(max((1,5)), 1, True, True)
+            iscorrect_5 = (pred == targets.view(-1,1)).sum(1).bool()
+            preds = torch.eq(output,  pred_num[:, -1].view(-1, 1))
+            acc_update_info_5 = self.update_acc_detail(list(np.array(targets.cpu())), list(np.array(iscorrect_5.cpu())),
+                                                     list((np.sum(np.array(preds.cpu()), 1) > 1) * 1))
+
+            acc_5.update_detail(acc_update_info_5)
+
+
 
     def save_preds_details(self, output, targets, save_path):
         # TODO: fix the output!
