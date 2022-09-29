@@ -722,6 +722,7 @@ if __name__ == '__main__':
 
         return [
                 ['mammal', 'bird', 'device', 'container'],  # init
+
                 ['ungulate', 'rodent', 'primate', 'feline', 'canine'],  # mammal
                 ['game_bird', 'finch', 'wading_bird', 'other_oscine', 'other_aquatic_bird'],  # bird
                 ['instrument', 'restraint', 'mechanism', 'musical_instrument', 'machine'],  # device
@@ -744,8 +745,6 @@ if __name__ == '__main__':
                 ['harp', 'sax', 'trombone', 'oboe', 'cornet'],  # musical_instrument
                 ['chain_saw', 'cash_machine', 'abacus', 'harvester', 'desktop_computer'],  # machine
                 ['mortar', 'ladle', 'tub', 'pitcher', 'beaker'],  # vessel
-
-
                 ['safe', 'pencil_box', 'mailbox', 'crate', 'chest'],  # box
                 ['backpack', 'sleeping_bag', 'mailbag', 'purse', 'plastic_bag'],  # bag
                 ['streetcar', 'forklift', 'tank', 'tractor', 'recreational_vehicle'],  # self-propelled_vehicle
@@ -760,7 +759,31 @@ if __name__ == '__main__':
     taxonomy_tree = Tree('imagenet1000', data_name_hier_dict_100, data_label_index_dict)
 
     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
-    taxonomy_tree.show()
+    # taxonomy_tree.show()
+    import pandas as pd
+
+    data_label_index_dict_inv = {data_label_index_dict[i]:i for i in data_label_index_dict}
+    df_total = pd.read_csv('/Users/chenyuzhao/Downloads/imagenet100_trial3_acc_total.csv')
+    class_index = list(df_total['class_index'])
+    BFS_diff = list(df_total['BFS_DER_diff'])
+    DFS_diff = list(df_total['DFS_DER_diff'])
+    stat_dict = {}
+    class_to_check = []
+    for i in range(len(class_index)):
+        stat_dict[class_index[i]] = [BFS_diff[i], DFS_diff[i]]
+    for i in stat_dict:
+        if stat_dict[i][0] <-0.1 and stat_dict[i][1] <-0.1:
+            class_to_check.append(i)
+    # class_to_check = [283, 464, 471, 480, 527, 561, 594, 636, 670, 676, 683, 694, 725, 739, 748, 769, 772, 844, 875]
+    name_list = [data_label_index_dict_inv[i] for i in class_to_check]
+    node_label_list = [taxonomy_tree.nodes.get(i).label_index for i in name_list]
+
+    parent_list = taxonomy_tree.get_parent_n_layer(node_label_list, 1)
+
+    print(class_to_check)
+    print(name_list)
+    print(parent_list)
+    print({i: parent_list[0].count(i) for i in set(parent_list[0])})
 
     # import pandas as pd
     #

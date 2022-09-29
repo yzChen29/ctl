@@ -10,11 +10,11 @@ exp:
 
 # cfg_check_1
 # sample_rate & epoch
-sample_rate: 0.001    # 0.3 or 0.001
-epochs: 2          # 220 or 2
+sample_rate: 0.03    # 0.3 or 0.001
+epochs: 2            # 220 or 2
 decouple:
   enable: True
-  epochs: 2           # 30 or 2
+  epochs: 2          # 30 or 2
   fullset: False
   lr: 0.1            # 0.1 or 0.05
   scheduling:
@@ -33,12 +33,12 @@ load_mem: False       # False or True
 # change seed & dataset
 seed: 500              # 500 or 600 or 1993
 dataset: "cifar100" # 'imagenet100' or 'cifar100'
-trial: 5           # 3 or 2
+trial: 5              # 3 or 2
 # check datasets.py trial2 / trial3 BFS / DFS
 
 
 # check cgpu_using
-check_cgpu_info: Fales
+check_cgpu_info: False
 check_cgpu_batch_period: 30
 
 # cfg_check_4
