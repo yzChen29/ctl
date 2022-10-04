@@ -20,6 +20,7 @@ last_relu: False
 der: True
 use_aux_cls: True
 aux_n+1: True
+use_joint_ce_loss: True
 distillation: "none"
 temperature: 2
 

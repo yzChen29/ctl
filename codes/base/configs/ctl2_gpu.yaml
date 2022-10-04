@@ -1,7 +1,7 @@
 # for imagenet100
 
 exp:
-  name: "ctl_rtc_imagenet100_trial3_BFS_seed500"
+  name: "ctl_rtc_imagenet100_trial3_BFS_seed500_with_imagenet100_config"
   load_model_name: '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial3_BFS_seed500_retrain_from_task21'
   debug: False
 
@@ -25,6 +25,7 @@ decouple:
 
 # cfg_check_2
 # load_prev_model eg. has ckpts/ (decouple_)step13 then set retrain_from_task: 14
+use_joint_ce_loss: True
 retrain_from_task: 0  # 0 or n
 save_mem: True
 load_mem: False       # False or True
@@ -38,7 +39,7 @@ trial: 3               # 3 or 2
 
 
 # check cgpu_using
-check_cgpu_info: True
+check_cgpu_info: False
 check_cgpu_batch_period: 30
 
 # cfg_check_4
@@ -80,6 +81,7 @@ last_relu: False
 der: True
 use_aux_cls: True
 aux_n+1: True
+#use_joint_ce_loss: True
 distillation: "none"
 temperature: 2
 
