@@ -419,7 +419,7 @@ class IncModel(IncrementalLearner):
                     avg_detail_dict['coarse_avg'],
                     avg_detail_dict['coarse_count'],
                     self._cfg['acc_k'],
-                    round(avg_detail_dict_topk['total_avg'], 3),
+                    avg_detail_dict_topk['total_avg'],
                     round(acc_aux.avg, 3),
                     round(np.mean(batch_total_time_list), 3),
                     round(np.mean(load_time_list), 3),

@@ -73,4 +73,4 @@ class averageMeter(object):
         else:
             finest_avg = None
 
-        return {'total_avg': self.avg, 'finest_avg': finest_avg, 'coarse_avg': coarse_avg, 'finest_count': len(finest_name_list), 'coarse_count': len(coarse_name_list)}
+        return {'total_avg': round(self.avg, 3), 'finest_avg': finest_avg, 'coarse_avg': coarse_avg, 'finest_count': len(finest_name_list), 'coarse_count': len(coarse_name_list)}

@@ -11,8 +11,8 @@ exp:
 # cfg_check_1
 # sample_rate & epoch
 #sample_rate: 0.3     # 0.3 or 0.001
-sample_rate_c1: 0.3   # 0.3
-sample_rate_c2: 0.21  # 0.21
+sample_rate_c1: 0.3   # 0.3 or 0.001
+sample_rate_c2: 0.21  # 0.21 or 0.001
 epochs: 220           # 220 or 2
 decouple:
   enable: True
@@ -37,13 +37,13 @@ load_mem: False       # False or True
 seed: 500              # 500 or 600 or 1993
 dataset: "imagenet100" # 'imagenet100' or 'cifar100'
 trial: 3               # 3 or 2
-acc_k: 5               # record top k acc   =0 then no res
+acc_k: 0               # record top k acc   =0 then no res
 
 # check datasets.py trial2 / trial3 BFS / DFS
 
 
 # check cgpu_using
-check_cgpu_info: False
+check_cgpu_info: True
 check_cgpu_batch_period: 30
 
 # cfg_check_4
