@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-target_csv_path = '/Users/chenyuzhao/Downloads/imagenet100_trial3_DFS_seed500_reuslt/eval_after_decouple_from_task13/_task_24-2.csv'
+target_csv_path = '/Users/chenyuzhao/Downloads/_task_20-9.csv'
 df_target_csv = pd.read_csv(target_csv_path)
 
 class_name_list = list(df_target_csv['class_index'])[1:]

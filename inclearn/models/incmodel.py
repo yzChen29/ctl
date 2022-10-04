@@ -247,9 +247,10 @@ class IncModel(IncrementalLearner):
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
 
         for epoch in range(self._n_epochs):
-            _ce_loss, _loss_aux, _total_loss = 0.0, 0.0, 0.0
+            _ce_loss, _joint_ce_loss, _loss_aux, _total_loss = 0.0, 0.0, 0.0, 0.0
 
             nlosses = averageMeter()
+            jointcelosses = averageMeter()
             stslosses = averageMeter()
             losses = averageMeter()
             acc = averageMeter()
@@ -308,19 +309,34 @@ class IncModel(IncrementalLearner):
                 # outputs = self._parallel_network(inputs)
 
                 para_net_start_time = time.time()
-                outputs = self._parallel_network(inputs)
+                if self._task == 1 and epoch == 0 and i == 1:
+                    outputs = self._parallel_network(inputs)
+                else:
+                    outputs = self._parallel_network(inputs)
+
                 para_net_end_time = time.time()
                 para_net_time_list.append(np.round(para_net_end_time - para_net_start_time, 3))
 
                 self.record_details(outputs, targets, acc, acc_5, acc_aux, self.train_save_option)
-                ce_loss, loss_aux = self._compute_loss(outputs, targets, nlosses, stslosses, losses)
+                if self._task == 1 and epoch == 0 and i==1:
+                    joint_ce_loss, ce_loss, loss_aux = self._compute_loss(outputs, targets, nlosses, jointcelosses, stslosses, losses)
+                else:
+                    joint_ce_loss, ce_loss, loss_aux = self._compute_loss(outputs, targets, nlosses, jointcelosses, stslosses, losses)
+
                 # ce_loss, loss_aux, acc, acc_aux = \
                 #     self._forward_loss(inputs, targets, nlosses, stslosses, losses, acc, acc_aux)
+
 
                 if self._cfg["use_aux_cls"] and self._task > 0:
                     total_loss = ce_loss + loss_aux
                 else:
-                    total_loss = ce_loss
+                    total_loss = ce_loss + torch.tensor([0])
+
+                if self._cfg["use_joint_ce_loss"]:
+                    total_loss += joint_ce_loss
+
+
+
 
                 # if ce_loss < 0:
                 #     print('ce_loss: ', ce_loss)
@@ -353,6 +369,7 @@ class IncModel(IncrementalLearner):
                 # _loss += loss_ce
                 _loss_aux += loss_aux
                 _ce_loss += ce_loss
+                _joint_ce_loss += joint_ce_loss
                 _total_loss += total_loss
                 count += 1
 
@@ -371,27 +388,31 @@ class IncModel(IncrementalLearner):
                 batch_start_time = time.time()
 
             _ce_loss = _ce_loss.item()
+            _joint_ce_loss = _joint_ce_loss.item()
             _loss_aux = _loss_aux.item()
             _total_loss = _total_loss.item()
             if not self._warmup:
                 self._scheduler.step()
 
             avg_detail_dict = acc.get_avg_detail()
+            avg_detail_dict_top5 = acc_5.get_avg_detail()
             self._logger.info(
-                "Task {}/{}, Epoch {}/{} => Clf Avg Total Loss: {}, Clf Avg CE Loss: {}, Avg Aux Loss: {}, "
-                "Avg Total Acc: {}, Avg Finest Acc: {} with {} classes, Avg Coarse Acc: {} with {} classes, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%, avg to_device_time {}s —— {}%, avg check_cgpu_time {}s —— {}%".format(
+                "Task {}/{}, Epoch {}/{} => Avg Total Loss: {}, Avg CE Loss: {}, Avg Joint CE Loss: {}, Avg Aux Loss: {}, "
+                "Avg Total Acc: {}, Avg Finest Acc: {} with {} classes, Avg Coarse Acc: {} with {} classes, Avg_Top5 Total Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%, avg to_device_time {}s —— {}%, avg check_cgpu_time {}s —— {}%".format(
                     self._task + 1,
                     self._n_tasks,
                     epoch + 1,
                     self._n_epochs,
                     round(_total_loss / i, 3),
                     round(_ce_loss / i, 3),
+                    round(_joint_ce_loss / i, 3),
                     round(_loss_aux / i, 3),
                     round(avg_detail_dict['total_avg'], 3),
                     avg_detail_dict['finest_avg'],
                     avg_detail_dict['finest_count'],
                     avg_detail_dict['coarse_avg'],
                     avg_detail_dict['coarse_count'],
+                    round(avg_detail_dict_top5['total_avg'], 3),
                     round(acc_aux.avg, 3),
                     round(np.mean(batch_total_time_list), 3),
                     round(np.mean(load_time_list), 3),
@@ -469,17 +490,23 @@ class IncModel(IncrementalLearner):
         if save_option["preds_aux_details"]:
             self.save_preds_aux_details(self.curr_preds_aux, self.curr_targets_aux, preds_dir)
 
-    def _compute_loss(self, outputs, targets, nlosses, stslosses, losses):
+    def _compute_loss(self, outputs, targets, nlosses, jointcelosses, stslosses, losses):
         batch_size = targets.size(0)
         if self._cfg["taxonomy"] is not None:
+            targets_0 = tgt_to_tgt0(targets, self._network.leaf_id, self._device)
             output = outputs['output']
             aux_output = outputs['aux_logit']
             nout = outputs['nout']
             sfmx_base = outputs['sfmx_base']
             targets_0 = tgt_to_tgt0(targets, self._network.leaf_id, self._device)
             aux_loss = self._compute_aux_loss(targets, aux_output)
-
+            if self._cfg["use_joint_ce_loss"]:
+                joint_ce_loss = self._compute_joint_ce_loss(targets_0, output)
+                jointcelosses.update(joint_ce_loss.item(), batch_size)
+            else:
+                joint_ce_loss = torch.tensor([0])
             nloss = deep_rtc_nloss(nout, targets, self._network.leaf_id, self._network.node_labels, self._device)
+
             nlosses.update(nloss.item(), batch_size)
             # print(nloss)
 
@@ -499,7 +526,8 @@ class IncModel(IncrementalLearner):
             loss = torch.mean(criterion(output, targets_0.long()))
             losses.update(loss.item(), batch_size)
             aux_loss = self._compute_aux_loss(targets, aux_output)
-        return loss, aux_loss
+            joint_ce_loss = torch.tensor([0])
+        return joint_ce_loss, loss, aux_loss
 
     def update_acc_detail(self, leaf_id_index_list, pred, multi_pred_list):
         res_dict = {i: {'avg': 0, 'multi_rate': 0, 'sum': 0, 'count': 0, 'multi_num': 0} for i in leaf_id_index_list}
@@ -531,6 +559,10 @@ class IncModel(IncrementalLearner):
             else:
                 aux_loss = torch.zeros([1])
         return aux_loss
+
+    def _compute_joint_ce_loss(self, targets_0, output):
+        joint_ce_loss = torch.mean(F.cross_entropy(output, targets_0.long()))
+        return joint_ce_loss
 
     def _after_task(self, inc_dataset, enforce_decouple=False):
         taski = self._task
@@ -665,9 +697,11 @@ class IncModel(IncrementalLearner):
                     self.check_gpu_info(f'ev_ba{i}_batch_final')
 
         avg_detail_dict = acc.get_avg_detail()
+        avg_detail_dict_top5 = acc_5.get_avg_detail()
 
         self._logger.info(f"Evaluation {name}, avg total: {avg_detail_dict['total_avg']}, finest avg: {avg_detail_dict['finest_avg']} with {avg_detail_dict['finest_count']} classes, " + \
                           f"coarse avg: {avg_detail_dict['coarse_avg']} with {avg_detail_dict['coarse_count']} classes, " +\
+                          f"avg top5 total: {avg_detail_dict_top5['total_avg']}, " +\
                           f"aux_acc: {acc_aux.avg}, batch_total_time {round(np.mean(batch_total_time_list), 3)}s, avg load_time {round(np.mean(load_time_list), 3)}s —— " +
                           f"{round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— " +
                           f"{round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time " +

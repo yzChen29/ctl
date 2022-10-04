@@ -92,6 +92,6 @@ acc_summary_dict_all = {'DER': get_full_acc_list(DER_csv_file_path), 'BFS': get_
 plot_acc_list(acc_summary_dict_all, 844)
 
 csv_file_dict = {'DER':DER_csv_file_path, 'DFS':DFS_csv_file_path, 'BFS': BFS_csv_file_path}
-plot_full_avg_trend(csv_file_dict, type='finest', balance=False)
+plot_full_avg_trend(csv_file_dict, type='', balance=False)
 
 
