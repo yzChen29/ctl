@@ -10,8 +10,10 @@ exp:
 
 # cfg_check_1
 # sample_rate & epoch
-sample_rate: 0.3    # 0.3 or 0.001
-epochs: 220            # 220 or 2
+#sample_rate: 0.3     # 0.3 or 0.001
+sample_rate_c1: 0.3   # 0.3
+sample_rate_c2: 0.21  # 0.21
+epochs: 220           # 220 or 2
 decouple:
   enable: True
   epochs: 30           # 30 or 2

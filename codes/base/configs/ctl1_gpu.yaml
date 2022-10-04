@@ -50,7 +50,9 @@ epochs: 170
 resampling: False
 warmup: False
 warmup_epochs: 10
-sample_rate: 0.3
+#sample_rate: 0.3
+sample_rate_c1: 0.3   # 0.3
+sample_rate_c2: 0.21  # 0.21
 retrain_from_task: 0
 acc_k: 0               # record top k acc   =0 then no res
 

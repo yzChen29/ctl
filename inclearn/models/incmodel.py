@@ -333,7 +333,7 @@ class IncModel(IncrementalLearner):
                 if self._cfg["use_aux_cls"] and self._task > 0:
                     total_loss = ce_loss + loss_aux
                 else:
-                    total_loss = ce_loss + torch.tensor([0])
+                    total_loss = ce_loss + self._to_device(torch.tensor([0]))
 
                 if self._cfg["use_joint_ce_loss"]:
                     total_loss += joint_ce_loss
@@ -399,12 +399,12 @@ class IncModel(IncrementalLearner):
 
             avg_detail_dict = acc.get_avg_detail()
             if acc_k:
-                avg_detail_dict_top5 = acc_k.get_avg_detail()
+                avg_detail_dict_topk = acc_k.get_avg_detail()
             else:
-                avg_detail_dict_top5 = {'total_avg': None}
+                avg_detail_dict_topk = {'total_avg': None}
             self._logger.info(
                 "Task {}/{}, Epoch {}/{} => Avg Total Loss: {}, Avg CE Loss: {}, Avg Joint CE Loss: {}, Avg Aux Loss: {}, "
-                "Avg Total Acc: {}, Avg Finest Acc: {} with {} classes, Avg Coarse Acc: {} with {} classes, Avg_Top5 Total Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%, avg to_device_time {}s —— {}%, avg check_cgpu_time {}s —— {}%".format(
+                "Avg Total Acc: {}, Avg Finest Acc: {} with {} classes, Avg Coarse Acc: {} with {} classes, Avg_Top{} Total Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%, avg to_device_time {}s —— {}%, avg check_cgpu_time {}s —— {}%".format(
                     self._task + 1,
                     self._n_tasks,
                     epoch + 1,
@@ -418,7 +418,8 @@ class IncModel(IncrementalLearner):
                     avg_detail_dict['finest_count'],
                     avg_detail_dict['coarse_avg'],
                     avg_detail_dict['coarse_count'],
-                    round(avg_detail_dict_top5['total_avg'], 3),
+                    self._cfg['acc_k'],
+                    round(avg_detail_dict_topk['total_avg'], 3),
                     round(acc_aux.avg, 3),
                     round(np.mean(batch_total_time_list), 3),
                     round(np.mean(load_time_list), 3),
@@ -708,13 +709,13 @@ class IncModel(IncrementalLearner):
 
         avg_detail_dict = acc.get_avg_detail()
         if acc_k:
-            avg_detail_dict_top5 = acc_k.get_avg_detail()
+            avg_detail_dict_topk = acc_k.get_avg_detail()
         else:
-            avg_detail_dict_top5 = {'total_avg': None}
+            avg_detail_dict_topk = {'total_avg': None}
 
         self._logger.info(f"Evaluation {name}, avg total: {avg_detail_dict['total_avg']}, finest avg: {avg_detail_dict['finest_avg']} with {avg_detail_dict['finest_count']} classes, " + \
                           f"coarse avg: {avg_detail_dict['coarse_avg']} with {avg_detail_dict['coarse_count']} classes, " +\
-                          f"avg top5 total: {avg_detail_dict_top5['total_avg']}, " +\
+                          f"avg top{self._cfg['acc_k']} total: {avg_detail_dict_topk['total_avg']}, " +\
                           f"aux_acc: {acc_aux.avg}, batch_total_time {round(np.mean(batch_total_time_list), 3)}s, avg load_time {round(np.mean(load_time_list), 3)}s —— " +
                           f"{round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— " +
                           f"{round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time " +
@@ -922,12 +923,11 @@ class IncModel(IncrementalLearner):
              })
         df_aux.to_csv(f'{save_path}_task_{self._task}_aux.csv', index=False)
 
-    @staticmethod
-    def record_accuracy(output, targets, acc, acc_k=None):
+    def record_accuracy(self, output, targets, acc, acc_k=None):
         iscorrect = (output.argmax(1) == targets)
         acc.update(float(iscorrect.count_nonzero() / iscorrect.size(0)), iscorrect.size(0))
         if acc_k is not None:
-            _, pred = output.topk(max((1,5)), 1, True, True)
+            _, pred = output.topk(max((1, self._cfg['acc_k'])), 1, True, True)
             iscorrect_k = (pred == targets.view(-1,1)).sum(1).bool()
             acc_k.update(float(iscorrect_k.count_nonzero() / iscorrect_k.size(0)), iscorrect_k.size(0))
 
@@ -942,7 +942,7 @@ class IncModel(IncrementalLearner):
         acc.update_detail(acc_update_info)
 
         if acc_k is not None:
-            pred_num, pred = output.topk(max((1,5)), 1, True, True)
+            pred_num, pred = output.topk(max((1,self._cfg['acc_k'])), 1, True, True)
             iscorrect_k = (pred == targets_0.view(-1,1)).sum(1).bool()
             preds = torch.eq(output,  pred_num[:, -1].view(-1, 1))
             acc_update_info_k = self.update_acc_detail(list(np.array(targets.cpu())), list(np.array(iscorrect_k.cpu())),
