@@ -1,7 +1,7 @@
 # for cifar100
 
 exp:
-  name: "ctl_rtc_imagenet100_trial3_BFS_seed500"
+  name: "ctl_rtc_imagenet100_trial3_BFS_seed500_with_cifar_config"
   load_model_name: '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial3_BFS_seed500_retrain_from_task21'
   debug: False
 
@@ -10,7 +10,9 @@ exp:
 
 # cfg_check_1
 # sample_rate & epoch
-sample_rate: 0.3    # 0.3 or 0.001
+#sample_rate: 0.3     # 0.3 or 0.001
+sample_rate_c1: 0.3   # 0.3 or 0.001
+sample_rate_c2: 0.21  # 0.21 or 0.001
 epochs: 170             # 170 or 2
 decouple:
   enable: True
@@ -26,9 +28,11 @@ decouple:
 
 # cfg_check_2
 # load_prev_model eg. has ckpts/ (decouple_)step13 then set retrain_from_task: 14
+use_joint_ce_loss: True
 retrain_from_task: 0  # 0 or n
 save_mem: True
 load_mem: False       # False or True
+acc_k: 0               # record top k acc   =0 then no res
 
 # cfg_check_3
 # change seed & dataset

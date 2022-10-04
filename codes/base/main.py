@@ -119,7 +119,7 @@ def _train(rank, cfg, world_size, logger=None):
                 "preds_details": True,
                 "preds_aux_details": True
             })
-        
+
         model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
 
         if task_i >= cfg['retrain_from_task'] - 1:
