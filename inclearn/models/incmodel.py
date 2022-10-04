@@ -104,7 +104,7 @@ class IncModel(IncrementalLearner):
                 if not os.path.exists(save_path):
                     os.mkdir(save_path)
         self.curr_acc_list = []
-        self.curr_acc_list_5 = []
+        self.curr_acc_list_k = []
         self.curr_acc_list_aux = []
         self.curr_preds = torch.tensor([])
         self.curr_preds_aux = torch.tensor([])
@@ -242,7 +242,7 @@ class IncModel(IncrementalLearner):
         self._optimizer.zero_grad()
         self._optimizer.step()
 
-        acc_list, acc_list_5, acc_list_aux = [], [], []
+        acc_list, acc_list_k, acc_list_aux = [], [], []
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
 
@@ -254,7 +254,10 @@ class IncModel(IncrementalLearner):
             stslosses = averageMeter()
             losses = averageMeter()
             acc = averageMeter()
-            acc_5 = averageMeter()
+            if self._cfg['acc_k'] > 0:
+                acc_k = averageMeter()
+            else:
+                acc_k = None
             acc_aux = averageMeter()
 
             if self._warmup:
@@ -317,7 +320,7 @@ class IncModel(IncrementalLearner):
                 para_net_end_time = time.time()
                 para_net_time_list.append(np.round(para_net_end_time - para_net_start_time, 3))
 
-                self.record_details(outputs, targets, acc, acc_5, acc_aux, self.train_save_option)
+                self.record_details(outputs, targets, acc, acc_k, acc_aux, self.train_save_option)
                 if self._task == 1 and epoch == 0 and i==1:
                     joint_ce_loss, ce_loss, loss_aux = self._compute_loss(outputs, targets, nlosses, jointcelosses, stslosses, losses)
                 else:
@@ -395,7 +398,10 @@ class IncModel(IncrementalLearner):
                 self._scheduler.step()
 
             avg_detail_dict = acc.get_avg_detail()
-            avg_detail_dict_top5 = acc_5.get_avg_detail()
+            if acc_k:
+                avg_detail_dict_top5 = acc_k.get_avg_detail()
+            else:
+                avg_detail_dict_top5 = {'total_avg': None}
             self._logger.info(
                 "Task {}/{}, Epoch {}/{} => Avg Total Loss: {}, Avg CE Loss: {}, Avg Joint CE Loss: {}, Avg Aux Loss: {}, "
                 "Avg Total Acc: {}, Avg Finest Acc: {} with {} classes, Avg Coarse Acc: {} with {} classes, Avg_Top5 Total Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%, avg to_device_time {}s —— {}%, avg check_cgpu_time {}s —— {}%".format(
@@ -434,7 +440,7 @@ class IncModel(IncrementalLearner):
                 self.validate(val_loader)
 
             acc_list.append(acc)
-            acc_list_5.append(acc_5)
+            acc_list_k.append(acc_k)
             acc_list_aux.append(acc_aux)
 
         # For the large-scale dataset, we manage the data in the shared memory.
@@ -445,7 +451,7 @@ class IncModel(IncrementalLearner):
         self.curr_acc_list_aux = acc_list_aux
         self.save_details(self.sp['acc_detail']['train'], self.train_save_option)
 
-    def record_details(self, outputs, targets, acc, acc_5, acc_aux, save_option=None):
+    def record_details(self, outputs, targets, acc, acc_k, acc_aux, save_option=None):
         if self._cfg["taxonomy"] is not None:
             targets_0 = tgt_to_tgt0(targets, self._network.leaf_id, self._device)
         else:
@@ -455,10 +461,10 @@ class IncModel(IncrementalLearner):
         output = outputs['output']
         aux_output = outputs['aux_logit']
 
-        self.record_accuracy(output, targets_0, acc, acc_5)
+        self.record_accuracy(output, targets_0, acc, acc_k)
         # record to self.curr_acc_list
         if save_option["acc_details"]:
-            self.record_acc_details(output, targets, targets_0, acc, acc_5)
+            self.record_acc_details(output, targets, targets_0, acc, acc_k)
         if save_option["preds_details"]:
             self.curr_preds = torch.cat((self.curr_preds, output), 0)
             self.curr_targets = torch.cat((self.curr_targets, targets), 0)
@@ -466,9 +472,9 @@ class IncModel(IncrementalLearner):
         if aux_output is not None:
             cur_labels = self._inc_dataset.targets_cur_unique  # it should be sorted
             aux_targets = tgt_to_aux_tgt(targets, cur_labels, self._device)
-            self.record_accuracy(aux_output, aux_targets, acc_aux, acc_5=None)
+            self.record_accuracy(aux_output, aux_targets, acc_aux, acc_k=None)
             if save_option["acc_aux_details"]:
-                self.record_acc_details(aux_output, aux_targets, aux_targets, acc_aux, acc_5=None)
+                self.record_acc_details(aux_output, aux_targets, aux_targets, acc_aux, acc_k=None)
             if save_option["preds_aux_details"]:
                 self.curr_preds_aux = torch.cat((self.curr_preds_aux, aux_output), 0)
                 self.curr_targets_aux = torch.cat((self.curr_targets_aux, aux_targets), 0)
@@ -478,7 +484,8 @@ class IncModel(IncrementalLearner):
             os.makedirs(acc_dir)
         if save_option["acc_details"]:
             self.save_acc_details('train', acc_dir)
-            self.save_acc_details_5('train', acc_dir)
+        if self._cfg['acc_k'] > 0:
+            self.save_acc_details_k('train', acc_dir, k=self._cfg['acc_k'])
         if save_option["acc_aux_details"]:
             self.save_acc_aux_details('train', acc_dir)
 
@@ -655,7 +662,10 @@ class IncModel(IncrementalLearner):
         self._logger.info(f"Begin evaluation: {name}")
         factory.print_dataset_info(data_loader)
         acc = averageMeter()
-        acc_5 = averageMeter()
+        if self._cfg['acc_k'] > 0:
+            acc_k = averageMeter()
+        else:
+            acc_k = None
         acc_aux = averageMeter()
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
@@ -687,7 +697,7 @@ class IncModel(IncrementalLearner):
 
                 para_net_time_list.append(np.round(para_net_end_time - para_net_start_time, 3))
 
-                self.record_details(outputs, targets, acc, acc_5, acc_aux, save_option)
+                self.record_details(outputs, targets, acc, acc_k, acc_aux, save_option)
                 load_start_time = time.time()
                 batch_total_end_time = time.time()
                 batch_total_time_list.append(np.round(batch_total_end_time - batch_total_start_time, 3))
@@ -697,7 +707,10 @@ class IncModel(IncrementalLearner):
                     self.check_gpu_info(f'ev_ba{i}_batch_final')
 
         avg_detail_dict = acc.get_avg_detail()
-        avg_detail_dict_top5 = acc_5.get_avg_detail()
+        if acc_k:
+            avg_detail_dict_top5 = acc_k.get_avg_detail()
+        else:
+            avg_detail_dict_top5 = {'total_avg': None}
 
         self._logger.info(f"Evaluation {name}, avg total: {avg_detail_dict['total_avg']}, finest avg: {avg_detail_dict['finest_avg']} with {avg_detail_dict['finest_count']} classes, " + \
                           f"coarse avg: {avg_detail_dict['coarse_avg']} with {avg_detail_dict['coarse_count']} classes, " +\
@@ -708,7 +721,7 @@ class IncModel(IncrementalLearner):
                           f"{round(np.mean(to_device_time_list), 3)}s —— {round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, ")
         # save accuracy and preds info into files
         self.curr_acc_list = [acc]
-        self.curr_acc_list_5 = [acc_5]
+        self.curr_acc_list_k = [acc_k]
         self.curr_acc_list_aux = [acc_aux]
 
         sp = save_path + name + '/acc_details/'
@@ -845,7 +858,7 @@ class IncModel(IncrementalLearner):
                            })
         df.to_csv(f'{save_path}_task_{self._task}.csv', index=False)
 
-    def save_acc_details_5(self, save_name, save_path):
+    def save_acc_details_k(self, save_name, save_path, k):
         class_index = []
         sum_list = []
         count_list = []
@@ -853,7 +866,7 @@ class IncModel(IncrementalLearner):
         avg_acc_list = []
         multi_rate_list = []
 
-        for epoch_i in range(len(self.curr_acc_list_5)):
+        for epoch_i in range(len(self.curr_acc_list_k)):
             class_index.append(f'epoch_{epoch_i}')
             sum_list.append('')
             count_list.append('')
@@ -861,7 +874,7 @@ class IncModel(IncrementalLearner):
             avg_acc_list.append('')
             multi_rate_list.append('')
 
-            acc_epoch_i_info = self.curr_acc_list_5[epoch_i].info_detail
+            acc_epoch_i_info = self.curr_acc_list_k[epoch_i].info_detail
 
             for i in sorted(acc_epoch_i_info.keys()):
                 class_index.append(i)
@@ -874,7 +887,7 @@ class IncModel(IncrementalLearner):
         df = pd.DataFrame({'class_index': class_index, 'avg_acc': avg_acc_list, 'multi_rate': multi_rate_list,
                            'count': count_list, 'acc_sum': sum_list, 'multi_num': multi_num_list,
                            })
-        df.to_csv(f'{save_path}_task_{self._task}_top5.csv', index=False)
+        df.to_csv(f'{save_path}_task_{self._task}_top{k}.csv', index=False)
 
 
     def save_acc_aux_details(self, save_name, save_path):
@@ -910,15 +923,15 @@ class IncModel(IncrementalLearner):
         df_aux.to_csv(f'{save_path}_task_{self._task}_aux.csv', index=False)
 
     @staticmethod
-    def record_accuracy(output, targets, acc, acc_5=None):
+    def record_accuracy(output, targets, acc, acc_k=None):
         iscorrect = (output.argmax(1) == targets)
         acc.update(float(iscorrect.count_nonzero() / iscorrect.size(0)), iscorrect.size(0))
-        if acc_5 is not None:
+        if acc_k is not None:
             _, pred = output.topk(max((1,5)), 1, True, True)
-            iscorrect_5 = (pred == targets.view(-1,1)).sum(1).bool()
-            acc_5.update(float(iscorrect_5.count_nonzero() / iscorrect_5.size(0)), iscorrect_5.size(0))
+            iscorrect_k = (pred == targets.view(-1,1)).sum(1).bool()
+            acc_k.update(float(iscorrect_k.count_nonzero() / iscorrect_k.size(0)), iscorrect_k.size(0))
 
-    def record_acc_details(self, output, targets, targets_0, acc, acc_5=None):
+    def record_acc_details(self, output, targets, targets_0, acc, acc_k=None):
         # targets is the real label
         # targets_0 is the re-indexed label that starts from 0, it still can be the same with targets
         max_z = torch.max(output, dim=1)[0]
@@ -928,14 +941,14 @@ class IncModel(IncrementalLearner):
                                                  list((np.sum(np.array(preds.cpu()), 1) > 1) * 1))
         acc.update_detail(acc_update_info)
 
-        if acc_5 is not None:
+        if acc_k is not None:
             pred_num, pred = output.topk(max((1,5)), 1, True, True)
-            iscorrect_5 = (pred == targets_0.view(-1,1)).sum(1).bool()
+            iscorrect_k = (pred == targets_0.view(-1,1)).sum(1).bool()
             preds = torch.eq(output,  pred_num[:, -1].view(-1, 1))
-            acc_update_info_5 = self.update_acc_detail(list(np.array(targets.cpu())), list(np.array(iscorrect_5.cpu())),
+            acc_update_info_k = self.update_acc_detail(list(np.array(targets.cpu())), list(np.array(iscorrect_k.cpu())),
                                                      list((np.sum(np.array(preds.cpu()), 1) > 1) * 1))
 
-            acc_5.update_detail(acc_update_info_5)
+            acc_k.update_detail(acc_update_info_k)
 
 
 
