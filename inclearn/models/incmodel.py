@@ -312,7 +312,7 @@ class IncModel(IncrementalLearner):
                 # outputs = self._parallel_network(inputs)
 
                 para_net_start_time = time.time()
-                if self._task == 1 and epoch == 0 and i == 1:
+                if epoch == 0 and i == 1:
                     outputs = self._parallel_network(inputs)
                 else:
                     outputs = self._parallel_network(inputs)
@@ -677,6 +677,10 @@ class IncModel(IncrementalLearner):
         para_net_time_list = []
         to_device_time_list = []
 
+
+        nout_dict = {'targets': torch.tensor([])}
+        output_dict = {'targets': torch.tensor([])}
+
         with torch.no_grad():
             load_start_time = time.time()
             batch_total_start_time = time.time()
@@ -694,6 +698,10 @@ class IncModel(IncrementalLearner):
                 to_device_time_list.append(np.round(to_device_end_time - to_device_start_time, 3))
                 para_net_start_time = time.time()
                 outputs = self._parallel_network(inputs)
+
+                self.show_detail_nout(outputs, targets, nout_dict)
+                self.show_detail_output(outputs, targets, output_dict, self._network.leaf_id)
+
                 para_net_end_time = time.time()
 
                 para_net_time_list.append(np.round(para_net_end_time - para_net_start_time, 3))
@@ -727,6 +735,44 @@ class IncModel(IncrementalLearner):
 
         sp = save_path + name + '/acc_details/'
         self.save_details(sp, save_option)
+
+        save_path_noutput = f'{save_path}/noutput_details'
+        if not os.path.exists(save_path_noutput):
+            os.mkdir(save_path_noutput)
+        self.save_nout_output_csv(nout_dict, output_dict, save_path_noutput)
+
+    def show_detail_nout(self, outputs, targets, nout_dict):
+        nout = outputs['nout']
+
+        nout_dict['targets'] =  torch.cat([nout_dict['targets'], targets], 0)
+        used_nodes = self._network.used_nodes
+        for i in range(len(used_nodes)):
+            nout_i = nout[i]        # bs * num_children  ndarray
+            nout_i_name = self._network.used_nodes[i].name        # current cls
+            for child_i_index in range(len(used_nodes[i].children)):
+                child_i_name = used_nodes[i].children[child_i_index]
+                name_i_in_nout_dict = f'p_{nout_i_name}_c_{child_i_name}'
+                if name_i_in_nout_dict not in nout_dict:
+                    nout_dict[name_i_in_nout_dict] = torch.tensor([])
+                nout_dict[name_i_in_nout_dict] = torch.cat([nout_dict[name_i_in_nout_dict], nout_i[:, child_i_index]], 0)
+
+    def show_detail_output(self, outputs, targets, output_dict, leaf_id):
+        output = outputs['output']
+        output_dict['targets'] = torch.cat([output_dict['targets'], targets], 0)
+        leaf_id_inv = {leaf_id[i]: i for i in leaf_id}
+        for i in leaf_id_inv:
+            i_inv = leaf_id_inv[i]
+            if i_inv not in output_dict:
+                output_dict[i_inv] = torch.tensor([])
+
+        for i in range(output.size()[1]):
+            output_dict[leaf_id_inv[i]] = torch.cat([output_dict[leaf_id_inv[i]], output[:, i]])
+
+    def save_nout_output_csv(self, nout_dict, output_dict, save_path_base):
+        df_nout = pd.DataFrame(nout_dict)
+        df_output = pd.DataFrame(output_dict)
+        df_nout.to_csv(f'{save_path_base}/nout_details_task{self._task}.csv', index=False)
+        df_output.to_csv(f'{save_path_base}/output_details_task{self._task}.csv', index=False)
 
     def _compute_accuracy_by_ncm(self, loader):
         features, targets_ = extract_features(self._parallel_network, loader, self._device)
