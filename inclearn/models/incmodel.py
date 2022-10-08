@@ -677,9 +677,8 @@ class IncModel(IncrementalLearner):
         para_net_time_list = []
         to_device_time_list = []
 
-
-        nout_dict = {'targets': torch.tensor([])}
-        output_dict = {'targets': torch.tensor([])}
+        nout_dict = {'targets': self._to_device(torch.tensor([]))}
+        output_dict = {'targets': self._to_device(torch.tensor([]))}
 
         with torch.no_grad():
             load_start_time = time.time()
@@ -758,7 +757,7 @@ class IncModel(IncrementalLearner):
                 child_i_name = used_nodes[i].children[child_i_index]
                 name_i_in_nout_dict = f'p_{nout_i_name}_c_{child_i_name}'
                 if name_i_in_nout_dict not in nout_dict:
-                    nout_dict[name_i_in_nout_dict] = torch.tensor([])
+                    nout_dict[name_i_in_nout_dict] = self._to_device(torch.tensor([]))
                 nout_dict[name_i_in_nout_dict] = torch.cat([nout_dict[name_i_in_nout_dict], nout_i[:, child_i_index]], 0)
 
     def show_detail_output(self, outputs, targets, output_dict, leaf_id):
@@ -768,12 +767,16 @@ class IncModel(IncrementalLearner):
         for i in leaf_id_inv:
             i_inv = leaf_id_inv[i]
             if i_inv not in output_dict:
-                output_dict[i_inv] = torch.tensor([])
+                output_dict[i_inv] = self._to_device(torch.tensor([]))
 
         for i in range(output.size()[1]):
             output_dict[leaf_id_inv[i]] = torch.cat([output_dict[leaf_id_inv[i]], output[:, i]])
 
     def save_nout_output_csv(self, nout_dict, output_dict, save_path_base):
+        for i in nout_dict:
+            nout_dict[i] = nout_dict[i].cpu().detach().numpy()
+        for i in output_dict:
+            output_dict[i] = output_dict[i].cpu().detach().numpy()
         df_nout = pd.DataFrame(nout_dict)
         df_output = pd.DataFrame(output_dict)
         df_nout.to_csv(f'{save_path_base}/nout_details_task{self._task}.csv', index=False)
