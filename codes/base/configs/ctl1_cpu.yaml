@@ -28,6 +28,7 @@ decouple:
 retrain_from_task: 0  # 0 or n
 save_mem: False
 load_mem: False       # False or True
+show_noutput_detail: True   # True or False
 
 # cfg_check_3
 # change seed & dataset

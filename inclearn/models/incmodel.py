@@ -698,9 +698,9 @@ class IncModel(IncrementalLearner):
                 to_device_time_list.append(np.round(to_device_end_time - to_device_start_time, 3))
                 para_net_start_time = time.time()
                 outputs = self._parallel_network(inputs)
-
-                self.show_detail_nout(outputs, targets, nout_dict)
-                self.show_detail_output(outputs, targets, output_dict, self._network.leaf_id)
+                if self._cfg['show_noutput_detail']:
+                    self.show_detail_nout(outputs, targets, nout_dict)
+                    self.show_detail_output(outputs, targets, output_dict, self._network.leaf_id)
 
                 para_net_end_time = time.time()
 
@@ -736,10 +736,11 @@ class IncModel(IncrementalLearner):
         sp = save_path + name + '/acc_details/'
         self.save_details(sp, save_option)
 
-        save_path_noutput = f'{save_path}/noutput_details'
-        if not os.path.exists(save_path_noutput):
-            os.mkdir(save_path_noutput)
-        self.save_nout_output_csv(nout_dict, output_dict, save_path_noutput)
+        if self._cfg['show_noutput_detail']:
+            save_path_noutput = f'{save_path}/noutput_details'
+            if not os.path.exists(save_path_noutput):
+                os.mkdir(save_path_noutput)
+            self.save_nout_output_csv(nout_dict, output_dict, save_path_noutput)
 
     def show_detail_nout(self, outputs, targets, nout_dict):
         nout = outputs['nout']
