@@ -737,7 +737,11 @@ class IncModel(IncrementalLearner):
         self.save_details(sp, save_option)
 
         if self._cfg['show_noutput_detail']:
-            save_path_noutput = f'{save_path}/noutput_details'
+
+            if not os.path.exists(f'{save_path}/noutput_details'):
+                os.mkdir(f'{save_path}/noutput_details')
+
+            save_path_noutput = f'{save_path}/noutput_details/{name}'
             if not os.path.exists(save_path_noutput):
                 os.mkdir(save_path_noutput)
             self.save_nout_output_csv(nout_dict, output_dict, save_path_noutput)
