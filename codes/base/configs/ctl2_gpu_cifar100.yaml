@@ -32,13 +32,15 @@ use_joint_ce_loss: True
 retrain_from_task: 0  # 0 or n
 save_mem: True
 load_mem: False       # False or True
-acc_k: 0               # record top k acc   =0 then no res
+show_noutput_detail: True   # True or False
 
 # cfg_check_3
 # change seed & dataset
 seed: 500              # 500 or 600 or 1993
 dataset: "imagenet100" # 'imagenet100' or 'cifar100'
 trial: 3               # 3 or 2
+acc_k: 0               # record top k acc   =0 then no res
+
 # check datasets.py trial2 / trial3 BFS / DFS
 
 
@@ -63,6 +65,8 @@ scheduling:
   - 100
   - 120
 
+
+
 is_distributed: False
 
 
@@ -83,6 +87,7 @@ last_relu: False
 der: True
 use_aux_cls: True
 aux_n+1: True
+#use_joint_ce_loss: True
 distillation: "none"
 temperature: 2
 
@@ -115,6 +120,7 @@ warmup: False
 warmup_epochs: 10
 #sample_rate: 0.001
 #retrain_from_task: 0
+#acc_k: 0               # record top k acc   =0 then no res
 
 train_save_option:
   acc_details: True
