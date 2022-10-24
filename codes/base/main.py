@@ -15,6 +15,7 @@ import numpy as np
 from easydict import EasyDict as edict
 from tensorboardX import SummaryWriter
 from copy import deepcopy
+import shutil
 
 repo_name = 'ctl'
 base_dir = osp.realpath(".")[:osp.realpath(".").index(repo_name) + len(repo_name)]
@@ -50,6 +51,7 @@ def initialization(config, seed, mode, exp_id):
     # tensorboard_dir = cfg["exp"]["tensorboard_dir"] + f"/{exp_name}"
 
     tensorboard = SummaryWriter(cfg['sp']['tensorboard'])
+    shutil.copyfile('./configs/ctl2_gpu.yaml', f"{cfg['sp']['log']}/ctl2_gpu.yaml")
     return cfg, logger, tensorboard
 
 

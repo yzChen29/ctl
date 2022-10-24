@@ -12,7 +12,7 @@ from inclearn.deeprtc.pivot import Pivot
 
 class TaxonomicDer(nn.Module):  # used in incmodel.py
     def __init__(self, convnet_type, cfg, nf=64, use_bias=False, init="kaiming", device=None, dataset="cifar100",
-                 current_tax_tree=None, current_task=0, fea_mode='only_ancestor_fea'):
+                 current_tax_tree=None, current_task=0, feature_mode='only_ancestor_fea'):
         super(TaxonomicDer, self).__init__()
         self.nf = nf
         self.init = init
@@ -53,7 +53,7 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
 
         self.n_classes = 0
         self.device = device
-        self.fea_mode = fea_mode
+        self.feature_mode = feature_mode
         self.ancestor_list = None
         # self.device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" , index = 0)
 
@@ -171,7 +171,7 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
                             param.requires_grad = False
                         fc_new.eval()
 
-            if self.classifier is not None and self.fea_mode=='only_ancestor_fea':
+            if self.classifier is not None and self.feature_mode=='only_ancestor_fea':
                 new_fc_name = new_clf.nodes[len(new_clf.nodes) - 1].name
                 ancestor_name_list = []
                 curr_node_name = new_fc_name

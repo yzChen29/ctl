@@ -73,7 +73,7 @@ class IncModel(IncrementalLearner):
             device=self._device,
             use_bias=cfg["use_bias"],
             dataset=cfg["dataset"],
-            fea_mode=cfg['fea_mode'],
+            feature_mode=cfg['feature_mode'],
         )
         if self._cfg["is_distributed"]:
             self._parallel_network = DDP(self._network, device_ids=[self._rank], output_device=self._rank)
