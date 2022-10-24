@@ -189,7 +189,7 @@ class IncModel(IncrementalLearner):
         self._network.task_size = self._task_size
         self._network.current_task = self._task
 
-        self._network.add_classes(self._task_size, self._cfg['inhert_type'])
+        self._network.add_classes(self._task_size, feature_mode=self._cfg['feature_mode'])
         self._network.n_classes = self._n_classes
         self.set_optimizer()
 
@@ -617,9 +617,25 @@ class IncModel(IncrementalLearner):
 
             # finetuning
             # only hiernet on cuda needs .module
-            self._network.classifier.reset_parameters(self._cfg['inhert_type'], ancestor_list = self._network.ancestor_list)
+            for k in range(self._network.classifier.num_nodes):
+                for j in range(self._network.classifier.cur_task):
+                    fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
 
-            print(1111)
+                    fc_new = getattr(self._network.classifier, fc_name, None)
+                    print(f'task {self._task}, where: before reset, name:{fc_name}, freeze: {not list(fc_new.parameters())[0].requires_grad}, weight: {fc_new.weight.data[0, 250:255]}\n')
+
+
+
+            self._network.classifier.reset_parameters(self._network.node2TFind_dict, feature_mode=self._cfg['feature_mode'], ancestor_self_nodes_list=self._network.ancestor_self_nodes_list)
+
+            for k in range(self._network.classifier.num_nodes):
+                for j in range(self._network.classifier.cur_task):
+                    fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
+
+                    fc_new = getattr(self._network.classifier, fc_name, None)
+                    print(f'task {self._task}, where: after reset, name:{fc_name}, freeze: {not list(fc_new.parameters())[0].requires_grad}, weight: {fc_new.weight.data[0, 250:255]}\n')
+
+
             finetune_last_layer(self._logger,
                                 # self._parallel_network,
                                 self._parallel_network,
