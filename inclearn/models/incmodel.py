@@ -620,10 +620,7 @@ class IncModel(IncrementalLearner):
             for k in range(self._network.classifier.num_nodes):
                 for j in range(self._network.classifier.cur_task):
                     fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
-
                     fc_new = getattr(self._network.classifier, fc_name, None)
-                    print(f'task {self._task}, where: before reset, name:{fc_name}, freeze: {not list(fc_new.parameters())[0].requires_grad}, weight: {fc_new.weight.data[0, 250:255]}\n')
-
 
 
             self._network.classifier.reset_parameters(self._network.node2TFind_dict, feature_mode=self._cfg['feature_mode'], ancestor_self_nodes_list=self._network.ancestor_self_nodes_list)
@@ -631,9 +628,7 @@ class IncModel(IncrementalLearner):
             for k in range(self._network.classifier.num_nodes):
                 for j in range(self._network.classifier.cur_task):
                     fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
-
                     fc_new = getattr(self._network.classifier, fc_name, None)
-                    print(f'task {self._task}, where: after reset, name:{fc_name}, freeze: {not list(fc_new.parameters())[0].requires_grad}, weight: {fc_new.weight.data[0, 250:255]}\n')
 
 
             finetune_last_layer(self._logger,

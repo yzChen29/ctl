@@ -149,7 +149,7 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
                 elif 'add_zero' in feature_mode:
                     j_task_range = new_clf.cur_task
                 else:
-                    raise ('feature_mode not implement')
+                    raise('feature_mode not implement')
 
                 for k in range(old_clf.num_nodes):
                     for j in range(j_task_range):
@@ -185,19 +185,13 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
 
                 self.node2TFind_dict[curr_node_name] = self.current_task
 
-            if self.classifier is not None and self.feature_mode == 'add_zero_only_ancestor_fea':
+            if self.classifier is not None and self.feature_mode=='add_zero_only_ancestor_fea':
 
                 for j in range(self.current_task):
-                    ancestor_nodes_list = self.current_tax_tree.get_ancestor_list(
-                        new_clf.nodes[len(new_clf.nodes) - 1].name)
+                    ancestor_nodes_list = self.current_tax_tree.get_ancestor_list(new_clf.nodes[len(new_clf.nodes)-1].name)
                     ancestor_self_nodes_list = ancestor_nodes_list + [curr_node_name]
                     self.ancestor_self_nodes_list = ancestor_self_nodes_list
-                    print('ancestor_self_nodes_list', ancestor_self_nodes_list)
-                    print('curr_node_name', curr_node_name)
-                    for i in new_clf.nodes:
-                        print(i, new_clf.nodes[i].name)
 
-                    print('test_111', self.node2TFind_dict)
                     useless_TF_list = [self.node2TFind_dict[i] for i in ancestor_self_nodes_list]
                     if j not in useless_TF_list:
                         fc_name = curr_node_name + f'_TF{j}'
@@ -211,8 +205,6 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
                 for j in range(new_clf.cur_task):
                     fc_name = new_clf.nodes[k].name + f'_TF{j}'
                     fc_new = getattr(new_clf, fc_name, None)
-                    print(f'task {self.current_task}, where: add_classes, name:{fc_name}, freeze: {not
-                    list(fc_new.parameters())[0].requires_grad}, weight: {fc_new.weight.data[0, 250:255]}\n')
 
         else:
             if self.classifier is not None and self.reuse_oldfc:

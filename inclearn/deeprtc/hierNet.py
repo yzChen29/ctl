@@ -92,7 +92,6 @@ class HierNet(nn.Module):
 
     def reset_parameters(self, node2TFind_dict, feature_mode='full', ancestor_self_nodes_list=None):
 
-        print('self.nodes name', [(i, self.nodes[i].name) for i in range(len(self.nodes))])
         if self.reuse_old:
 
             if feature_mode=='full':
@@ -100,7 +99,7 @@ class HierNet(nn.Module):
                 for i in range(self.num_nodes):
                     fc_name = self.nodes[i].name + f'_TF{j}'
                     self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
-                    print(f'{fc_name} reseted')
+
 
             node2TFind_dict_inv = {node2TFind_dict[i]:i for i in node2TFind_dict}
             curr_node_name = node2TFind_dict_inv[len(node2TFind_dict_inv)-1]
@@ -113,21 +112,19 @@ class HierNet(nn.Module):
                     break
             assert i != None
 
-            print('ancestor_self_nodes_list', ancestor_self_nodes_list)
-            print('curr_node_name',  curr_node_name)
-            print('i', i)
+
             if ancestor_self_nodes_list:
 
                 for ancestor_j in ancestor_self_nodes_list:
                     fc_name = self.nodes[i].name + f'_TF{node2TFind_dict[ancestor_j]}'
                     self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
-                    print(f'{fc_name} reseted')
+
 
             else:
                 for j in range(self.num_nodes):
                     fc_name = self.nodes[i].name + f'_TF{j}'
                     self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
-                    print(f'{fc_name} reseted')
+
 
         else:
 
