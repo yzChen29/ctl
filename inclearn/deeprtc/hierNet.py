@@ -17,6 +17,7 @@ class HierNet(nn.Module):
                 fc_name = self.nodes[i].name + f'_TF{j}'
                 self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
 
+
     def forward(self, x, gate=None, pred=False, thres=0):
         if pred is False:
             # for training
@@ -89,23 +90,54 @@ class HierNet(nn.Module):
             self.output = torch.sum(torch.stack(outs), 0)
             return self.output, nout
 
-    def reset_parameters(self):
+    def reset_parameters(self, node2TFind_dict, feature_mode='full', ancestor_self_nodes_list=None):
+
+        print('self.nodes name', [(i, self.nodes[i].name) for i in range(len(self.nodes))])
         if self.reuse_old:
-            j = self.cur_task - 1
-            for i in range(self.num_nodes):
-                fc_name = self.nodes[i].name + f'_TF{j}'
-                self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
-            i = self.num_nodes - 1
-            for j in range(self.num_nodes):
-                fc_name = self.nodes[i].name + f'_TF{j}'
-                self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
+
+            if feature_mode=='full':
+                j = self.cur_task - 1
+                for i in range(self.num_nodes):
+                    fc_name = self.nodes[i].name + f'_TF{j}'
+                    self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
+                    print(f'{fc_name} reseted')
+
+            node2TFind_dict_inv = {node2TFind_dict[i]:i for i in node2TFind_dict}
+            curr_node_name = node2TFind_dict_inv[len(node2TFind_dict_inv)-1]
+
+            i = None
+
+            for node_ind in range(len(self.nodes)):
+                if self.nodes[node_ind].name == curr_node_name:
+                    i = node_ind
+                    break
+            assert i != None
+
+            print('ancestor_self_nodes_list', ancestor_self_nodes_list)
+            print('curr_node_name',  curr_node_name)
+            print('i', i)
+            if ancestor_self_nodes_list:
+
+                for ancestor_j in ancestor_self_nodes_list:
+                    fc_name = self.nodes[i].name + f'_TF{node2TFind_dict[ancestor_j]}'
+                    self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
+                    print(f'{fc_name} reseted')
+
+            else:
+                for j in range(self.num_nodes):
+                    fc_name = self.nodes[i].name + f'_TF{j}'
+                    self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
+                    print(f'{fc_name} reseted')
+
         else:
+
             for i in range(self.num_nodes):
                 for j in range(self.num_nodes):
                     fc_name = self.nodes[i].name + f'_TF{j}'
                     self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
-        return
 
+
+        return
 
 def hiernet(**kwargs):
     model = HierNet(**kwargs)

@@ -29,6 +29,8 @@ decouple:
 # cfg_check_2
 # load_prev_model eg. has ckpts/ (decouple_)step13 then set retrain_from_task: 14
 use_joint_ce_loss: True
+inhert_type: 'add_zero' # ['full_inhert', 'add_zero']
+feature_mode: 'add_zero_use_all_prev' # ['full', 'add_zero_only_ancestor_fea',  'add_zero_use_all_prev']  # 新任务选用哪些feature
 retrain_from_task: 0  # 0 or n
 save_mem: True
 load_mem: False       # False or True
@@ -45,6 +47,7 @@ acc_k: 0               # record top k acc   =0 then no res
 
 
 # check cgpu_using
+show_detail: False    # show time consumsing or not
 check_cgpu_info: True
 check_cgpu_batch_period: 30
 

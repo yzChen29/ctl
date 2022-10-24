@@ -217,6 +217,16 @@ class Tree:
             raise ValueError('{} is not in the tree'.format(node_name))
         return node.parent
 
+    def get_ancestor_list(self, node_name=None):
+        parent_list = []
+        node = self.nodes.get(node_name, None)
+        while True:
+            node = node.parent
+            parent_list.append(node)
+            if node == 'root':
+                break
+        return parent_list
+
     def get_coarse_node_list(self):
         return [self.nodes.get(i) for i in self.used_nodes.values() if i != 'root']
 
@@ -304,9 +314,6 @@ class Tree:
             self.gen_rel_path()
             self.gen_Id2name()
 
-    def reset_params_2(self, hier_tree):
-        label_dict_hier = hier_tree.tree_node_to_dict(hier_tree.root)
-        return Tree(self.dataset_name, label_dict_hier, self.label_dict_index)
 
     def tree_node_to_dict(self, node):
         child_dict = OrderedDict()
@@ -761,29 +768,59 @@ if __name__ == '__main__':
     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
     # taxonomy_tree.show()
     import pandas as pd
+    import numpy as np
 
-    data_label_index_dict_inv = {data_label_index_dict[i]:i for i in data_label_index_dict}
-    df_total = pd.read_csv('/Users/chenyuzhao/Downloads/imagenet100_trial3_acc_total.csv')
-    class_index = list(df_total['class_index'])
-    BFS_diff = list(df_total['BFS_DER_diff'])
-    DFS_diff = list(df_total['DFS_DER_diff'])
-    stat_dict = {}
-    class_to_check = []
-    for i in range(len(class_index)):
-        stat_dict[class_index[i]] = [BFS_diff[i], DFS_diff[i]]
-    for i in stat_dict:
-        if stat_dict[i][0] <-0.1 and stat_dict[i][1] <-0.1:
-            class_to_check.append(i)
-    # class_to_check = [283, 464, 471, 480, 527, 561, 594, 636, 670, 676, 683, 694, 725, 739, 748, 769, 772, 844, 875]
-    name_list = [data_label_index_dict_inv[i] for i in class_to_check]
-    node_label_list = [taxonomy_tree.nodes.get(i).label_index for i in name_list]
+    df = pd.read_csv('/Users/chenyuzhao/Downloads/ctl_rtc_imagenet100_trial3_BFS_seed500_with_imagenet_config_check_noutput/nout_details_task24.csv')
+    # df = pd.read_csv('/Users/chenyuzhao/Downloads/test_12112312.csv')
 
-    parent_list = taxonomy_tree.get_parent_n_layer(node_label_list, 1)
+    df['max_index']  = df[['p_root_c_mammal', 'p_root_c_bird', 'p_root_c_device', 'p_root_c_container']].apply(lambda x: np.argmax(x), axis=1)
+    pred_list = np.array(df['max_index'])
 
-    print(class_to_check)
-    print(name_list)
-    print(parent_list)
-    print({i: parent_list[0].count(i) for i in set(parent_list[0])})
+    targets_list = list(df['targets'])
+
+    gt_list = []
+    index_1 = list
+    # for i in targets_list:
+    #     top1_list.append()
+    index2child = taxonomy_tree.nodes.get('root').children
+    child2index = {index2child[i]:i for i in index2child}
+    for i in targets_list:
+        gt_list.append(child2index[taxonomy_tree.get_parent_n_layer(node_label_list=[i], n_layer=1)[0][0]])
+    gt_list = np.array(gt_list)
+    total_acc = np.sum(gt_list == pred_list)/len(pred_list)
+    print(total_acc)
+    partial_list = {}
+    for i in range(4):
+        index = np.where(gt_list==i)
+        partial_res_i = np.sum(pred_list[index] == i)/len(index[0])
+        partial_list[i] = partial_res_i
+    print(partial_list)
+
+
+    # df['tart']
+
+    # data_label_index_dict_inv = {data_label_index_dict[i]:i for i in data_label_index_dict}
+    # df_total = pd.read_csv('/Users/chenyuzhao/Downloads/imagenet100_trial3_acc_total.csv')
+    # class_index = list(df_total['class_index'])
+    # BFS_diff = list(df_total['BFS_DER_diff'])
+    # DFS_diff = list(df_total['DFS_DER_diff'])
+    # stat_dict = {}
+    # class_to_check = []
+    # for i in range(len(class_index)):
+    #     stat_dict[class_index[i]] = [BFS_diff[i], DFS_diff[i]]
+    # for i in stat_dict:
+    #     if stat_dict[i][0] <-0.1 and stat_dict[i][1] <-0.1:
+    #         class_to_check.append(i)
+    # # class_to_check = [283, 464, 471, 480, 527, 561, 594, 636, 670, 676, 683, 694, 725, 739, 748, 769, 772, 844, 875]
+    # name_list = [data_label_index_dict_inv[i] for i in class_to_check]
+    # node_label_list = [taxonomy_tree.nodes.get(i).label_index for i in name_list]
+    #
+    # parent_list = taxonomy_tree.get_parent_n_layer(node_label_list, 1)
+    #
+    # print(class_to_check)
+    # print(name_list)
+    # print(parent_list)
+    # print({i: parent_list[0].count(i) for i in set(parent_list[0])})
 
     # import pandas as pd
     #

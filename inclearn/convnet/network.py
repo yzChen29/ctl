@@ -12,7 +12,7 @@ from inclearn.deeprtc.pivot import Pivot
 
 class TaxonomicDer(nn.Module):  # used in incmodel.py
     def __init__(self, convnet_type, cfg, nf=64, use_bias=False, init="kaiming", device=None, dataset="cifar100",
-                 current_tax_tree=None, current_task=0):
+                 current_tax_tree=None, current_task=0, fea_mode='only_ancestor_fea'):
         super(TaxonomicDer, self).__init__()
         self.nf = nf
         self.init = init
@@ -53,6 +53,8 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
 
         self.n_classes = 0
         self.device = device
+        self.fea_mode = fea_mode
+        self.ancestor_list = None
         # self.device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" , index = 0)
 
         if cfg['postprocessor']['enable']:
@@ -110,15 +112,15 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
     def copy(self):
         return copy.deepcopy(self)
 
-    def add_classes(self, n_classes):
+    def add_classes(self, n_classes, inhert_type='full_inhert'):
         if self.der:
-            self._add_classes_multi_fc(n_classes)
+            self._add_classes_multi_fc(n_classes, inhert_type)
         else:
             self._add_classes_single_fc(n_classes)
 
         # self.n_classes += n_classes
 
-    def _add_classes_multi_fc(self, n_classes):
+    def _add_classes_multi_fc(self, n_classes, inhert_type='full_inhert'):
         if self.taxonomy:
             all_classes = len(self.current_tax_tree.leaf_nodes)
         else:
@@ -137,19 +139,59 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
         if self.taxonomy:
             if self.classifier is not None and self.reuse_oldfc:
                 old_clf = self.classifier
+
+                if inhert_type == 'full_inhert':
+                    j_task_range = old_clf.cur_task
+                elif inhert_type == 'add_zero':
+                    j_task_range = new_clf.cur_task
+                else:
+                    raise('inhert_type not implement')
+
                 for k in range(old_clf.num_nodes):
-                    for j in range(old_clf.cur_task):
+                    for j in range(j_task_range):
                         fc_name = old_clf.nodes[k].name + f'_TF{j}'
                         fc_old = getattr(old_clf, fc_name, None)
                         fc_new = getattr(new_clf, fc_name, None)
-                        assert fc_old is not None
+                        if inhert_type == 'full_inhert':
+                            assert fc_old is not None
                         assert fc_new is not None
                         # weight = copy.deepcopy(fc_old.weight.data)
-                        fc_new.weight.data = copy.deepcopy(fc_old.weight.data)
-                        fc_new.bias.data = copy.deepcopy(fc_old.bias.data)
+                        if inhert_type == 'full_inhert':
+                            fc_new.weight.data = copy.deepcopy(fc_old.weight.data)
+                            fc_new.bias.data = copy.deepcopy(fc_old.bias.data)
+                        elif inhert_type == 'add_zero':
+                            if fc_old is not None:
+                                fc_new.weight.data = copy.deepcopy(fc_old.weight.data)
+                                fc_new.bias.data = copy.deepcopy(fc_old.bias.data)
+                            else:
+                                fc_new.weight.data = torch.zeros_like(fc_new.weight.data)
+                                fc_new.bias.data = torch.zeros_like(fc_new.bias.data)
+
                         for param in fc_new.parameters():
                             param.requires_grad = False
                         fc_new.eval()
+
+            if self.classifier is not None and self.fea_mode=='only_ancestor_fea':
+                new_fc_name = new_clf.nodes[len(new_clf.nodes) - 1].name
+                ancestor_name_list = []
+                curr_node_name = new_fc_name
+                while  True:
+                    parent_node_name = self.current_tax_tree.nodes.get(curr_node_name).parent
+                    ancestor_name_list.append(parent_node_name)
+                    curr_node_name = parent_node_name
+                    if curr_node_name == 'root':
+                        break
+                self.ancestor_list = ancestor_name_list
+
+                for j in range(self.cur_task):
+                    if new_clf.nodes[j].name not in ancestor_name_list:
+                        fc_name = new_fc_name + f'_TF{j}'
+                        fc_useless = getattr(new_clf, fc_name, None)
+                        fc_useless.weight.data = torch.zeros_like(fc_useless.weight.data)
+                        fc_useless.bias.data = torch.zeros_like(fc_useless.bias.data)
+                        for param in fc_useless.parameters():
+                            param.requires_grad = False
+
         else:
             if self.classifier is not None and self.reuse_oldfc:
                 weight = copy.deepcopy(self.classifier.weight.data)

@@ -73,6 +73,7 @@ class IncModel(IncrementalLearner):
             device=self._device,
             use_bias=cfg["use_bias"],
             dataset=cfg["dataset"],
+            fea_mode=cfg['fea_mode'],
         )
         if self._cfg["is_distributed"]:
             self._parallel_network = DDP(self._network, device_ids=[self._rank], output_device=self._rank)
@@ -188,7 +189,7 @@ class IncModel(IncrementalLearner):
         self._network.task_size = self._task_size
         self._network.current_task = self._task
 
-        self._network.add_classes(self._task_size)
+        self._network.add_classes(self._task_size, self._cfg['inhert_type'])
         self._network.n_classes = self._n_classes
         self.set_optimizer()
 
@@ -402,40 +403,63 @@ class IncModel(IncrementalLearner):
                 avg_detail_dict_topk = acc_k.get_avg_detail()
             else:
                 avg_detail_dict_topk = {'total_avg': None}
-            self._logger.info(
-                "Task {}/{}, Epoch {}/{} => Avg Total Loss: {}, Avg CE Loss: {}, Avg Joint CE Loss: {}, Avg Aux Loss: {}, "
-                "Avg Total Acc: {}, Avg Finest Acc: {} with {} classes, Avg Coarse Acc: {} with {} classes, Avg_Top{} Total Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%, avg to_device_time {}s —— {}%, avg check_cgpu_time {}s —— {}%".format(
-                    self._task + 1,
-                    self._n_tasks,
-                    epoch + 1,
-                    self._n_epochs,
-                    round(_total_loss / i, 3),
-                    round(_ce_loss / i, 3),
-                    round(_joint_ce_loss / i, 3),
-                    round(_loss_aux / i, 3),
-                    round(avg_detail_dict['total_avg'], 3),
-                    avg_detail_dict['finest_avg'],
-                    avg_detail_dict['finest_count'],
-                    avg_detail_dict['coarse_avg'],
-                    avg_detail_dict['coarse_count'],
-                    self._cfg['acc_k'],
-                    avg_detail_dict_topk['total_avg'],
-                    round(acc_aux.avg, 3),
-                    round(np.mean(batch_total_time_list), 3),
-                    round(np.mean(load_time_list), 3),
-                    round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3),
-                    round(np.mean(para_net_time_list), 3),
-                    round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3),
-                    round(np.mean(backward_time_list), 3),
-                    round(np.mean(backward_time_list) / np.mean(batch_total_time_list) * 100, 3),
-                    round(np.mean(step_time_list), 3),
-                    round(np.mean(step_time_list) / np.mean(batch_total_time_list) * 100, 3),
-                    round(np.mean(to_device_time_list), 3),
-                    round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3),
-                    round(np.mean(check_cgpu_time_list), 3),
-                    round(np.mean(check_cgpu_time_list) / np.mean(batch_total_time_list) * 100, 3),
 
-                ))
+            if self._cfg['show_detail']:
+                self._logger.info(
+                    "Task {}/{}, Epoch {}/{} => Avg Total Loss: {}, Avg CE Loss: {}, Avg Joint CE Loss: {}, Avg Aux Loss: {}, "
+                    "Avg Total Acc: {}, Avg Finest Acc: {} with {} classes, Avg Coarse Acc: {} with {} classes, Avg_Top{} Total Acc: {}, Avg Aux Acc: {}, batch_total_time {}s, avg load_time {}s —— {}%, avg para_net time {}s —— {}%, avg backward_time {}s —— {}%, avg step_time {}s —— {}%, avg to_device_time {}s —— {}%, avg check_cgpu_time {}s —— {}%".format(
+                        self._task + 1,
+                        self._n_tasks,
+                        epoch + 1,
+                        self._n_epochs,
+                        round(_total_loss / i, 3),
+                        round(_ce_loss / i, 3),
+                        round(_joint_ce_loss / i, 3),
+                        round(_loss_aux / i, 3),
+                        round(avg_detail_dict['total_avg'], 3),
+                        avg_detail_dict['finest_avg'],
+                        avg_detail_dict['finest_count'],
+                        avg_detail_dict['coarse_avg'],
+                        avg_detail_dict['coarse_count'],
+                        self._cfg['acc_k'],
+                        avg_detail_dict_topk['total_avg'],
+                        round(acc_aux.avg, 3),
+                        round(np.mean(batch_total_time_list), 3),
+                        round(np.mean(load_time_list), 3),
+                        round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                        round(np.mean(para_net_time_list), 3),
+                        round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                        round(np.mean(backward_time_list), 3),
+                        round(np.mean(backward_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                        round(np.mean(step_time_list), 3),
+                        round(np.mean(step_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                        round(np.mean(to_device_time_list), 3),
+                        round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3),
+                        round(np.mean(check_cgpu_time_list), 3),
+                        round(np.mean(check_cgpu_time_list) / np.mean(batch_total_time_list) * 100, 3),
+
+                    ))
+            else:
+                self._logger.info(
+                    "Task {}/{}, Epoch {}/{} => Avg Total Loss: {}, Avg CE Loss: {}, Avg Joint CE Loss: {}, Avg Aux Loss: {}, "
+                    "Avg Total Acc: {}, Avg Finest Acc: {} with {} classes, Avg Coarse Acc: {} with {} classes, Avg_Top{} Total Acc: {}, Avg Aux Acc: {}".format(
+                        self._task + 1,
+                        self._n_tasks,
+                        epoch + 1,
+                        self._n_epochs,
+                        round(_total_loss / i, 3),
+                        round(_ce_loss / i, 3),
+                        round(_joint_ce_loss / i, 3),
+                        round(_loss_aux / i, 3),
+                        round(avg_detail_dict['total_avg'], 3),
+                        avg_detail_dict['finest_avg'],
+                        avg_detail_dict['finest_count'],
+                        avg_detail_dict['coarse_avg'],
+                        avg_detail_dict['coarse_count'],
+                        self._cfg['acc_k'],
+                        avg_detail_dict_topk['total_avg'],
+                        round(acc_aux.avg, 3),
+                    ))
 
             if self._val_per_n_epoch > 0 and epoch % self._val_per_n_epoch == 0:
                 self.validate(val_loader)
@@ -593,7 +617,9 @@ class IncModel(IncrementalLearner):
 
             # finetuning
             # only hiernet on cuda needs .module
-            self._network.classifier.reset_parameters()
+            self._network.classifier.reset_parameters(self._cfg['inhert_type'], ancestor_list = self._network.ancestor_list)
+
+            print(1111)
             finetune_last_layer(self._logger,
                                 # self._parallel_network,
                                 self._parallel_network,
@@ -602,6 +628,7 @@ class IncModel(IncrementalLearner):
                                 device=self._device,
                                 nepoch=self._decouple["epochs"],
                                 lr=self._decouple["lr"],
+                                use_joint_ce_loss = self._cfg["use_joint_ce_loss"],
                                 scheduling=self._decouple["scheduling"],
                                 lr_decay=self._decouple["lr_decay"],
                                 weight_decay=self._decouple["weight_decay"],
@@ -719,14 +746,21 @@ class IncModel(IncrementalLearner):
             avg_detail_dict_topk = acc_k.get_avg_detail()
         else:
             avg_detail_dict_topk = {'total_avg': None}
+        if self._cfg['show_detail']:
+            self._logger.info(f"Evaluation {name}, avg total: {avg_detail_dict['total_avg']}, finest avg: {avg_detail_dict['finest_avg']} with {avg_detail_dict['finest_count']} classes, " + \
+                              f"coarse avg: {avg_detail_dict['coarse_avg']} with {avg_detail_dict['coarse_count']} classes, " +\
+                              f"avg top{self._cfg['acc_k']} total: {avg_detail_dict_topk['total_avg']}, " +\
+                              f"aux_acc: {acc_aux.avg}, batch_total_time {round(np.mean(batch_total_time_list), 3)}s, avg load_time {round(np.mean(load_time_list), 3)}s —— " +
+                              f"{round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— " +
+                              f"{round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time " +
+                              f"{round(np.mean(to_device_time_list), 3)}s —— {round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, ")
+        else:
+            self._logger.info(
+                f"Evaluation {name}, avg total: {avg_detail_dict['total_avg']}, finest avg: {avg_detail_dict['finest_avg']} with {avg_detail_dict['finest_count']} classes, " + \
+                f"coarse avg: {avg_detail_dict['coarse_avg']} with {avg_detail_dict['coarse_count']} classes, " + \
+                f"avg top{self._cfg['acc_k']} total: {avg_detail_dict_topk['total_avg']}, aux_acc: {acc_aux.avg}")
 
-        self._logger.info(f"Evaluation {name}, avg total: {avg_detail_dict['total_avg']}, finest avg: {avg_detail_dict['finest_avg']} with {avg_detail_dict['finest_count']} classes, " + \
-                          f"coarse avg: {avg_detail_dict['coarse_avg']} with {avg_detail_dict['coarse_count']} classes, " +\
-                          f"avg top{self._cfg['acc_k']} total: {avg_detail_dict_topk['total_avg']}, " +\
-                          f"aux_acc: {acc_aux.avg}, batch_total_time {round(np.mean(batch_total_time_list), 3)}s, avg load_time {round(np.mean(load_time_list), 3)}s —— " +
-                          f"{round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— " +
-                          f"{round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time " +
-                          f"{round(np.mean(to_device_time_list), 3)}s —— {round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, ")
+
         # save accuracy and preds info into files
         self.curr_acc_list = [acc]
         self.curr_acc_list_k = [acc_k]
