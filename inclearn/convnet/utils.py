@@ -56,7 +56,10 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
                     joint_ce_loss = torch.mean(F.cross_entropy(output, leaf_id_indexes.long()))
 
                 else:
-                    joint_ce_loss = torch.tensor([0])
+                    if device.type == 'cuda':
+                        joint_ce_loss = torch.tensor([0]).cuda()
+                    else:
+                        joint_ce_loss = torch.tensor([0])
 
 
                 if all_preds is None:
