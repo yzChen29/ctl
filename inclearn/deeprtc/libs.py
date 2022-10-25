@@ -221,10 +221,11 @@ class Tree:
         parent_list = []
         node = self.nodes.get(node_name, None)
         while True:
-            node = node.parent
-            parent_list.append(node)
-            if node == 'root':
+            node_name = node.parent
+            parent_list.append(node_name)
+            if node_name == 'root':
                 break
+            node = self.nodes.get(node_name, None)
         return parent_list
 
     def get_coarse_node_list(self):
