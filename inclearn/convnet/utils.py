@@ -71,7 +71,7 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
                 total_loss = nloss + joint_ce_loss
                 total_loss.backward()
                 optim.step()
-                total_nloss += nloss
+                total_nloss += nloss * inputs.size(0)
                 total_joint_loss += joint_ce_loss
                 total_correct += iscorrect.sum()
                 total_count += inputs.size(0)
@@ -113,7 +113,7 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
                 (i, total_nloss.item() / total_count, total_joint_loss.item() / total_count, total_correct.item() / total_count, test_correct / test_count))
         else:
             logger.info("Epoch %d finetuning, nloss %.3f, joint_ce_loss %.3f, acc %.3f" %
-                        (i, total_loss.item() / total_count, total_joint_loss.item() / total_count, total_correct.item() / total_count))
+                        (i, total_nloss.item() / total_count, total_joint_loss.item() / total_count, total_correct.item() / total_count))
         if i == nepoch - 1:
             np.savetxt(save_path + f'_epoch_{i}_preds.txt', np.array(all_preds), fmt='%2.2f')
             np.savetxt(save_path + f'_epoch_{i}_iscorrect.txt', np.array(all_is_correct), fmt='%2.2f')
