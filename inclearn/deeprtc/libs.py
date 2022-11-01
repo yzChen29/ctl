@@ -73,6 +73,7 @@ class Tree:
             self.gen_codeword()
             self.gen_rel_path()
             self.gen_Id2name()
+            self.init_depth_dict()
 
     def prepro(self, save_path=None):
         # find nodes we want, and get codewords under these nodes
@@ -299,6 +300,14 @@ class Tree:
         node.child_idx = len(node_parent.children)
         node_parent.add_child(node_name)
 
+    def init_depth_dict(self):
+        for node_i_ind in self.nodes:
+            node_i = self.nodes[node_i_ind]
+            if node_i.depth in self.depth_dict:
+                self.depth_dict[node_i.depth].append(node_i.name)
+            else:
+                self.depth_dict[node_i.depth] = [node_i.name]
+
     def reset_params(self):
         self.label_dict_hier = self.tree_node_to_dict(self.root)
         self.max_depth = max(n.depth for n in self.nodes.values())  # including root(0) and datasets(1)
@@ -314,6 +323,7 @@ class Tree:
             self.gen_codeword()
             self.gen_rel_path()
             self.gen_Id2name()
+            self.init_depth_dict()
 
 
     def tree_node_to_dict(self, node):
