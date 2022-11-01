@@ -603,7 +603,7 @@ class IncModel(IncrementalLearner):
         network.eval()
         self._logger.info("save model")
 
-        if taski >= self._train_from_task and taski in self._cfg["save_ckpt"]:
+        if self._cfg['save_before_decouple'] and taski >= self._train_from_task and taski in self._cfg["save_ckpt"]:
             # save_path = os.path.join(os.getcwd(), "ckpts")
             torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
 
