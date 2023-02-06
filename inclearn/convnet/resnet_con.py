@@ -1,0 +1,282 @@
+import torch
+import torch.nn as nn
+import torch.utils.model_zoo as model_zoo
+from torch.nn import functional as F
+import copy
+
+__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']
+
+model_urls = {
+    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
+    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
+    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
+}
+
+
+def conv3x3(in_planes, out_planes, stride=1):
+    """3x3 convolution with padding"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
+
+
+def conv1x1(in_planes, out_planes, stride=1):
+    """1x1 convolution"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+
+class BasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None, remove_last_relu=False):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.downsample = downsample
+        self.stride = stride
+        self.remove_last_relu = remove_last_relu
+
+    def forward(self, x_list):
+        ext, x = x_list
+        try:
+            cx = torch.cat(ext, x)
+        except:
+            cx = x
+
+        out = self.conv1(cx)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+        else:
+            identity = x
+
+        out += identity
+        if not self.remove_last_relu:
+            out = self.relu(out)
+        return out
+
+
+class ModuleGroup(nn.Module):
+    def __init__(self, module_type, task_info):
+        super(ModuleGroup, self).__init__()
+        self.module_type = module_type
+        self.module_list = []
+        self.task_info = task_info
+
+    def expand(self, mod_info):
+        new_module = get_module(self.module_type, mod_info)
+        self.module_list.append(new_module)
+
+    def update_task(self, task_info):
+        self.task_info = task_info
+
+    def forward(self, x_list):
+        assert len(self.module_list) == len(x_list)
+        out = []
+        for k in range(len(self.module_list)):
+            module = self.module_list[k]
+            
+            if isinstance(module, BasicBlock):
+                x_anc = feature_cat(x_list, self.task_info)
+                x_needed = [x_anc, x_list[-1]]
+
+                #TODO: put module on cuda
+                m1 = module.cuda()
+                out.append(m1(x_needed))
+            else:
+                m1 = module.cuda()
+                out.append(m1(x_list[k]))
+        return out
+
+    def set_train(self):
+        for k in range(len(self.module_list) - 1):
+            module = self.module_list[k]
+            self.set_status(module, 'train')
+        module = self.module_list[-1]
+        self.set_status(module, 'eval')
+
+    @staticmethod
+    def set_status(module, status):
+        assert status in ['train', 'eval']
+        if status == 'train':
+            if isinstance(module, nn.Sequential) or isinstance(module, nn.ModuleList):
+                for s_module in module:
+                    s_module.train()
+            else:
+                module.train()
+
+        else:
+            if isinstance(module, nn.Sequential) or isinstance(module, nn.ModuleList):
+                for s_module in module:
+                    s_module.eval()
+            else:
+                module.eval()
+
+
+class MultiModuleGroup(nn.Module):
+    '''This should correspond to _make_layer() function'''
+    def __init__(self, module_type, length, task_info):
+        super(MultiModuleGroup, self).__init__()
+        self.module_type = module_type
+        self.length = length
+        self.task_info = task_info
+
+        # use this since nn.Sequential.append() is not found
+        groups = []      
+        for _ in range(self.length):
+            groups.append(ModuleGroup(self.module_type, task_info))
+        self.groups = nn.Sequential(*groups)
+
+    def expand(self, args):
+        for k in range(self.length):
+            self.groups[k].expand(args[k])
+
+    def update_task(self, task_info):
+        for group in self.groups:
+            group.update_task(task_info)
+
+    def forward(self, x):
+        return self.groups(x)
+
+    def set_train(self):
+        for group in self.groups:
+            group.set_train()
+
+
+class ResConnect(nn.Module):
+    def __init__(self, block, layer_num, at_info=None, dataset='cifar', remove_last_relu=False):
+        super(ResConnect, self).__init__()
+        self.block = block
+        self.layer_num = layer_num
+        self.at_info = at_info
+        self.dataset = dataset
+        self.remove_last_relu = remove_last_relu
+        self.net_groups = nn.Sequential(
+            ModuleGroup('Conv', self.at_info), 
+            MultiModuleGroup(block, layer_num[0], self.at_info), 
+            MultiModuleGroup(block, layer_num[1], self.at_info), 
+            MultiModuleGroup(block, layer_num[2], self.at_info), 
+            MultiModuleGroup(block, layer_num[3], self.at_info), 
+            ModuleGroup('AvgPool', self.at_info), 
+        )
+
+    def to_device(self, device):
+        self.net_groups.to(device)
+
+    def update_task_info(self, at_info):
+        self.at_info = at_info
+        for groups in self.net_groups:
+            groups.update_task(at_info)
+    
+    def expand(self, base_nf):
+        layer_args = [
+            {'nf': base_nf, 'dataset': self.dataset},   # conv params
+            self.multigroup_expand_args(base_nf, 0, self.layer_num[0]), 
+            self.multigroup_expand_args(base_nf, 1, self.layer_num[1]), 
+            self.multigroup_expand_args(base_nf, 2, self.layer_num[2]), 
+            self.multigroup_expand_args(base_nf, 3, self.layer_num[3]), 
+            {}  # four BasicBlocks and last avgpool layer, no params
+        ]
+        assert len(layer_args) == len(self.net_groups)
+        for k in range(len(layer_args)):
+            groups = self.net_groups[k]
+            args = layer_args[k]
+            groups.expand(args)
+
+
+    def get_input_dims(self, t_num=-1):
+        ancestors = self.at_info.iloc[t_num]["ancestor_tasks"]
+        try:
+            anc_nf = self.at_info.iloc[ancestors]["feature_size"]
+            anc_nf = sum(anc_nf)
+        except:
+            anc_nf = 0
+        return anc_nf
+
+
+    def multigroup_expand_args(self, base_nf, stage, blocks, t_num=-1, block_name='BasicBlock', rm_last_relu=False):
+        assert stage in [0, 1, 2, 3]
+        planes = pow(2, stage) * base_nf
+        inplanes = self.get_input_dims(t_num)
+        stride = 1 if stage == 0 else 2
+        if block_name == 'BasicBlock':
+            expansion = 1
+        elif block_name == 'BottleNeck':
+            expansion = 4
+        inplanes_in = base_nf * expansion
+
+        args = []
+        downsample = None
+        if stride != 1 or inplanes != inplanes_in:
+            downsample = nn.Sequential(
+                conv1x1(inplanes, base_nf * expansion, stride),
+                nn.BatchNorm2d(base_nf * expansion),
+            )
+
+        basic_params = {"planes": planes, "stride": stride}
+        layer_dsp, layer_normal, layer_rmrelu = [basic_params, basic_params, basic_params]
+        layer_dsp.update({"inplanes": inplanes_in, "downsample": downsample, "rmrelu": False})
+        layer_normal.update({"inplanes": planes, "downsample": None, "rmrelu": False})
+        layer_rmrelu.update({"inplanes": planes, "downsample": None, "rmrelu": True})
+
+        args.append(layer_dsp)
+        for _ in range(1, blocks):
+            args.append(layer_normal)
+        if rm_last_relu:
+            args[-1] = layer_rmrelu
+        return args
+        
+
+    def forward(self, x):
+        x = [x] * len(self.at_info)
+        return self.net_groups(x)
+
+    def set_train(self):
+        for groups in self.net_groups:
+            groups.set_train()
+            
+
+def feature_cat(x, task_info, t_num=-1):
+    x_list = []
+    ancestors = task_info.iloc[t_num]["ancestor_tasks"]
+    for k in range(len(x)):
+        if k in ancestors:
+            x_list.append(x[k])
+    return x_list
+
+def get_module(m_type, mod_info):
+    if m_type == 'BasicBlock':
+        inplanes = mod_info["inplanes"]
+        planes = mod_info["planes"]
+        stride = mod_info["stride"]
+        downsample = mod_info["downsample"]
+        rmrelu = mod_info["rmrelu"]
+        return BasicBlock(inplanes, planes, stride, downsample, rmrelu)
+    elif m_type == 'Conv':
+        nf = mod_info["nf"]
+        dataset = mod_info["dataset"]
+        if dataset == 'cifar':
+            return nn.Sequential(nn.Conv2d(3, nf, kernel_size=3, stride=1, padding=1, bias=False),
+                                           nn.BatchNorm2d(nf), nn.ReLU(inplace=True)) 
+        else:
+            raise ValueError('dataset imagenet100 not implemented!')
+    elif m_type == 'AvgPool':
+        return nn.AdaptiveAvgPool2d((1, 1))
+
+
+def resconnect18(pretrained=False, **kwargs):
+    """Constructs a ResNet-18 model.
+
+    """
+    model = ResConnect('BasicBlock', [2, 2, 2, 2], **kwargs)
+    if pretrained:
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
+    return model
