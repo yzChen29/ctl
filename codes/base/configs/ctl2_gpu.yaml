@@ -1,8 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_rtc_imagenet100_trial3_BFS_seed500_with_imagenet100_config"
-  load_model_name: '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial3_BFS_seed500_retrain_from_task21'
+  name: "ctl_rtc_imagenet100_trial3_BFS_seed500_with_imagenet100_config_with_joint_ce_sp0101_zero_only_ance_fea"
+  load_model_name: '/datasets/imagenet100_results/ctl_rtc_imagenet100_trial3_BFS_seed600_with_imagenet100_config_with_joint_ce_sp03_zero_only_ance_fea'
   debug: False
 
 
@@ -11,8 +11,8 @@ exp:
 # cfg_check_1
 # sample_rate & epoch
 #sample_rate: 0.3     # 0.3 or 0.001
-sample_rate_c1: 0.3   # 0.3 or 0.001
-sample_rate_c2: 0.21  # 0.21 or 0.001
+sample_rate_c1: 0.1   # 0.3 or 0.001
+sample_rate_c2: 0.1  # 0.21 or 0.001
 epochs: 220           # 220 or 2
 decouple:
   enable: True
@@ -28,8 +28,8 @@ decouple:
 
 # cfg_check_2
 # load_prev_model eg. has ckpts/ (decouple_)step13 then set retrain_from_task: 14
-use_joint_ce_loss: False
-feature_mode: 'full' # ['full', 'add_zero_only_ancestor_fea',  'add_zero_use_all_prev']  # 新任务选用哪些feature
+use_joint_ce_loss: True
+feature_mode: 'add_zero_only_ancestor_fea' # ['full', 'add_zero_only_ancestor_fea',  'add_zero_use_all_prev']  # 新任务选用哪些feature
 retrain_from_task: 0  # 0 or n
 save_mem: True
 load_mem: False       # False or True
@@ -60,7 +60,6 @@ save_result_path: '/datasets/imagenet100_results/' # '/datasets/imagenet100_resu
 
 taxonomy: 'rtc' # rtc for Real Taxonomic Classifier
 save_ckpt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-save_before_decouple: False
 
 
 # lr_decay
@@ -193,6 +192,7 @@ device_auto_detect: True  # If True, use GPU whenever possible
 device: 0 # GPU index to use, for cpu use -1
 #seed: 500
 overwrite_prevention: False
+
 
 
 

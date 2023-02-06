@@ -29,6 +29,7 @@ decouple:
 # cfg_check_2
 # load_prev_model eg. has ckpts/ (decouple_)step13 then set retrain_from_task: 14
 use_joint_ce_loss: True
+feature_mode: 'add_zero_only_ancestor_fea' # ['full', 'add_zero_only_ancestor_fea',  'add_zero_use_all_prev']  # 新任务选用哪些feature
 retrain_from_task: 0  # 0 or n
 save_mem: True
 load_mem: False       # False or True
@@ -37,14 +38,15 @@ show_noutput_detail: True   # True or False
 # cfg_check_3
 # change seed & dataset
 seed: 500              # 500 or 600 or 1993
-dataset: "imagenet100" # 'imagenet100' or 'cifar100'
-trial: 3               # 3 or 2
+dataset: "cifar100" # 'imagenet100' or 'cifar100'
+trial: 5               # 3 or 2
 acc_k: 0               # record top k acc   =0 then no res
 
 # check datasets.py trial2 / trial3 BFS / DFS
 
 
 # check cgpu_using
+show_detail: False    # show time consumsing or not
 check_cgpu_info: True
 check_cgpu_batch_period: 30
 
