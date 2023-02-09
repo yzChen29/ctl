@@ -10,12 +10,13 @@ class HierNet(nn.Module):
         self.input_size = input_size
         self.nodes = nodes
         self.num_nodes = len(nodes)
-        self.cur_task = int(input_size / 512)
+        self.cur_task = 1 + int((input_size-512) / 128)
         self.reuse_old = reuse
         for i in range(self.num_nodes):
             for j in range(self.cur_task):
                 fc_name = self.nodes[i].name + f'_TF{j}'
-                self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
+                fs = 512 if j==0 else 128
+                self.add_module(fc_name, nn.Linear(fs, len(self.nodes[i].children)))
 
 
     def forward(self, x, gate=None, pred=False, thres=0):
@@ -27,7 +28,13 @@ class HierNet(nn.Module):
                 for j in range(self.cur_task):
                     fc_name = self.nodes[i].name + f'_TF{j}'
                     fc_layers = getattr(self, fc_name)
-                    prod += fc_layers(x[:, 512 * j: 512 * (j + 1)])
+                    if j==0:
+                        s_ind = 0
+                        e_ind = 512
+                    else:
+                        s_ind = 512 + 128 * (j-1)
+                        e_ind = 512 + 128 * j
+                    prod += fc_layers(x[:, s_ind: e_ind])
                 nout.append(prod / 5)
 
             outs = []
@@ -122,16 +129,18 @@ class HierNet(nn.Module):
 
             else:
                 for j in range(self.num_nodes):
+                    fs = 512 if j==0 else 128
                     fc_name = self.nodes[i].name + f'_TF{j}'
-                    self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
+                    self.add_module(fc_name, nn.Linear(fs, len(self.nodes[i].children)))
 
 
         else:
 
             for i in range(self.num_nodes):
                 for j in range(self.num_nodes):
+                    fs = 512 if j==0 else 128
                     fc_name = self.nodes[i].name + f'_TF{j}'
-                    self.add_module(fc_name, nn.Linear(512, len(self.nodes[i].children)))
+                    self.add_module(fc_name, nn.Linear(fs, len(self.nodes[i].children)))
 
 
         return

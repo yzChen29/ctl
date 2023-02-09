@@ -112,11 +112,12 @@ class IncrementalDataset:
             if self._current_task > 0:
                 self._update_memory_for_new_task(self.curriculum[self._current_task])
             # if self.data_memory is not None:
-                data_memory, targets_memory = self.gen_memory_array_from_dict()
-                print("Set memory of size: {}.".format(len(data_memory)))
-                if len(data_memory) != 0:
-                    x_train = np.concatenate((x_train, data_memory))
-                    y_train = np.concatenate((y_train, targets_memory))
+            #TODO: recover after debug
+                # data_memory, targets_memory = self.gen_memory_array_from_dict()
+                # print("Set memory of size: {}.".format(len(data_memory)))
+                # if len(data_memory) != 0:
+                #     x_train = np.concatenate((x_train, data_memory))
+                #     y_train = np.concatenate((y_train, targets_memory))
 
         self.data_inc, self.targets_inc = x_train, y_train
         self.data_test_inc, self.targets_test_inc = x_test, y_test
@@ -146,12 +147,14 @@ class IncrementalDataset:
         cur_classes = self.curriculum[self._current_task]
         pnode_name = self.taxonomy_tree.get_parent(cur_classes[0])
         depth = self.taxonomy_tree.nodes.get(pnode_name).depth
+        feature_size = set_feature_size(depth)
         new_task_info = {}
         new_task_info["task_order"] = [self._current_task]
         new_task_info["child_nodes"] = [cur_classes]
         new_task_info["parent_node"] = [pnode_name]
         new_task_info["depth"] = [depth]
-        new_task_info["feature_size"] = [set_feature_size(depth)]
+        new_task_info["feature_size"] = [feature_size]
+        new_task_info["base_nf"] = [int(feature_size / 8)]
         new_task_info["ancestor_tasks"] = [self.taxonomy_tree.get_ancestor_list(pnode_name)]
         new_task_info["task_size"] = [len(cur_classes)]
         new_task_info["n_train_data"] = [xlen]

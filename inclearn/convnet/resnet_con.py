@@ -40,12 +40,11 @@ class BasicBlock(nn.Module):
         self.remove_last_relu = remove_last_relu
 
     def forward(self, x_list):
-        ext, x = x_list
-        try:
-            cx = torch.cat(ext, x)
+        ext_x, x = x_list
+        try: 
+            cx = torch.cat((ext_x, x), dim=1)
         except:
             cx = x
-
         out = self.conv1(cx)
         out = self.bn1(out)
         out = self.relu(out)
@@ -85,8 +84,8 @@ class ModuleGroup(nn.Module):
             module = self.module_list[k]
             
             if isinstance(module, BasicBlock):
-                x_anc = feature_cat(x_list, self.task_info)
-                x_needed = [x_anc, x_list[-1]]
+                x_anc = feature_cat(x_list, self.task_info, t_num=k)
+                x_needed = [x_anc, x_list[k]]
 
                 #TODO: put module on cuda
                 m1 = module.cuda()
@@ -192,11 +191,11 @@ class ResConnect(nn.Module):
             groups.expand(args)
 
 
-    def get_input_dims(self, t_num=-1):
+    def get_anc_dims(self, t_num=-1):
         ancestors = self.at_info.iloc[t_num]["ancestor_tasks"]
         try:
-            anc_nf = self.at_info.iloc[ancestors]["feature_size"]
-            anc_nf = sum(anc_nf)
+            anc_tasks = self.at_info.loc[self.at_info['parent_node'].isin(ancestors)]
+            anc_nf = sum(anc_tasks["base_nf"])
         except:
             anc_nf = 0
         return anc_nf
@@ -204,28 +203,35 @@ class ResConnect(nn.Module):
 
     def multigroup_expand_args(self, base_nf, stage, blocks, t_num=-1, block_name='BasicBlock', rm_last_relu=False):
         assert stage in [0, 1, 2, 3]
-        planes = pow(2, stage) * base_nf
-        inplanes = self.get_input_dims(t_num)
+        stage_prev = pow(2, max(stage-1, 0))
+        stage_cur = pow(2, stage)
+
+        out_nf_prev = base_nf * stage_prev
+        out_nf = base_nf * stage_cur  # 64, 128, 256, 512, refers to out dim
+        anc_nf = self.get_anc_dims(t_num)
+        in_nf_1 = (anc_nf + base_nf) * stage_prev
+        in_nf_n = (anc_nf + base_nf) * stage_cur
+
+        # inplanes = self.get_anc_dims(t_num)
         stride = 1 if stage == 0 else 2
         if block_name == 'BasicBlock':
             expansion = 1
         elif block_name == 'BottleNeck':
             expansion = 4
-        inplanes_in = base_nf * expansion
 
         args = []
         downsample = None
-        if stride != 1 or inplanes != inplanes_in:
+        if stride != 1:
             downsample = nn.Sequential(
-                conv1x1(inplanes, base_nf * expansion, stride),
-                nn.BatchNorm2d(base_nf * expansion),
+                conv1x1(out_nf_prev, out_nf, stride),
+                nn.BatchNorm2d(out_nf),
             )
 
-        basic_params = {"planes": planes, "stride": stride}
-        layer_dsp, layer_normal, layer_rmrelu = [basic_params, basic_params, basic_params]
-        layer_dsp.update({"inplanes": inplanes_in, "downsample": downsample, "rmrelu": False})
-        layer_normal.update({"inplanes": planes, "downsample": None, "rmrelu": False})
-        layer_rmrelu.update({"inplanes": planes, "downsample": None, "rmrelu": True})
+        basic_params = {"planes": out_nf, "stride": stride}
+        layer_dsp, layer_normal, layer_rmrelu = [basic_params.copy(), basic_params.copy(), basic_params.copy()]
+        layer_dsp.update({"inplanes": in_nf_1, "downsample": downsample, "rmrelu": False})
+        layer_normal.update({"stride": 1, "inplanes": in_nf_n, "downsample": None, "rmrelu": False})
+        layer_rmrelu.update({"stride": 1, "inplanes": in_nf_n, "downsample": None, "rmrelu": True})
 
         args.append(layer_dsp)
         for _ in range(1, blocks):
@@ -245,11 +251,11 @@ class ResConnect(nn.Module):
             
 
 def feature_cat(x, task_info, t_num=-1):
-    x_list = []
+    x_list = torch.tensor([]).cuda()
     ancestors = task_info.iloc[t_num]["ancestor_tasks"]
     for k in range(len(x)):
-        if k in ancestors:
-            x_list.append(x[k])
+        if task_info.iloc[k]["parent_node"] in ancestors:
+            x_list = torch.cat((x_list, x[k]))
     return x_list
 
 def get_module(m_type, mod_info):

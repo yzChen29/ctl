@@ -141,7 +141,7 @@ class IncModel(IncrementalLearner):
         if self._cfg["is_distributed"]:
             self._logger.info(f'process {self._cfg["rank"]} begin set task info')
         self.at_info = task_info
-        ct_info = task_info.loc[len(task_info)-1]  # default is the last row
+        ct_info = task_info.iloc[len(task_info)-1]  # default is the last row
         
         self._task = ct_info["task_order"]
         # task size for current task
@@ -336,9 +336,6 @@ class IncModel(IncrementalLearner):
 
                 if self._cfg["use_joint_ce_loss"]:
                     total_loss += joint_ce_loss
-
-
-
 
                 # if ce_loss < 0:
                 #     print('ce_loss: ', ce_loss)

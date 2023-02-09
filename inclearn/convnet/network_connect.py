@@ -8,6 +8,7 @@ from inclearn.convnet.imbalance import BiC, WA
 from inclearn.convnet.classifier import CosineClassifier, RealTaxonomicClassifier
 from inclearn.convnet.resnet_con import resconnect18
 from inclearn.deeprtc import get_model
+from inclearn.deeprtc.hiernet_exp import HierNetExp
 from inclearn.deeprtc.pivot import Pivot
 
 
@@ -19,7 +20,7 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
         self.init = init
         self.convnet_type = convnet_type
         self.exp_module = resconnect18()
-        self.exp_module.to(device)
+        self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'])
         self.dataset = dataset
         self.start_class = cfg['start_class']
         self.weight_normalization = cfg['weight_normalization']
@@ -77,8 +78,8 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
             features = self.exp_module(x)
             fe = features[0]
             for k in range(1, len(features)):
-                fe = torch.cat(fe, features[k])
-            features = fe
+                fe = torch.cat((fe, features[k]), dim=1)
+            features = torch.squeeze(fe)
         else:
             features = self.convnet(x)
 
@@ -125,10 +126,11 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
         # update info
         self.at_info = at_info
         self.current_task = len(at_info) - 1
-        self.ct_info = at_info.loc[self.current_task]
+        self.ct_info = at_info.iloc[self.current_task]
 
         expand_info = at_info.loc[:, at_info.columns != 'part_tree']
         self.exp_module.update_task_info(expand_info)
+        self.exp_classifier.update_task_info(expand_info)
         self.out_dim = sum(at_info["feature_size"])
 
         # add classes
@@ -146,11 +148,13 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
             all_classes = self.n_classes + n_classes
 
         # expand network part
-        base_nf = 64
+        base_nf = int(self.ct_info['feature_size'] / 8)
         self.exp_module.expand(base_nf)
 
         # expand classifier part
         # new_clf = self._gen_classifier(self.out_dim * len(self.convnets), all_classes)
+        self.exp_classifier.expand()
+    
         new_clf = self._gen_classifier(self.out_dim, all_classes)
         if self.taxonomy:
             if self.classifier is None:
@@ -203,7 +207,8 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
             if self.classifier is not None and self.feature_mode=='add_zero_only_ancestor_fea':
 
                 for j in range(self.current_task):
-                    ancestor_nodes_list = self.current_tax_tree.get_ancestor_list(new_clf.nodes[len(new_clf.nodes)-1].name)
+                    cur_tree = self.ct_info["part_tree"]
+                    ancestor_nodes_list = cur_tree.get_ancestor_list(new_clf.nodes[len(new_clf.nodes)-1].name)
                     ancestor_self_nodes_list = ancestor_nodes_list + [curr_node_name]
                     self.ancestor_self_nodes_list = ancestor_self_nodes_list
 
