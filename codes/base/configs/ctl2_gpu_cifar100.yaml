@@ -34,7 +34,7 @@ feature_mode: 'add_zero_only_ancestor_fea' # ['full', 'add_zero_only_ancestor_fe
 retrain_from_task: 0  # 0 or n
 save_mem: True
 load_mem: False       # False or True
-show_noutput_detail: False   # True or False
+show_noutput_detail: True   # True or False
 
 # cfg_check_3
 # change seed & dataset

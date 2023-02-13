@@ -175,7 +175,7 @@ def train(_run, _rnd, _seed):
     except Exception as e:
         import traceback
         traceback.print_exc(file=open(
-            '/datasets/imagenet100_results/terminal_log.txt','a'))
+            '/datasets/cifar100_results/terminal_log.txt','a'))
         print('Error Message', e)
         print('\n\n\n\n')
         raise('Error')
@@ -246,7 +246,8 @@ def test(_run, _rnd, _seed):
 
 if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
-    ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
+    # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
+    ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     ex.run_commandline()
 
 

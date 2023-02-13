@@ -94,9 +94,9 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
             output = self.classifier(features)
             nout, sfmx_base = None, None
 
-        if self.use_aux_cls:
-            aux_logits = self.aux_classifier(features[:, -self.out_dim:]) \
-                if features.shape[1] > self.out_dim else None
+        if self.use_aux_cls and self.current_task > 0:
+            ct_fs = self.ct_info['feature_size']
+            aux_logits = self.aux_classifier(features[:, -ct_fs:])
         else:
             aux_logits = None
         return {'feature': features, 'output': output, 'nout': nout, 'sfmx_base': sfmx_base, 'aux_logit': aux_logits}
@@ -236,7 +236,8 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
 
         if self.aux_nplus1:
             # aux_fc = self._gen_classifier(self.out_dim, n_classes + 1)
-            aux_fc = nn.Linear(self.out_dim, n_classes + 1, bias=self.use_bias).to(self.device)
+            ct_fs = self.ct_info['feature_size']  # feature size of current task
+            aux_fc = nn.Linear(ct_fs, n_classes + 1, bias=self.use_bias).to(self.device)
             if self.init == "kaiming":
                 nn.init.kaiming_normal_(aux_fc.weight, nonlinearity="linear")
             if self.use_bias:
