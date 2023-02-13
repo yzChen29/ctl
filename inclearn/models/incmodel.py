@@ -26,6 +26,7 @@ import pynvml
 
 # Constants
 EPSILON = 1e-8
+rec_loss = []
 
 
 class IncModel(IncrementalLearner):
@@ -348,6 +349,8 @@ class IncModel(IncrementalLearner):
                 #             print(a[x])
                 # print(total_loss)
                 backward_start_time = time.time()
+                # rec_loss.append(total_loss)
+
                 total_loss.backward()
                 backward_end_time = time.time()
 
@@ -541,7 +544,8 @@ class IncModel(IncrementalLearner):
             stsloss = torch.mean(-gt_z + torch.log(torch.clamp(sfmx_base.view(-1, 1), 1e-17, 1e17)))
             stslosses.update(stsloss.item(), batch_size)
 
-            loss = nloss + stsloss * 0
+            # loss = nloss + stsloss * 0
+            loss = nloss
             losses.update(loss.item(), batch_size)
             # if stsloss < 0:
             # print('stsloss: ', stsloss)

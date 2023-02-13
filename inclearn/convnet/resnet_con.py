@@ -67,12 +67,20 @@ class ModuleGroup(nn.Module):
     def __init__(self, module_type, task_info):
         super(ModuleGroup, self).__init__()
         self.module_type = module_type
-        self.module_list = []
+        self.module_list = nn.ModuleList()
+        # self.add_module('666', self.module_list)
         self.task_info = task_info
 
     def expand(self, mod_info):
-        new_module = get_module(self.module_type, mod_info)
+        new_module = get_module(self.module_type, mod_info).cuda()
+        # task = len(self.task_info)
+        # mods = []      
+        # for k in range(task - 1):
+        #     mods.append(self.module_list[k])
+        # mods.append(new_module)
         self.module_list.append(new_module)
+        
+        # self.add_module('task' + str(task), new_module)
 
     def update_task(self, task_info):
         self.task_info = task_info
@@ -98,26 +106,20 @@ class ModuleGroup(nn.Module):
     def set_train(self):
         for k in range(len(self.module_list) - 1):
             module = self.module_list[k]
-            self.set_status(module, 'train')
+            self.set_status(module, 'eval')
         module = self.module_list[-1]
-        self.set_status(module, 'eval')
+        self.set_status(module, 'train')
 
     @staticmethod
     def set_status(module, status):
         assert status in ['train', 'eval']
         if status == 'train':
-            if isinstance(module, nn.Sequential) or isinstance(module, nn.ModuleList):
-                for s_module in module:
-                    s_module.train()
-            else:
-                module.train()
+            for p in module.parameters():
+                p.requires_grad = True
 
         else:
-            if isinstance(module, nn.Sequential) or isinstance(module, nn.ModuleList):
-                for s_module in module:
-                    s_module.eval()
-            else:
-                module.eval()
+            for p in module.parameters():
+                p.requires_grad = False
 
 
 class MultiModuleGroup(nn.Module):

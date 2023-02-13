@@ -245,7 +245,6 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
             aux_fc = self._gen_classifier(self.out_dim, self.n_classes + n_classes)
         del self.aux_classifier
         self.aux_classifier = aux_fc
-        c = 9
 
     def _add_classes_single_fc(self, n_classes):
         if self.classifier is not None:
