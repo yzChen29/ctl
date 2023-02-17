@@ -78,6 +78,26 @@ class ModuleGroup(nn.Module):
         # for k in range(task - 1):
         #     mods.append(self.module_list[k])
         # mods.append(new_module)
+
+        if self.module_type in ['Conv', 'BasicBlock']:
+            for m in new_module.modules():
+                if isinstance(m, nn.Conv2d):
+                    # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                    #important
+                    m.weight = torch.nn.Parameter(torch.ones_like(m.weight))
+                if isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0) 
+                    
+
+            # Zero-initialize the last BN in each residual branch,
+            # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+            # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+            if mod_info['zero_init_residual']:
+                if self.module_type == 'BasicBlock':
+                    nn.init.constant_(new_module.bn2.weight, 0)
+
+
         self.module_list.append(new_module)
         
         # self.add_module('task' + str(task), new_module)
@@ -93,6 +113,8 @@ class ModuleGroup(nn.Module):
             
             if isinstance(module, BasicBlock):
                 x_anc = feature_cat(x_list, self.task_info, t_num=k)
+
+                x_anc = torch.tensor([])  # switch
                 x_needed = [x_anc, x_list[k]]
 
                 #TODO: put module on cuda
@@ -153,13 +175,14 @@ class MultiModuleGroup(nn.Module):
 
 
 class ResConnect(nn.Module):
-    def __init__(self, block, layer_num, at_info=None, dataset='cifar', remove_last_relu=False):
+    def __init__(self, block, layer_num, at_info=None, zero_init_residual=True, dataset='cifar', remove_last_relu=False):
         super(ResConnect, self).__init__()
         self.block = block
         self.layer_num = layer_num
         self.at_info = at_info
         self.dataset = dataset
         self.remove_last_relu = remove_last_relu
+        self.zero_init_residual = zero_init_residual
         self.net_groups = nn.Sequential(
             ModuleGroup('Conv', self.at_info), 
             MultiModuleGroup(block, layer_num[0], self.at_info), 
@@ -179,7 +202,7 @@ class ResConnect(nn.Module):
     
     def expand(self, base_nf):
         layer_args = [
-            {'nf': base_nf, 'dataset': self.dataset},   # conv params
+            {'nf': base_nf, 'dataset': self.dataset, 'zero_init_residual':self.zero_init_residual},   # conv params
             self.multigroup_expand_args(base_nf, 0, self.layer_num[0]), 
             self.multigroup_expand_args(base_nf, 1, self.layer_num[1]), 
             self.multigroup_expand_args(base_nf, 2, self.layer_num[2]), 
@@ -200,7 +223,8 @@ class ResConnect(nn.Module):
             anc_nf = sum(anc_tasks["base_nf"])
         except:
             anc_nf = 0
-        return anc_nf
+        return 0  # switch
+        # return anc_nf
 
 
     def multigroup_expand_args(self, base_nf, stage, blocks, t_num=-1, block_name='BasicBlock', rm_last_relu=False):
@@ -231,8 +255,8 @@ class ResConnect(nn.Module):
 
         basic_params = {"planes": out_nf, "stride": stride}
         layer_dsp, layer_normal, layer_rmrelu = [basic_params.copy(), basic_params.copy(), basic_params.copy()]
-        layer_dsp.update({"inplanes": in_nf_1, "downsample": downsample, "rmrelu": False})
-        layer_normal.update({"stride": 1, "inplanes": in_nf_n, "downsample": None, "rmrelu": False})
+        layer_dsp.update({"inplanes": in_nf_1, "downsample": downsample, "rmrelu": False, "zero_init_residual": self.zero_init_residual})
+        layer_normal.update({"stride": 1, "inplanes": in_nf_n, "downsample": None, "rmrelu": False, "zero_init_residual": self.zero_init_residual})
         layer_rmrelu.update({"stride": 1, "inplanes": in_nf_n, "downsample": None, "rmrelu": True})
 
         args.append(layer_dsp)
@@ -245,7 +269,8 @@ class ResConnect(nn.Module):
 
     def forward(self, x):
         x = [x] * len(self.at_info)
-        return self.net_groups(x)
+        x = self.net_groups(x)
+        return [y.view(y.size(0), -1) for y in x]
 
     def set_train(self):
         for groups in self.net_groups:

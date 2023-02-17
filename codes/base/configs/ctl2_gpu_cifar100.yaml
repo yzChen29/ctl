@@ -1,8 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_cifar100_task_connected"
-  load_model_name: '/datasets/imagenet100_results/ctl_cifar100_task_connected'
+  name: "ctl_cifar100_task_connected_test"
+  load_model_name: '/datasets/imagenet100_results/ctl_cifar100_task_connected_test'
   debug: False
 
 
@@ -11,12 +11,13 @@ exp:
 # cfg_check_1
 # sample_rate & epoch
 #sample_rate: 0.3     # 0.3 or 0.001
+use_connection: True  # True or False
 sample_rate_c1: 0.3   # 0.3 or 0.001
 sample_rate_c2: 0.21  # 0.21 or 0.001
-epochs: 170           # 220 or 2
+epochs: 2           # 220 or 2
 decouple:
   enable: True
-  epochs: 50           # 30 or 2
+  epochs: 2           # 30 or 2
   fullset: False
   lr: 0.05            # 0.1 or 0.05
   scheduling:
@@ -168,7 +169,7 @@ max_task:  # Cap the number of task
 #is_distributed: False
 
 # Memory
-memory_enable: True
+memory_enable: False
 coreset_strategy: "iCaRL"  # iCaRL, random
 mem_size_mode: "uniform_fixed_total_mem"  # uniform_fixed_per_cls, uniform_fixed_total_mem
 memory_size: 2000  # Max number of storable examplars

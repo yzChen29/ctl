@@ -19,8 +19,8 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
         self.nf = nf
         self.init = init
         self.convnet_type = convnet_type
-        self.exp_module = resconnect18()
-        self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'])
+        # self.exp_module = resconnect18()
+        # self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'])
         self.dataset = dataset
         self.start_class = cfg['start_class']
         self.weight_normalization = cfg['weight_normalization']
@@ -37,8 +37,15 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
 
         if self.der:
             print("Enable dynamical representation expansion!")
-            # self.convnets = nn.ModuleList()
             self.out_dim = 0
+            if cfg['use_connection']:
+                self.exp_module = resconnect18()
+                self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'], 
+                                                 feature_mode=feature_mode)
+                
+            else:
+                # self.convnets = nn.ModuleList()
+                self.convnets = []
         else:
             self.convnet = factory.get_convnet(convnet_type,
                                                nf=nf,
@@ -69,17 +76,17 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
         self.to(self.device)
 
     def forward(self, x):
-        if self.classifier is None:
+        if self.classifier is None and self.exp_classifier is None:
             raise Exception("Add some classes before training.")
 
         # get feature
         if self.der:
             # features = [convnet(x) for convnet in self.convnets]
             features = self.exp_module(x)
-            fe = features[0]
-            for k in range(1, len(features)):
-                fe = torch.cat((fe, features[k]), dim=1)
-            features = torch.squeeze(fe)
+            # fe = features[0]
+            # for k in range(1, len(features)):
+            #     fe = torch.cat((fe, features[k]), dim=1)
+            # features = torch.squeeze(fe)
         else:
             features = self.convnet(x)
 
@@ -88,15 +95,15 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
             gate = self.model_pivot(torch.ones([x.size(0), len(self.used_nodes)]))
             # gate[:, 0] = 1
             # print(features)
-            output, nout, sfmx_base = self.classifier(x=features, gate=gate)
+            # output, nout, sfmx_base = self.classifier(x=features, gate=gate)
+            output, nout, sfmx_base = self.exp_classifier(x_list=features, gate=gate)
             # logits = self.classifier(features)
         else:
             output = self.classifier(features)
             nout, sfmx_base = None, None
 
         if self.use_aux_cls and self.current_task > 0:
-            ct_fs = self.ct_info['feature_size']
-            aux_logits = self.aux_classifier(features[:, -ct_fs:])
+            aux_logits = self.aux_classifier(features[-1])
         else:
             aux_logits = None
         return {'feature': features, 'output': output, 'nout': nout, 'sfmx_base': sfmx_base, 'aux_logit': aux_logits}
@@ -111,6 +118,7 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
 
     def set_train(self):
         self.exp_module.set_train()
+        self.exp_classifier.set_train()
 
     def freeze(self):
         for param in self.parameters():
@@ -129,13 +137,38 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
         self.ct_info = at_info.iloc[self.current_task]
 
         expand_info = at_info.loc[:, at_info.columns != 'part_tree']
+        self._update_tree_info()
+        self._gen_pivot()
+
         self.exp_module.update_task_info(expand_info)
-        self.exp_classifier.update_task_info(expand_info)
+        self.exp_classifier.update_task_info(self.used_nodes, expand_info)
         self.out_dim = sum(at_info["feature_size"])
 
         # add classes
         if self.der:
-            self._add_classes_multi_fc(feature_mode)
+            n_classes = self.ct_info["task_size"]
+
+            # expand network part
+            base_nf = int(self.ct_info['feature_size'] / 8)
+            self.exp_module.expand(base_nf)
+
+            # expand classifier part
+            self.exp_classifier.expand()
+            # self._add_classes_multi_fc(feature_mode)
+
+            if self.aux_nplus1:
+            # aux_fc = self._gen_classifier(self.out_dim, n_classes + 1)
+                ct_fs = self.ct_info['feature_size']  # feature size of current task
+                ct_nclass = self.ct_info["task_size"]  # number of classes for current task
+                aux_fc = nn.Linear(ct_fs, ct_nclass + 1, bias=self.use_bias).to(self.device)
+                if self.init == "kaiming":
+                    nn.init.kaiming_normal_(aux_fc.weight, nonlinearity="linear")
+                if self.use_bias:
+                    nn.init.constant_(aux_fc.bias, 0.0)
+            else:
+                aux_fc = self._gen_classifier(self.out_dim, self.n_classes + n_classes)
+            del self.aux_classifier
+            self.aux_classifier = aux_fc
         else:
             self._add_classes_single_fc()
 
@@ -153,7 +186,7 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
 
         # expand classifier part
         # new_clf = self._gen_classifier(self.out_dim * len(self.convnets), all_classes)
-        self.exp_classifier.expand()
+        self.exp_classifier.expand(base_nf)
     
         new_clf = self._gen_classifier(self.out_dim, all_classes)
         if self.taxonomy:

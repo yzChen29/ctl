@@ -206,8 +206,9 @@ class IncModel(IncrementalLearner):
 
         # In DER model, freeze the previous network parameters
         # only updates parameters for the current network
-        if self._der and self._task > 0:
-            self._network.set_train()
+        # if self._der and self._task > 0:
+
+        self._network.set_train()
             # for i in range(self._task):
             #     # for p in self._parallel_network.module.convnets[i].parameters():
             #     for p in self._parallel_network.module.convnets[i].parameters():
@@ -246,6 +247,11 @@ class IncModel(IncrementalLearner):
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
 
+        #important
+        if self._task == 1:
+            a = np.load('aux_classifier_para.npy')
+            self._network.aux_classifier.weight = torch.nn.Parameter(torch.from_numpy(a))
+        print()
         for epoch in range(self._n_epochs):
             _ce_loss, _joint_ce_loss, _loss_aux, _total_loss = 0.0, 0.0, 0.0, 0.0
 
@@ -313,8 +319,14 @@ class IncModel(IncrementalLearner):
 
                 para_net_start_time = time.time()
                 if epoch == 0 and i == 1:
+                    #important
+                    self._to_device(self._parallel_network)
+                    self._to_device(inputs)
                     outputs = self._parallel_network(inputs)
                 else:
+                    #important
+                    self._to_device(self._parallel_network)
+                    self._to_device(inputs)
                     outputs = self._parallel_network(inputs)
 
                 para_net_end_time = time.time()
@@ -616,18 +628,19 @@ class IncModel(IncrementalLearner):
 
             # finetuning
             # only hiernet on cuda needs .module
-            for k in range(self._network.classifier.num_nodes):
-                for j in range(self._network.classifier.cur_task):
-                    fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
-                    fc_new = getattr(self._network.classifier, fc_name, None)
+            # for k in range(self._network.classifier.num_nodes):
+            #     for j in range(self._network.classifier.cur_task):
+            #         fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
+            #         fc_new = getattr(self._network.classifier, fc_name, None)
 
 
-            self._network.classifier.reset_parameters(self._network.node2TFind_dict, feature_mode=self._cfg['feature_mode'], ancestor_self_nodes_list=self._network.ancestor_self_nodes_list)
+            # self._network.classifier.reset_parameters(self._network.node2TFind_dict, feature_mode=self._cfg['feature_mode'], ancestor_self_nodes_list=self._network.ancestor_self_nodes_list)
+            self._network.exp_classifier.reset_parameters()
 
-            for k in range(self._network.classifier.num_nodes):
-                for j in range(self._network.classifier.cur_task):
-                    fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
-                    fc_new = getattr(self._network.classifier, fc_name, None)
+            # for k in range(self._network.classifier.num_nodes):
+            #     for j in range(self._network.classifier.cur_task):
+            #         fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
+            #         fc_new = getattr(self._network.classifier, fc_name, None)
 
 
             finetune_last_layer(self._logger,

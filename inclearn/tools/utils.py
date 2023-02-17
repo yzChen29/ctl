@@ -60,7 +60,8 @@ def get_featnorm_grouped_by_class(network, cur_n_cls, loader):
 
 
 def set_feature_size(node_depth):
-    return int(512 / pow(2, 2*node_depth))
+    # return int(512 / pow(2, 2*node_depth))
+    return int(512)
 
 
 def set_seed(seed):

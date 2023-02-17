@@ -5,19 +5,32 @@ from torch import nn
 
 class HierNet(nn.Module):
     """Module of hierarchical classifier"""
-    def __init__(self, input_size, nodes, reuse=False):
+    def __init__(self, input_size=0, nodes=None, reuse=False, task_info=None):
         super(HierNet, self).__init__()
         self.input_size = input_size
         self.nodes = nodes
         self.num_nodes = len(nodes)
         self.cur_task = 1 + int((input_size-512) / 128)
         self.reuse_old = reuse
+        self.task_info = task_info
         for i in range(self.num_nodes):
             for j in range(self.cur_task):
                 fc_name = self.nodes[i].name + f'_TF{j}'
                 fs = 512 if j==0 else 128
                 self.add_module(fc_name, nn.Linear(fs, len(self.nodes[i].children)))
 
+                #important
+                self._modules[fc_name].bias = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].bias))
+                if self._modules[fc_name].weight.shape[0] == 20:
+                    a = np.load('classifier_para.npy')
+                    # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
+                    self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
+                else:
+                    b = np.load('classifier_para_2.npy')
+                    self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
+
+    def update_task_info(self, task_info):
+        self.task_info = task_info
 
     def forward(self, x, gate=None, pred=False, thres=0):
         if pred is False:
@@ -105,8 +118,17 @@ class HierNet(nn.Module):
                 j = self.cur_task - 1
                 for i in range(self.num_nodes):
                     fc_name = self.nodes[i].name + f'_TF{j}'
-                    self._modules[fc_name].reset_parameters()
+                    # self._modules[fc_name].reset_parameters()
 
+                    #important
+                    self._modules[fc_name].bias = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].bias))
+                    if self._modules[fc_name].weight.shape[0] == 20:
+                        a = np.load('classifier_para.npy')
+                        # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
+                        self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
+                    else:
+                        b = np.load('classifier_para_2.npy')
+                        self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
 
             node2TFind_dict_inv = {node2TFind_dict[i]:i for i in node2TFind_dict}
             curr_node_name = node2TFind_dict_inv[len(node2TFind_dict_inv)-1]
@@ -124,15 +146,35 @@ class HierNet(nn.Module):
 
                 for ancestor_j in ancestor_self_nodes_list:
                     fc_name = self.nodes[i].name + f'_TF{node2TFind_dict[ancestor_j]}'
-                    self._modules[fc_name].reset_parameters()
+                    # self._modules[fc_name].reset_parameters()
+
+                    #important
+                    self._modules[fc_name].bias = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].bias))
+                    if self._modules[fc_name].weight.shape[0] == 20:
+                        a = np.load('classifier_para.npy')
+                        # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
+                        self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
+                    else:
+                        b = np.load('classifier_para_2.npy')
+                        self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
 
 
             else:
                 for j in range(self.num_nodes):
                     fs = 512 if j==0 else 128
                     fc_name = self.nodes[i].name + f'_TF{j}'
-                    self._modules[fc_name].reset_parameters()
 
+                    # self._modules[fc_name].reset_parameters()
+
+                    #important
+                    self._modules[fc_name].bias = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].bias))
+                    if self._modules[fc_name].weight.shape[0] == 20:
+                        a = np.load('classifier_para.npy')
+                        # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
+                        self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
+                    else:
+                        b = np.load('classifier_para_2.npy')
+                        self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
 
         else:
 
@@ -141,7 +183,19 @@ class HierNet(nn.Module):
                     # fs = 512 if j==0 else 128
                     fc_name = self.nodes[i].name + f'_TF{j}'
                     # self.add_module(fc_name, nn.Linear(fs, len(self.nodes[i].children)))
-                    self._modules[fc_name].reset_parameters()
+
+                    # self._modules[fc_name].reset_parameters()
+
+                    #important
+                    self._modules[fc_name].bias = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].bias))
+                    if self._modules[fc_name].weight.shape[0] == 20:
+                        a = np.load('classifier_para.npy')
+                        # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
+                        self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
+                    else:
+                        b = np.load('classifier_para_2.npy')
+                        self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
+
 
 
         return
