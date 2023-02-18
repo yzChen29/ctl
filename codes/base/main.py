@@ -73,7 +73,8 @@ def _train(rank, cfg, world_size, logger=None):
 
     for task_i in range(inc_dataset.n_tasks):
     # for task_i in range(1):
-        model.before_task()
+        model.new_task()
+        model.before_task(inc_dataset)
         enforce_decouple = False
 
 
@@ -100,26 +101,27 @@ def _train(rank, cfg, world_size, logger=None):
         else:
             print(f'passing task {task_i}')
 
-        if task_i >= cfg['retrain_from_task'] - 1:
+        # if task_i >= cfg['retrain_from_task'] - 1:
 
-            if cfg['device'].type == 'cuda':
-                model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
-                    "acc_details": True,
-                    "acc_aux_details": True,
-                    "preds_details": True,
-                    "preds_aux_details": True
-                })
+        #     if cfg['device'].type == 'cuda':
+        #         model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
+        #             "acc_details": True,
+        #             "acc_aux_details": True,
+        #             "preds_details": True,
+        #             "preds_aux_details": True
+        #         })
+
 
         model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
 
-        if task_i >= cfg['retrain_from_task'] - 1:
-            if cfg['device'].type == 'cuda':
-                model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
-                    "acc_details": True,
-                    "acc_aux_details": True,
-                    "preds_details": True,
-                    "preds_aux_details": True
-                })
+        # if task_i >= cfg['retrain_from_task'] - 1:
+        #     if cfg['device'].type == 'cuda':
+        #         model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
+        #             "acc_details": True,
+        #             "acc_aux_details": True,
+        #             "preds_details": True,
+        #             "preds_aux_details": True
+        #         })
 
 
     #         if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
@@ -166,10 +168,70 @@ def train(_run, _rnd, _seed):
     except Exception as e:
         import traceback
         traceback.print_exc(file=open(
-            '/datasets/cifar100_results/terminal_log.txt','a'))
+            '/datasets/imagenet100_results/terminal_log.txt','a'))
         print('Error Message', e)
         print('\n\n\n\n')
         raise('Error')
+
+# def _train(cfg, _run, exp):
+#     cfg["rank"] = 1
+#     cfg["world_size"] = 1
+#     inc_dataset = factory.get_data(cfg)
+#     exp.logger.info("curriculum")
+#     exp.logger.info(inc_dataset.curriculum)
+#
+#     model = factory.get_model(cfg, exp.logger, inc_dataset)
+#
+#     # if _run.meta_info["options"]["--file_storage"] is not None:
+#     #     _save_dir = osp.join(_run.meta_info["options"]["--file_storage"], str(_run._id))
+#     # else:
+#     #     _save_dir = cfg['sp']['model']
+#
+#     results = results_utils.get_template_results(cfg)
+#
+#     for task_i in range(inc_dataset.n_tasks):
+#     # for task_i in range(1):
+#         model.new_task()
+#         model.before_task(inc_dataset)
+#
+#         if task_i >= cfg['retrain_from_task']:
+#             model.train_task()
+#         # elif task_i >= 1:
+#         elif task_i == 19:
+#             # state_dict = torch.load(f'~/srip22/codes/DER-ClassIL.pytorch/codes/base/ckpts/step{task_i}.ckpt')
+#             state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/decouple_step{task_i}.ckpt")
+#             model._parallel_network.load_state_dict(state_dict)
+#         else:
+#             pass
+#             # state_dict = torch.load(f"results/{cfg['exp']['load_model_name']}/train/ckpts/step{task_i}.ckpt")
+#             # model._parallel_network.load_state_dict(state_dict)
+#
+#         if cfg['device'].type == 'cuda':
+#             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
+#                 "acc_details": True,
+#                 "acc_aux_details": True,
+#                 "preds_details": True,
+#                 "preds_aux_details": True
+#             })
+#         model.after_task(inc_dataset)
+#
+#         if cfg['device'].type == 'cuda':
+#             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
+#                 "acc_details": True,
+#                 "acc_aux_details": True,
+#                 "preds_details": True,
+#                 "preds_aux_details": True
+#             })
+#
+#             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
+#                 "acc_details": True,
+#                 "acc_aux_details": True,
+#                 "preds_details": True,
+#                 "preds_aux_details": True
+#             })
+#
+#     if cfg["exp"]["name"]:
+#         results_utils.save_results(results, cfg["exp"]["name"])
 
 
 def do_pretrain(cfg, ex, model, device, train_loader, test_loader):
@@ -219,7 +281,8 @@ def test(_run, _rnd, _seed):
 
     test_results = results_utils.get_template_results(cfg)
     for task_i in range(inc_dataset.n_tasks):
-        model.before_task()
+        model.new_task()
+        model.before_task(inc_dataset)
         if task_i == 20:
             model_path = 'results/' + cfg['exp']['load_model_name'] + f'/train/ckpts/decouple_step{task_i}.ckpt'
             state_dict = torch.load(model_path)
@@ -240,5 +303,4 @@ if __name__ == "__main__":
     ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     ex.run_commandline()
-
 

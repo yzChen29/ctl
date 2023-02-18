@@ -1,7 +1,7 @@
 # for imagenet100
 
 exp:
-  name: "ctl_cifar100_task_connected_test"
+  name: "ctl_cifar100_task_connected_test_ori"
   load_model_name: '/datasets/imagenet100_results/ctl_cifar100_task_connected_test'
   debug: False
 

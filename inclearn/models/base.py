@@ -26,10 +26,14 @@ class IncrementalLearner(abc.ABC):
     def set_task_info(self, task_info):
         pass
 
-    def before_task(self):
+    def new_task(self):
+        LOGGER.info("new task")
+        self._new_task()
+
+    def before_task(self, inc_dataset):
         LOGGER.info("Before task")
         self.eval()
-        self._before_task()
+        self._before_task(inc_dataset)
 
     def train_task(self):
         LOGGER.info("train task")
