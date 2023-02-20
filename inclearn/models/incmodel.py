@@ -374,8 +374,7 @@ class IncModel(IncrementalLearner):
                 # a = self._optimizer.param_groups[0]['params']
                 # print(a[0].grad)
                 step_start_time = time.time()
-                if self._task == 0:
-                    self._optimizer.step()
+                self._optimizer.step()
                 step_end_time = time.time()
                 step_time_list.append(np.round(step_end_time - step_start_time, 3))
 
@@ -622,6 +621,9 @@ class IncModel(IncrementalLearner):
         if self._cfg['save_before_decouple'] and taski >= self._train_from_task and taski in self._cfg["save_ckpt"]:
             # save_path = os.path.join(os.getcwd(), "ckpts")
             torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
+
+        if taski == 0 and taski in self._cfg["save_ckpt"]:
+                torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
 
         if enforce_decouple or (self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task):
             if self._cfg["decouple"]["fullset"]:
