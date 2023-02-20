@@ -88,14 +88,14 @@ class HierNetExp(nn.Module):
             self.add_module(fc_name, nn.Linear(in_fs, out_fs).cuda())
 
             #important
-            self._modules[fc_name].bias = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].bias))
-            if self._modules[fc_name].weight.shape[0] == 20:
-                a = np.load('classifier_para.npy')
-                # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
-                self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
-            else:
-                b = np.load('classifier_para_2.npy')
-                self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
+            # self._modules[fc_name].bias = torch.nn.Parameter(torch.zeros_like(self._modules[fc_name].bias))
+            # if self._modules[fc_name].weight.shape[0] == 20:
+            #     a = np.load('classifier_para.npy')
+            #     # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
+            #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
+            # else:
+            #     b = np.load('classifier_para_2.npy')
+            #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
             # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
             # self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
 
@@ -112,13 +112,14 @@ class HierNetExp(nn.Module):
             self.add_module(fc_name, nn.Linear(in_fs, out_fs).cuda())
 
             #important
-            if self._modules[fc_name].weight.shape[0] == 20:
-                a = np.load('classifier_para.npy')
-                # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
-                self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
-            else:
-                b = np.load('classifier_para_2.npy')
-                self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
+            # self._modules[fc_name].bias = torch.nn.Parameter(torch.zeros_like(self._modules[fc_name].bias))
+            # if self._modules[fc_name].weight.shape[0] == 20:
+            #     a = np.load('classifier_para.npy')
+            #     # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
+            #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
+            # else:
+            #     b = np.load('classifier_para_2.npy')
+            #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
 
 
 
@@ -141,10 +142,8 @@ class HierNetExp(nn.Module):
                 for j in use_features:
                     fc_name = self.nodes[i].name + f'_TF{j}'
                     fc_layers = getattr(self, fc_name)
-                    try:
-                        prod += fc_layers(x_list[j])
-                    except:
-                        print(1)
+                    prod += fc_layers(x_list[j])
+                    
 
                 nout.append(prod / 5)
 
@@ -232,11 +231,11 @@ class HierNetExp(nn.Module):
             # for p in fc_layers.parameters():
             #     p.requires_grad = True 
 
-            #important
-            self._modules[fc_name].bias = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].bias))
-            a = np.load('classifier_para_2.npy')
-            # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
-            self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
+            # #important
+            # self._modules[fc_name].bias = torch.nn.Parameter(torch.zeros_like(self._modules[fc_name].bias))
+            # b = np.load('classifier_para_2.npy')
+            # # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
+            # self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
 
 
         return

@@ -7,7 +7,7 @@ from inclearn.tools.metrics import ClassErrorMeter, AverageValueMeter
 from inclearn.tools.utils import to_onehot
 from inclearn.deeprtc.utils import deep_rtc_nloss
 from inclearn.datasets.data import tgt_to_tgt0, tgt_to_tgt0_no_tax
-
+from inclearn.tools.utils import set_seed
 
 def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=0.1, use_joint_ce_loss=False, scheduling=None, lr_decay=0.1,
                         weight_decay=5e-4, loss_type="ce", temperature=5.0, test_loader=None, save_path='',
@@ -16,7 +16,10 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
         scheduling = [15, 35]
     network.eval()
     n_module = network.module
-    optim = SGD(n_module.classifier.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
+    # optim = SGD(n_module.classifier.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
+    optim = SGD(filter(lambda p: p.requires_grad, n_module.exp_classifier.parameters()), 
+                lr=lr, momentum=0.9, weight_decay=weight_decay)
+                
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, scheduling, gamma=lr_decay)
 
     if loss_type == "ce":
@@ -34,6 +37,8 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
         # print(f"dataset loader length {len(loader.dataset)}")
         all_preds = None
         all_is_correct = np.array([])
+        #important
+        # set_seed(0)
         for inputs, targets in loader:
             if device.type == 'cuda':
                 inputs, targets = inputs.cuda(), targets.cuda()
@@ -125,12 +130,17 @@ def extract_features(model, loader, device):
     model.eval()
     with torch.no_grad():
         for _inputs, _targets in loader:
-            if device == 'cuda':
+            if device.type == 'cuda':
                 _inputs = _inputs.cuda()
             else:
                 _inputs = _inputs
             _targets = _targets.numpy()
-            _features = model(_inputs)['feature'].detach().cpu().numpy()
+
+            _features = model(_inputs)['feature']
+            fe = _features[0]
+            for k in range(1, len(_features)):
+                fe = torch.cat((fe, _features[k]), dim=1)
+            _features = fe.detach().cpu().numpy()
             features.append(_features)
             targets.append(_targets)
     if len(targets) == 1:

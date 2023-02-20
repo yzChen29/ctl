@@ -298,7 +298,7 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
 
     def _gen_classifier(self, in_features, n_classes):
         if self.taxonomy is not None:
-            self._update_tree_info()
+            # self._update_tree_info()
             if self.taxonomy == 'rtc':
                 # classifier
                 # used_nodes = setup_tree(self.current_task, self.current_tax_tree)

@@ -7,6 +7,7 @@ import multiprocessing as mp
 import albumentations as A
 import random
 import torch
+import pandas as pd
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import datasets, transforms
@@ -14,6 +15,7 @@ from torchvision import datasets, transforms
 from .dataset import get_dataset
 from inclearn.deeprtc.libs import Tree
 from inclearn.tools.data_utils import construct_balanced_subset
+from inclearn.tools.utils import set_feature_size
 from collections import OrderedDict
 import warnings
 warnings.filterwarnings("ignore", "Corrupt EXIF data", UserWarning)
@@ -74,7 +76,7 @@ class IncrementalDataset:
         self._setup_curriculum(dataset_class)
         self._current_task = 0
         self.taxonomy_tree = dataset_class.taxonomy_tree
-        self.current_partial_tree = Tree(self.dataset_name)
+        self.cur_part_tree = Tree(self.dataset_name)
         self.current_ordered_dict = OrderedDict()
 
         # memory Mt
@@ -91,6 +93,7 @@ class IncrementalDataset:
         # self.targets_ori = None
         # Available data stored in cpu memory.
         self.shared_data_inc, self.shared_test_data = None, None
+        self.task_info = pd.DataFrame()
 
     @property
     def n_tasks(self):
@@ -105,51 +108,60 @@ class IncrementalDataset:
         self.targets_all_unique += self.targets_cur_unique
         if self._current_task >= len(self.curriculum):
             raise Exception("No more tasks.")
-        # if self.mode_train:
-        #     if self._current_task > 0:
-        #         self._update_memory_for_new_task(self.curriculum[self._current_task])
-        #     # if self.data_memory is not None:
-        #         data_memory, targets_memory = self.gen_memory_array_from_dict()
-        #         print("Set memory of size: {}.".format(len(data_memory)))
-        #         if len(data_memory) != 0:
-        #             x_train = np.concatenate((x_train, data_memory))
-        #             y_train = np.concatenate((y_train, targets_memory))
+        if self.mode_train:
+            if self._current_task > 0:
+                self._update_memory_for_new_task(self.curriculum[self._current_task])
+
+            # if self.data_memory is not None:
+                data_memory, targets_memory = self.gen_memory_array_from_dict()
+                print("Set memory of size: {}.".format(len(data_memory)))
+                if len(data_memory) != 0:
+                    x_train = np.concatenate((x_train, data_memory))
+                    y_train = np.concatenate((y_train, targets_memory))
 
         self.data_inc, self.targets_inc = x_train, y_train
         self.data_test_inc, self.targets_test_inc = x_test, y_test
 
         train_loader = self._get_loader(x_train, y_train, mode="train")
         val_loader = self._get_loader(x_val, y_val, shuffle=False, mode="test")
-        print(val_loader.sampler)
+        # print(val_loader.sampler)
         test_loader = self._get_loader(x_test, y_test, shuffle=False, mode="test")
 
         # old method
         # task_until_now = self.curriculum[:self._current_task + 1]
         # cur_parent_node = self.taxonomy_tree.get_task_parent(self.curriculum[self._current_task])
         # self.current_ordered_dict[cur_parent_node] = self.curriculum[self._current_task]
-        # self.current_partial_tree = self.taxonomy_tree.gen_partial_tree(task_until_now)
+        # self.cur_part_tree = self.taxonomy_tree.gen_partial_tree(task_until_now)
 
         # new method
-        self.taxonomy_tree.expand_tree(self.current_partial_tree, self.curriculum[self._current_task])
-        self.current_partial_tree.reset_params()
-        # self.current_partial_tree = self.taxonomy_tree.reset_params_2(self.current_partial_tree)
+        self.taxonomy_tree.expand_tree(self.cur_part_tree, self.curriculum[self._current_task])
+        self.cur_part_tree.reset_params()
+        # self.cur_part_tree = self.taxonomy_tree.reset_params_2(self.cur_part_tree)
 
-        print(self.current_partial_tree.label_dict_hier)
-        # self.current_partial_tree = Tree(self.current_partial_tree.dataset_name,
-        #                                  self.current_partial_tree.label_dict_hier,
-        #                                  self.taxonomy_tree.label_dict_index)
-
-        task_info = {
-            "task": self._current_task,
-            "task_size": len(self.curriculum[self._current_task]),
-            "full_tree": self.taxonomy_tree,
-            "partial_tree": self.current_partial_tree,
-            "n_train_data": len(x_train),
-            "n_test_data": len(y_train),
-        }
-
+        new_task_info = self.get_new_task_info(len(x_train), len(y_train))
+        self.task_info= pd.concat([self.task_info, new_task_info])
         self._current_task += 1
-        return task_info, train_loader, val_loader, test_loader
+        return self.task_info, train_loader, val_loader, test_loader
+    
+    def get_new_task_info(self, xlen, ylen):
+        cur_classes = self.curriculum[self._current_task]
+        pnode_name = self.taxonomy_tree.get_parent(cur_classes[0])
+        depth = self.taxonomy_tree.nodes.get(pnode_name).depth
+        feature_size = set_feature_size(depth)
+        new_task_info = {}
+        new_task_info["task_order"] = [self._current_task]
+        new_task_info["child_nodes"] = [cur_classes]
+        new_task_info["parent_node"] = [pnode_name]
+        new_task_info["depth"] = [depth]
+        new_task_info["feature_size"] = [feature_size]
+        new_task_info["base_nf"] = [int(feature_size / 8)]
+        new_task_info["ancestor_tasks"] = [self.taxonomy_tree.get_ancestor_list(pnode_name)]
+        new_task_info["task_size"] = [len(cur_classes)]
+        new_task_info["n_train_data"] = [xlen]
+        new_task_info["n_test_data"] = [ylen]
+        new_task_info["part_tree"] = [self.cur_part_tree]
+        return pd.DataFrame(new_task_info)
+
 
     def _update_memory_for_new_task(self, labels):
         # delete the memory data with parent labels that have been replaced by finer labels

@@ -68,39 +68,36 @@ class ModuleGroup(nn.Module):
         super(ModuleGroup, self).__init__()
         self.module_type = module_type
         self.module_list = nn.ModuleList()
-        # self.add_module('666', self.module_list)
         self.task_info = task_info
+
+    def module_initialize(self, module, use='last', zero_init_residual=True):
+        assert isinstance(module, nn.Module)
+        if self.module_type in ['Conv', 'BasicBlock']:
+            if use == 'last' and len(self.module_list) > 0:  # use last module for initialization
+                module.load_state_dict(self.module_list[-1].state_dict())
+                
+            else:  # the first module
+                for m in module.modules():
+                    if isinstance(m, nn.Conv2d):
+                        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                        # important
+                        # m.weight = nn.Parameter(torch.ones_like(m.weight))
+
+                    elif isinstance(m, nn.BatchNorm2d):
+                        nn.init.constant_(m.weight, 1)
+                        nn.init.constant_(m.bias, 0)
+
+                # Zero-initialize the last BN in each residual branch,
+                # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+                # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+                if isinstance(module, BasicBlock) and zero_init_residual:
+                    nn.init.constant_(module.bn2.weight, 0)
+
 
     def expand(self, mod_info):
         new_module = get_module(self.module_type, mod_info).cuda()
-        # task = len(self.task_info)
-        # mods = []      
-        # for k in range(task - 1):
-        #     mods.append(self.module_list[k])
-        # mods.append(new_module)
-
-        if self.module_type in ['Conv', 'BasicBlock']:
-            for m in new_module.modules():
-                if isinstance(m, nn.Conv2d):
-                    # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-                    #important
-                    m.weight = torch.nn.Parameter(torch.ones_like(m.weight))
-                if isinstance(m, nn.BatchNorm2d):
-                    nn.init.constant_(m.weight, 1)
-                    nn.init.constant_(m.bias, 0) 
-                    
-
-            # Zero-initialize the last BN in each residual branch,
-            # so that the residual branch starts with zeros, and each residual block behaves like an identity.
-            # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
-            if mod_info['zero_init_residual']:
-                if self.module_type == 'BasicBlock':
-                    nn.init.constant_(new_module.bn2.weight, 0)
-
-
+        self.module_initialize(new_module)
         self.module_list.append(new_module)
-        
-        # self.add_module('task' + str(task), new_module)
 
     def update_task(self, task_info):
         self.task_info = task_info
@@ -114,7 +111,7 @@ class ModuleGroup(nn.Module):
             if isinstance(module, BasicBlock):
                 x_anc = feature_cat(x_list, self.task_info, t_num=k)
 
-                x_anc = torch.tensor([])  # switch
+                x_anc = torch.tensor([]).cuda()  # switch
                 x_needed = [x_anc, x_list[k]]
 
                 #TODO: put module on cuda
@@ -207,7 +204,7 @@ class ResConnect(nn.Module):
             self.multigroup_expand_args(base_nf, 1, self.layer_num[1]), 
             self.multigroup_expand_args(base_nf, 2, self.layer_num[2]), 
             self.multigroup_expand_args(base_nf, 3, self.layer_num[3]), 
-            {}  # four BasicBlocks and last avgpool layer, no params
+            {}  # last avgpool layer, no params
         ]
         assert len(layer_args) == len(self.net_groups)
         for k in range(len(layer_args)):
