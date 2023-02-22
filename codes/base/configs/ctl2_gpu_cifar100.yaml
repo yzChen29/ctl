@@ -1,8 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_cifar100_task_connected_wo_connect"
-  load_model_name: 'ctl_cifar100_task_connected_test'
+  name: "ctl_cifar100_task_connected_wo_connect_Feb22"
+  load_model_name: '/datasets/imagenet100_results/ctl_cifar100_task_connected_test'
   debug: False
 
 
@@ -49,8 +49,8 @@ acc_k: 0               # record top k acc   =0 then no res
 
 # check cgpu_using
 show_detail: True    # show time consumsing or not
-check_cgpu_info: Ture
-check_cgpu_batch_period: 50
+check_cgpu_info: False
+check_cgpu_batch_period: 30
 
 # cfg_check_4
 # change batch_size then change the lr in  decouple
@@ -62,7 +62,6 @@ save_result_path: '/datasets/cifar100_results/' # '/datasets/imagenet100_results
 
 taxonomy: 'rtc' # rtc for Real Taxonomic Classifier
 save_ckpt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-
 save_before_decouple: False
 
 

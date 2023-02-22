@@ -101,7 +101,6 @@ def _train(rank, cfg, world_size, logger=None):
             print(f'passing task {task_i}')
 
         if task_i >= cfg['retrain_from_task'] - 1:
-
             if cfg['device'].type == 'cuda':
                 model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
                     "acc_details": True,
@@ -239,8 +238,6 @@ if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
     # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
     ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
-
-    # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     ex.run_commandline()
 
 

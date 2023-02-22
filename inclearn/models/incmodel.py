@@ -241,8 +241,6 @@ class IncModel(IncrementalLearner):
         # utils.display_feature_norm(self._logger, self._parallel_network, train_loader, self._n_classes,
         #                            self._increments, "Initial trainset")
 
-        # self._optimizer.zero_grad()
-        # self._optimizer.step()
 
         acc_list, acc_list_k, acc_list_aux = [], [], []
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
@@ -252,7 +250,6 @@ class IncModel(IncrementalLearner):
         # if self._task == 1:
         #     a = np.load('aux_classifier_para.npy')
         #     self._network.aux_classifier.weight = torch.nn.Parameter(torch.from_numpy(a))
-        # print('start training')
         for epoch in range(self._n_epochs):
             _ce_loss, _joint_ce_loss, _loss_aux, _total_loss = 0.0, 0.0, 0.0, 0.0
 
@@ -373,7 +370,20 @@ class IncModel(IncrementalLearner):
 
                 # a = self._optimizer.param_groups[0]['params']
                 # print(a[0].grad)
+                
                 step_start_time = time.time()
+                # if self._task == 2:
+                #     op=1
+                # self._optimizer.step()
+                # if self._task == 2:
+                #     op=1
+
+                # important
+                # if self._task <= 1:
+                #     self._optimizer.step()
+                # else:
+                #     a = 1
+
                 self._optimizer.step()
                 step_end_time = time.time()
                 step_time_list.append(np.round(step_end_time - step_start_time, 3))
@@ -416,6 +426,8 @@ class IncModel(IncrementalLearner):
                 avg_detail_dict_topk = acc_k.get_avg_detail()
             else:
                 avg_detail_dict_topk = {'total_avg': None}
+
+            # important
             # print(f'Task {self._task + 1}/{self._n_tasks}, Epoch {epoch + 1}/{self._n_epochs}, total_loss: {_total_loss / i}, ce_loss: {_ce_loss / i}, joint_ce_loss: {_joint_ce_loss / i}, aux_loss: {_loss_aux / i}')
             
             if self._cfg['show_detail']:

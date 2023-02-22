@@ -33,7 +33,10 @@ class HierNetExp(nn.Module):
         for i in range(self.num_nodes):
             use_features = self.filter_used_features(i)
             for j in range(self.cur_task):
-                fc_name = self.nodes[i].name + f'_TF{j}'
+                # fc_name = self.nodes[i].name + f'_TF{j}'
+                ct_info = self.task_info.iloc[i]
+                fc_name = ct_info['parent_node'] + f'_TF{j}'
+
                 if self.feature_mode == 'add_zero_only_ancestor_fea':
                     if i < j:
                         self.cls_zeros.append(fc_name)
@@ -86,6 +89,7 @@ class HierNetExp(nn.Module):
             out_fs = ct_info['task_size']
             fc_name = ct_info['parent_node'] + f'_TF{self.cur_task - 1}'
             self.add_module(fc_name, nn.Linear(in_fs, out_fs).cuda())
+            
 
             #important
             # self._modules[fc_name].bias = torch.nn.Parameter(torch.zeros_like(self._modules[fc_name].bias))
@@ -96,8 +100,6 @@ class HierNetExp(nn.Module):
             # else:
             #     b = np.load('classifier_para_2.npy')
             #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
-            # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
-            # self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
 
             
 
@@ -136,12 +138,21 @@ class HierNetExp(nn.Module):
 
             # compute outputs
             nout = []
+            
             for i in range(self.num_nodes):
                 prod = 0.0
-                use_features = self.filter_used_features(i)  # list
+                node_name = self.nodes[i].name
+                task_num = self.task_info.loc[self.task_info['parent_node'] == node_name].loc[0, 'task_order']
+                use_features = self.filter_used_features(task_num)  # list
                 for j in use_features:
-                    fc_name = self.nodes[i].name + f'_TF{j}'
+                    # ct_info = self.task_info.iloc[i]
+                    
+
+                    # fc_name = ct_info['parent_node'] + f'_TF{j}'
+                    fc_name = node_name + f'_TF{j}'
                     fc_layers = getattr(self, fc_name)
+
+                    # 
                     prod += fc_layers(x_list[j])
                     
 

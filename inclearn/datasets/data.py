@@ -108,6 +108,8 @@ class IncrementalDataset:
         self.targets_all_unique += self.targets_cur_unique
         if self._current_task >= len(self.curriculum):
             raise Exception("No more tasks.")
+
+        # important
         if self.mode_train:
             if self._current_task > 0:
                 self._update_memory_for_new_task(self.curriculum[self._current_task])
