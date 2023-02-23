@@ -14,7 +14,7 @@ from inclearn.deeprtc.pivot import Pivot
 
 class TaxConnectionDer(nn.Module):  # used in incmodel.py
     def __init__(self, convnet_type, cfg, nf=64, use_bias=False, init="kaiming", device=None, dataset="cifar100",
-                 at_info={}, ct_info={}, feature_mode='full'):
+                 at_info={}, ct_info={}, feature_mode='full', connect=True):
         super(TaxConnectionDer, self).__init__()
         self.nf = nf
         self.init = init
@@ -34,18 +34,15 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
         self.module_pivot = cfg['model_pivot']
         self.at_info = at_info
         self.ct_info = ct_info
+        self.connect = connect
 
         if self.der:
             print("Enable dynamical representation expansion!")
             self.out_dim = 0
-            if cfg['use_connection']:
-                self.exp_module = resconnect18()
-                self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'], 
+            
+            self.exp_module = resconnect18(False, connect=cfg['use_connection'])
+            self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'], 
                                                  feature_mode=feature_mode)
-                
-            else:
-                # self.convnets = nn.ModuleList()
-                self.convnets = []
         else:
             self.convnet = factory.get_convnet(convnet_type,
                                                nf=nf,
@@ -181,7 +178,7 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
             all_classes = self.n_classes + n_classes
 
         # expand network part
-        base_nf = int(self.ct_info['feature_size'] / 8)
+        base_nf = self.ct_info['base_nf']
         self.exp_module.expand(base_nf)
 
         # expand classifier part

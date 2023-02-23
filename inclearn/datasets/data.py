@@ -28,7 +28,7 @@ def get_data_folder(data_folder, dataset_name):
 class IncrementalDataset:
     def __init__(self, trial_i, dataset_name, is_distributed=False, random_order=False, shuffle=True, workers=10,
                  device=None, batch_size=128, seed=1, sample_rate_c1=0.1, sample_rate_c2=0.2, increment=10, validation_split=0.0,
-                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None):
+                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, connect_fs=512):
         # The info about incremental split
         self.trial_i = trial_i
         self.start_class = start_class
@@ -42,6 +42,7 @@ class IncrementalDataset:
         self._device = device
 
         self._seed = seed
+        self.connect_fs = connect_fs
         # self._s_rate = sample_rate
         self._s_rate_c1 = sample_rate_c1
         self._s_rate_c2 = sample_rate_c2
@@ -149,7 +150,7 @@ class IncrementalDataset:
         cur_classes = self.curriculum[self._current_task]
         pnode_name = self.taxonomy_tree.get_parent(cur_classes[0])
         depth = self.taxonomy_tree.nodes.get(pnode_name).depth
-        feature_size = set_feature_size(depth)
+        feature_size = set_feature_size(depth, self.connect_fs)
         new_task_info = {}
         new_task_info["task_order"] = [self._current_task]
         new_task_info["child_nodes"] = [cur_classes]

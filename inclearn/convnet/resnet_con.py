@@ -64,17 +64,24 @@ class BasicBlock(nn.Module):
 
 
 class ModuleGroup(nn.Module):
-    def __init__(self, module_type, task_info):
+    def __init__(self, module_type, task_info, connect=True):
         super(ModuleGroup, self).__init__()
         self.module_type = module_type
         self.module_list = nn.ModuleList()
         self.task_info = task_info
+        self.connect = connect
 
     def module_initialize(self, module, use='last', zero_init_residual=True):
         assert isinstance(module, nn.Module)
         if self.module_type in ['Conv', 'BasicBlock']:
             if use == 'last' and len(self.module_list) > 0:  # use last module for initialization
-                module.load_state_dict(self.module_list[-1].state_dict())
+                cur_fs = self.task_info.iloc[-1]['feature_size']
+                prev_fs = self.task_info.iloc[-2]['feature_size']
+                if cur_fs == prev_fs:
+                    pass
+                    # module.load_state_dict(self.module_list[-1].state_dict())
+                else:
+                    print('Feature size mismatch, state dict not loaded!')
                 
             else:  # the first module
                 for m in module.modules():
@@ -109,9 +116,10 @@ class ModuleGroup(nn.Module):
             module = self.module_list[k]
             
             if isinstance(module, BasicBlock):
-                x_anc = feature_cat(x_list, self.task_info, t_num=k)
-
-                x_anc = torch.tensor([]).cuda()  # switch
+                if self.connect:
+                    x_anc = feature_cat(x_list, self.task_info, t_num=k)
+                else:
+                    x_anc = torch.tensor([]).cuda()  # switch
                 x_needed = [x_anc, x_list[k]]
 
                 #TODO: put module on cuda
@@ -143,7 +151,7 @@ class ModuleGroup(nn.Module):
 
 class MultiModuleGroup(nn.Module):
     '''This should correspond to _make_layer() function'''
-    def __init__(self, module_type, length, task_info):
+    def __init__(self, module_type, length, task_info, connect=True):
         super(MultiModuleGroup, self).__init__()
         self.module_type = module_type
         self.length = length
@@ -152,7 +160,7 @@ class MultiModuleGroup(nn.Module):
         # use this since nn.Sequential.append() is not found
         groups = []      
         for _ in range(self.length):
-            groups.append(ModuleGroup(self.module_type, task_info))
+            groups.append(ModuleGroup(self.module_type, task_info, connect))
         self.groups = nn.Sequential(*groups)
 
     def expand(self, args):
@@ -172,7 +180,7 @@ class MultiModuleGroup(nn.Module):
 
 
 class ResConnect(nn.Module):
-    def __init__(self, block, layer_num, at_info=None, zero_init_residual=True, dataset='cifar', remove_last_relu=False):
+    def __init__(self, block, layer_num, at_info=None, zero_init_residual=True, dataset='cifar', remove_last_relu=False, connect=True):
         super(ResConnect, self).__init__()
         self.block = block
         self.layer_num = layer_num
@@ -181,12 +189,12 @@ class ResConnect(nn.Module):
         self.remove_last_relu = remove_last_relu
         self.zero_init_residual = zero_init_residual
         self.net_groups = nn.Sequential(
-            ModuleGroup('Conv', self.at_info), 
-            MultiModuleGroup(block, layer_num[0], self.at_info), 
-            MultiModuleGroup(block, layer_num[1], self.at_info), 
-            MultiModuleGroup(block, layer_num[2], self.at_info), 
-            MultiModuleGroup(block, layer_num[3], self.at_info), 
-            ModuleGroup('AvgPool', self.at_info), 
+            ModuleGroup('Conv', self.at_info, connect), 
+            MultiModuleGroup(block, layer_num[0], self.at_info, connect), 
+            MultiModuleGroup(block, layer_num[1], self.at_info, connect), 
+            MultiModuleGroup(block, layer_num[2], self.at_info, connect), 
+            MultiModuleGroup(block, layer_num[3], self.at_info, connect), 
+            ModuleGroup('AvgPool', self.at_info, connect), 
         )
 
     def to_device(self, device):
@@ -220,8 +228,10 @@ class ResConnect(nn.Module):
             anc_nf = sum(anc_tasks["base_nf"])
         except:
             anc_nf = 0
-        return 0  # switch
-        # return anc_nf
+        # problem
+        if self.connect == False: 
+            anc_nf = 0
+        return anc_nf
 
 
     def multigroup_expand_args(self, base_nf, stage, blocks, t_num=-1, block_name='BasicBlock', rm_last_relu=False):
@@ -231,6 +241,7 @@ class ResConnect(nn.Module):
 
         out_nf_prev = base_nf * stage_prev
         out_nf = base_nf * stage_cur  # 64, 128, 256, 512, refers to out dim
+        # problem
         anc_nf = self.get_anc_dims(t_num)
         in_nf_1 = (anc_nf + base_nf) * stage_prev
         in_nf_n = (anc_nf + base_nf) * stage_cur
@@ -277,6 +288,8 @@ class ResConnect(nn.Module):
 def feature_cat(x, task_info, t_num=-1):
     x_list = torch.tensor([]).cuda()
     ancestors = task_info.iloc[t_num]["ancestor_tasks"]
+    # print('current task: ' + str(task_info.iloc[t_num]))
+    # print('ancestor')
     for k in range(len(x)):
         if task_info.iloc[k]["parent_node"] in ancestors:
             x_list = torch.cat((x_list, x[k]))

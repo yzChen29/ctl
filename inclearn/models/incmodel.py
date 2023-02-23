@@ -250,6 +250,7 @@ class IncModel(IncrementalLearner):
         # if self._task == 1:
         #     a = np.load('aux_classifier_para.npy')
         #     self._network.aux_classifier.weight = torch.nn.Parameter(torch.from_numpy(a))
+        # print()
         for epoch in range(self._n_epochs):
             _ce_loss, _joint_ce_loss, _loss_aux, _total_loss = 0.0, 0.0, 0.0, 0.0
 

@@ -59,9 +59,11 @@ def get_featnorm_grouped_by_class(network, cur_n_cls, loader):
     return feat_norms
 
 
-def set_feature_size(node_depth):
-    # return int(512 / pow(2, 2*node_depth))
-    return int(512)
+def set_feature_size(node_depth, connect_fs):
+    if connect_fs == 128:
+        return int(512 / pow(2, 2*node_depth))
+    else:
+        return int(512)
 
 
 def set_seed(seed):

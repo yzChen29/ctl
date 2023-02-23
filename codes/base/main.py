@@ -236,8 +236,8 @@ def test(_run, _rnd, _seed):
 
 if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
-    # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
-    ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
+    ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
+    # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     ex.run_commandline()
 
 
