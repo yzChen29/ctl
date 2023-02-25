@@ -1,7 +1,7 @@
 # for imagenet100
 
 exp:
-  name: "ctl_cifar100_task_connected_test"
+  name: "ctl_cifar100_task_connected_Feb24_fs128"
   load_model_name: '/datasets/imagenet100_results/ctl_cifar100_task_connected_test'
   debug: False
 
@@ -12,7 +12,7 @@ exp:
 # sample_rate & epoch
 #sample_rate: 0.3     # 0.3 or 0.001
 use_connection: True  # True or False
-connect_fs: 512       # 512 or 128
+connect_fs: 128       # 512 or 128
 sample_rate_c1: 0.3   # 0.3 or 0.001
 sample_rate_c2: 0.21  # 0.21 or 0.001
 epochs: 170           # 220 or 2

@@ -41,10 +41,11 @@ class BasicBlock(nn.Module):
 
     def forward(self, x_list):
         ext_x, x = x_list
-        try: 
-            cx = torch.cat((ext_x, x), dim=1)
-        except:
-            cx = x
+        # try: 
+        #     cx = torch.cat((ext_x, x), dim=1)
+        # except:
+        #     cx = x
+        cx = torch.cat((ext_x, x), dim=1)
         out = self.conv1(cx)
         out = self.bn1(out)
         out = self.relu(out)
@@ -229,8 +230,8 @@ class ResConnect(nn.Module):
         except:
             anc_nf = 0
         # problem
-        if self.connect == False: 
-            anc_nf = 0
+        # if self.connect == False: 
+        #     anc_nf = 0
         return anc_nf
 
 
