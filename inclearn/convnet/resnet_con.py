@@ -189,6 +189,7 @@ class ResConnect(nn.Module):
         self.dataset = dataset
         self.remove_last_relu = remove_last_relu
         self.zero_init_residual = zero_init_residual
+        self.connect = connect
         self.net_groups = nn.Sequential(
             ModuleGroup('Conv', self.at_info, connect), 
             MultiModuleGroup(block, layer_num[0], self.at_info, connect), 
@@ -224,14 +225,15 @@ class ResConnect(nn.Module):
 
     def get_anc_dims(self, t_num=-1):
         ancestors = self.at_info.iloc[t_num]["ancestor_tasks"]
-        try:
+
+        # problem
+        if self.connect:
             anc_tasks = self.at_info.loc[self.at_info['parent_node'].isin(ancestors)]
             anc_nf = sum(anc_tasks["base_nf"])
-        except:
+        else:
             anc_nf = 0
-        # problem
-        # if self.connect == False: 
-        #     anc_nf = 0
+        
+
         return anc_nf
 
 

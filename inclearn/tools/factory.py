@@ -65,6 +65,7 @@ def get_data(cfg):
         mode_train=cfg["exp"]["mode_train"],
         taxonomy=cfg["taxonomy"], 
         connect_fs = cfg['connect_fs'],
+        debug = cfg['debug'],
     )
 
 

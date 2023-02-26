@@ -28,7 +28,7 @@ def get_data_folder(data_folder, dataset_name):
 class IncrementalDataset:
     def __init__(self, trial_i, dataset_name, is_distributed=False, random_order=False, shuffle=True, workers=10,
                  device=None, batch_size=128, seed=1, sample_rate_c1=0.1, sample_rate_c2=0.2, increment=10, validation_split=0.0,
-                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, connect_fs=512):
+                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, connect_fs=512, debug=False):
         # The info about incremental split
         self.trial_i = trial_i
         self.start_class = start_class
@@ -95,6 +95,7 @@ class IncrementalDataset:
         # Available data stored in cpu memory.
         self.shared_data_inc, self.shared_test_data = None, None
         self.task_info = pd.DataFrame()
+        self.debug = debug
 
     @property
     def n_tasks(self):
@@ -111,16 +112,17 @@ class IncrementalDataset:
             raise Exception("No more tasks.")
 
         # important
-        if self.mode_train:
-            if self._current_task > 0:
-                self._update_memory_for_new_task(self.curriculum[self._current_task])
+        if not self.debug:
+            if self.mode_train:
+                if self._current_task > 0:
+                    self._update_memory_for_new_task(self.curriculum[self._current_task])
 
-            # if self.data_memory is not None:
-                data_memory, targets_memory = self.gen_memory_array_from_dict()
-                print("Set memory of size: {}.".format(len(data_memory)))
-                if len(data_memory) != 0:
-                    x_train = np.concatenate((x_train, data_memory))
-                    y_train = np.concatenate((y_train, targets_memory))
+                # if self.data_memory is not None:
+                    data_memory, targets_memory = self.gen_memory_array_from_dict()
+                    print("Set memory of size: {}.".format(len(data_memory)))
+                    if len(data_memory) != 0:
+                        x_train = np.concatenate((x_train, data_memory))
+                        y_train = np.concatenate((y_train, targets_memory))
 
         self.data_inc, self.targets_inc = x_train, y_train
         self.data_test_inc, self.targets_test_inc = x_test, y_test

@@ -76,6 +76,7 @@ class IncModel(IncrementalLearner):
             use_bias=cfg["use_bias"],
             dataset=cfg["dataset"],
             feature_mode=cfg['feature_mode'],
+            connect = cfg['use_connection'],
         )
         if self._cfg["is_distributed"]:
             self._parallel_network = DDP(self._network, device_ids=[self._rank], output_device=self._rank)
@@ -345,6 +346,8 @@ class IncModel(IncrementalLearner):
 
                 if self._cfg["use_aux_cls"] and self._task > 0:
                     total_loss = ce_loss + loss_aux
+                    # total_loss = ce_loss
+
                 else:
                     total_loss = ce_loss + self._to_device(torch.tensor([0]))
 
