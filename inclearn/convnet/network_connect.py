@@ -103,15 +103,15 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
 
 
             #switch aux
-            use_features = []
-            ancestor_name = self.ct_info['ancestor_tasks']
-            for i in range(self.at_info.shape[0]):
-                if self.at_info.iloc[i]['parent_node'] in ancestor_name:
-                    use_features.append(features[i])
-            use_features.append(features[self.ct_info['task_order']])   
-            aux_logits = self.aux_classifier(torch.cat(use_features, dim=1))
+            # use_features = []
+            # ancestor_name = self.ct_info['ancestor_tasks']
+            # for i in range(self.at_info.shape[0]):
+            #     if self.at_info.iloc[i]['parent_node'] in ancestor_name:
+            #         use_features.append(features[i])
+            # use_features.append(features[self.ct_info['task_order']])   
+            # aux_logits = self.aux_classifier(torch.cat(use_features, dim=1))
 
-            # aux_logits = self.aux_classifier(features[self.ct_info['task_order']])
+            aux_logits = self.aux_classifier(features[self.ct_info['task_order']])
         else:
             aux_logits = None
         return {'feature': features, 'output': output, 'nout': nout, 'sfmx_base': sfmx_base, 'aux_logit': aux_logits}
@@ -170,10 +170,10 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
                 ct_nclass = self.ct_info["task_size"]  # number of classes for current task
 
                 #switch aux
-                ancestor_name = self.ct_info['ancestor_tasks']
-                for i in range(self.at_info.shape[0]):
-                    if self.at_info.iloc[i]['parent_node'] in ancestor_name:
-                        ct_fs += self.at_info.iloc[i]['feature_size']
+                # ancestor_name = self.ct_info['ancestor_tasks']
+                # for i in range(self.at_info.shape[0]):
+                #     if self.at_info.iloc[i]['parent_node'] in ancestor_name:
+                #         ct_fs += self.at_info.iloc[i]['feature_size']
 
                 aux_fc = nn.Linear(ct_fs, ct_nclass + 1, bias=self.use_bias).to(self.device)
                 if self.init == "kaiming":
