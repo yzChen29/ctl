@@ -322,13 +322,13 @@ class IncModel(IncrementalLearner):
                 para_net_start_time = time.time()
                 if epoch == 0 and i == 1:
                     #important
-                    self._to_device(self._parallel_network)
-                    self._to_device(inputs)
+                    # self._to_device(self._parallel_network)
+                    # self._to_device(inputs)
                     outputs = self._parallel_network(inputs)
                 else:
                     #important
-                    self._to_device(self._parallel_network)
-                    self._to_device(inputs)
+                    # self._to_device(self._parallel_network)
+                    # self._to_device(inputs)
                     outputs = self._parallel_network(inputs)
 
                 para_net_end_time = time.time()
