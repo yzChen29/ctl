@@ -93,7 +93,9 @@ class HierNetExp(nn.Module):
 
             #important
             # self._modules[fc_name].bias = torch.nn.Parameter(torch.zeros_like(self._modules[fc_name].bias))
-            # if self._modules[fc_name].weight.shape[0] == 20:
+            # # if self._modules[fc_name].weight.shape[0] == 20:
+            # if self._modules[fc_name].weight.shape[0] == 4:
+            
             #     a = np.load('classifier_para.npy')
             #     # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
             #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
@@ -119,9 +121,14 @@ class HierNetExp(nn.Module):
             #     a = np.load('classifier_para.npy')
             #     # self._modules[fc_name].weight = torch.nn.Parameter(torch.ones_like(self._modules[fc_name].weight))
             #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(a))
-            # else:
+            # elif self._modules[fc_name].weight.shape[0] == 5:
             #     b = np.load('classifier_para_2.npy')
             #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(b))
+            # elif self._modules[fc_name].weight.shape[0] == 4:
+            #     c = np.load('classifier_para_shape4.npy')
+            #     self._modules[fc_name].weight = torch.nn.Parameter(torch.from_numpy(c))
+            # else:
+            #     raise('classifier weight not match')
 
 
 
@@ -152,7 +159,7 @@ class HierNetExp(nn.Module):
                     fc_name = node_name + f'_TF{j}'
                     fc_layers = getattr(self, fc_name)
 
-                    # 
+                    
                     prod += fc_layers(x_list[j])
                     
 

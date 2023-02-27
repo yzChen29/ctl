@@ -40,7 +40,7 @@ class TaxConnectionDer(nn.Module):  # used in incmodel.py
             print("Enable dynamical representation expansion!")
             self.out_dim = 0
             
-            self.exp_module = resconnect18(False, connect=cfg['use_connection'])
+            self.exp_module = resconnect18(False, dataset=dataset, connect=cfg['use_connection'], zero_init_residual=cfg['zero_init_residual'], bn_reset_running=cfg['bn_reset_running'], bn_no_tracking=cfg['bn_no_tracking'])
             self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'], 
                                                  feature_mode=feature_mode)
         else:

@@ -1,7 +1,7 @@
 # for imagenet100
 
 exp:
-  name: "ctl_cifar100_task_connected_Feb25_fs512"
+  name: "ctl_cifar100_task_connected_Feb27_fs512"
   load_model_name: '/datasets/imagenet100_results/ctl_cifar100_task_connected_test'
   debug: False
 
@@ -13,6 +13,10 @@ exp:
 #sample_rate: 0.3     # 0.3 or 0.001
 debug: False
 memory_enable: True
+
+bn_reset_running: False
+bn_no_tracking: False
+zero_init_residual: True
 
 use_connection: True  # True or False
 connect_fs: 512        # 512 or 128

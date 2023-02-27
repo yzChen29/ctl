@@ -248,10 +248,10 @@ class IncModel(IncrementalLearner):
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
 
         #important
-        # if self._task == 1:
+        # if self._task >= 1:
         #     a = np.load('aux_classifier_para.npy')
         #     self._network.aux_classifier.weight = torch.nn.Parameter(torch.from_numpy(a))
-        # print()
+
         for epoch in range(self._n_epochs):
             _ce_loss, _joint_ce_loss, _loss_aux, _total_loss = 0.0, 0.0, 0.0, 0.0
 
@@ -370,24 +370,8 @@ class IncModel(IncrementalLearner):
                 total_loss.backward()
                 backward_end_time = time.time()
 
-                backward_time_list.append(np.round(backward_end_time - backward_start_time, 3))
-
-                # a = self._optimizer.param_groups[0]['params']
-                # print(a[0].grad)
-                
+                backward_time_list.append(np.round(backward_end_time - backward_start_time, 3))                
                 step_start_time = time.time()
-                # if self._task == 2:
-                #     op=1
-                # self._optimizer.step()
-                # if self._task == 2:
-                #     op=1
-
-                # important
-                # if self._task <= 1:
-                #     self._optimizer.step()
-                # else:
-                #     a = 1
-
                 self._optimizer.step()
                 step_end_time = time.time()
                 step_time_list.append(np.round(step_end_time - step_start_time, 3))
@@ -417,7 +401,6 @@ class IncModel(IncrementalLearner):
                 batch_end_time = time.time()
                 batch_total_time_list.append(np.round(batch_end_time - batch_start_time, 3))
                 batch_start_time = time.time()
-
             _ce_loss = _ce_loss.item()
             _joint_ce_loss = _joint_ce_loss.item()
             _loss_aux = _loss_aux.item()

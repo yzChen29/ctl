@@ -100,27 +100,27 @@ def _train(rank, cfg, world_size, logger=None):
         else:
             print(f'passing task {task_i}')
 
-        if not cfg['debug']:
-            if task_i >= cfg['retrain_from_task'] - 1:
-                if cfg['device'].type == 'cuda':
-                    model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
-                        "acc_details": True,
-                        "acc_aux_details": True,
-                        "preds_details": True,
-                        "preds_aux_details": True
-                    })
+        # if not cfg['debug']:
+        #     if task_i >= cfg['retrain_from_task'] - 1:
+        #         if cfg['device'].type == 'cuda':
+        #             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
+        #                 "acc_details": True,
+        #                 "acc_aux_details": True,
+        #                 "preds_details": True,
+        #                 "preds_aux_details": True
+                    # })
 
         model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
 
-        if not cfg['debug']:
-            if task_i >= cfg['retrain_from_task'] - 1:
-                if cfg['device'].type == 'cuda':
-                    model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
-                        "acc_details": True,
-                        "acc_aux_details": True,
-                        "preds_details": True,
-                        "preds_aux_details": True
-                    })
+        # if not cfg['debug']:
+        #     if task_i >= cfg['retrain_from_task'] - 1:
+        #         if cfg['device'].type == 'cuda':
+        #             model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
+        #                 "acc_details": True,
+        #                 "acc_aux_details": True,
+        #                 "preds_details": True,
+        #                 "preds_aux_details": True
+        #             })
 
 
     #         if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
@@ -239,7 +239,8 @@ def test(_run, _rnd, _seed):
 if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
     # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
-    ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
+    ex.add_config("./codes/base/configs/ctl3_gpu.yaml")
+    # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     ex.run_commandline()
 
 
