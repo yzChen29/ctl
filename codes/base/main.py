@@ -67,7 +67,7 @@ def initialization(config, seed, mode, exp_id):
 
     if cfg['dataset'] == 'cifar100':
         try:
-            shutil.copyfile('./codes/base/configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
+            shutil.copyfile('./configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
         except:
             shutil.copyfile('./codes/base/configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
     else:
