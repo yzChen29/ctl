@@ -1,8 +1,10 @@
 # for imagenet100
 
+# check name / load_model_name / connect_fs
+
 exp:
-  name: "ctl_imagenet100_connect_fs512_128_64_Feb27"
-  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_connect_fs512_128_64_Feb27'
+  name: "ctl_imagenet100_connect_fs512_512_512_Feb27"
+  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_connect_fs512_512_512_Feb27'
   debug: False
 
 
@@ -24,7 +26,7 @@ bn_no_tracking: False
 zero_init_residual: True
 
 use_connection: True  # True or False
-connect_fs: [512, 128, 64]        # 512 or 128
+connect_fs: [512, 512, 512]        # 512 or 128
 sample_rate_c1: 0.3   # 0.3 or 0.001
 sample_rate_c2: 0.21  # 0.21 or 0.001
 epochs: 220           # 220 or 2
