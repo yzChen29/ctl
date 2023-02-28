@@ -83,7 +83,7 @@ class ModuleGroup(nn.Module):
                 prev_fs = self.task_info.iloc[-2]['feature_size']
                 cur_dep = self.task_info.iloc[-1]['depth']
                 prev_dep = self.task_info.iloc[-2]['depth']
-                if (self.connect & (cur_dep == prev_dep)) or (not self.connect & (cur_fs == prev_fs)):
+                if ((self.connect) and (cur_dep == prev_dep)) or ((not self.connect) and (cur_fs == prev_fs)):
                     module.load_state_dict(self.module_list[-1].state_dict())
                     if self.bn_reset_running:
                         for m in module.modules():

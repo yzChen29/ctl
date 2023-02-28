@@ -44,6 +44,19 @@ def initialization(config, seed, mode, exp_id):
     if exp_id is None:
         exp_id = -1
     #     cfg.exp.savedir = "./logs"
+    if cfg['auto_retrain']:
+        ckpt_list = os.listdir(f"{cfg['exp']['load_model_name']}/train/ckpts")
+        for i in range(1, 30):
+            if f'decouple_step{i}.ckpt' not in ckpt_list:
+                retrain_task = i
+                break
+        if 'step0.ckpt' not in ckpt_list:
+                retrain_task = 0
+        if retrain_task != 0:
+            mode += f'_retrain_from_step{retrain_task}'
+        cfg['retrain_from_task'] = retrain_task
+        cfg['load_mem'] = True
+        cfg['save_ckpt'] = list(range(retrain_task, 30))
     logger = utils.make_logger(f"{mode}", savedir=cfg['sp']['log'])
 
     # Tensorboard
@@ -51,7 +64,18 @@ def initialization(config, seed, mode, exp_id):
     # tensorboard_dir = cfg["exp"]["tensorboard_dir"] + f"/{exp_name}"
 
     tensorboard = SummaryWriter(cfg['sp']['tensorboard'])
-    # shutil.copyfile('./configs/ctl2_gpu.yaml', f"{cfg['sp']['log']}/ctl2_gpu.yaml")
+
+    if cfg['dataset'] == 'cifar100':
+        try:
+            shutil.copyfile('./codes/base/configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
+        except:
+            shutil.copyfile('./codes/base/configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
+    else:
+        try:
+            shutil.copyfile('./configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
+        except:
+            shutil.copyfile('./codes/base/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
+
     return cfg, logger, tensorboard
 
 
@@ -72,7 +96,6 @@ def _train(rank, cfg, world_size, logger=None):
     logger.info(inc_dataset.curriculum)
 
     for task_i in range(inc_dataset.n_tasks):
-    # for task_i in range(1):
         model.before_task()
         enforce_decouple = False
 
@@ -88,8 +111,6 @@ def _train(rank, cfg, world_size, logger=None):
             else:
 #                 load_path = f"result/{cfg['exp']['load_model_name']}/train/ckpts"
                 load_path = f"{cfg['exp']['load_model_name']}/train/ckpts"
-
-
 
                 if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
                     state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')
@@ -238,11 +259,11 @@ def test(_run, _rnd, _seed):
 
 if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
-    # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
-    # ex.add_config("./codes/base/configs/ctl3_gpu.yaml")
+    ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
+    # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
     
-    ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
-    # ex.add_config("./configs/ctl3_gpu.yaml")
+    # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
+    # ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
     ex.run_commandline()
 
 
