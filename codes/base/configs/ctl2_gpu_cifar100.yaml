@@ -1,8 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_cifar100_task_connected_Feb28_fs512_128"
-  load_model_name: '/datasets/cifar100_results/ctl_cifar100_task_connected_Feb28_fs512_128'
+  name: "ctl_cifar100_task_connected_fs512_128_Feb27"
+  load_model_name: '/datasets/cifar100_results/ctl_cifar100_task_connected_fs512_128_Feb27'
   debug: False
 
 
