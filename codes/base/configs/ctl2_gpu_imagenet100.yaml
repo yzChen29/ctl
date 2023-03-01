@@ -1,8 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_imagenet100_connect_fs512_128_64_Feb27"
-  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_connect_fs512_128_64_Feb27'
+  name: "ctl_imagenet100_connect_fs512_128_64_Feb28"
+  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_connect_fs512_128_64_Feb28'
   debug: False
 
 

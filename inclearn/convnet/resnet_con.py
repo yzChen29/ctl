@@ -90,7 +90,22 @@ class ModuleGroup(nn.Module):
                             if isinstance(m, nn.BatchNorm2d):
                                 m.reset_running_stats()
                 else:
-                    print('Feature size mismatch, state dict not loaded!')
+                    for m in module.modules():
+                        if isinstance(m, nn.Conv2d):
+                            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                            # important
+                            # m.weight = nn.Parameter(torch.ones_like(m.weight))
+
+                        elif isinstance(m, nn.BatchNorm2d):
+                            nn.init.constant_(m.weight, 1)
+                            nn.init.constant_(m.bias, 0)
+                    # Zero-initialize the last BN in each residual branch,
+                    # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+                    # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+                    if isinstance(module, BasicBlock) and self.zero_init_residual:
+                        nn.init.constant_(module.bn2.weight, 0)
+                    print('Feature size mismatch, state dict not loaded! Init new module')
+                    
 
                 if self.bn_no_tracking:
                     for m in self.module_list[-1].modules():
