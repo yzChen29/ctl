@@ -66,6 +66,7 @@ def get_data(cfg):
         taxonomy=cfg["taxonomy"], 
         connect_fs = cfg['connect_fs'],
         debug = cfg['debug'],
+        full_connect = cfg['full_connect']
     )
 
 

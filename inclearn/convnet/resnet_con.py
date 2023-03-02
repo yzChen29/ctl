@@ -213,8 +213,7 @@ class MultiModuleGroup(nn.Module):
 
 
 class ResConnect(nn.Module):
-    def __init__(self, block, layer_num, at_info=None, dataset='cifar100', remove_last_relu=False, connect=True, zero_init_residual=True, bn_reset_running=True, bn_no_tracking=True,
-                 full_connect=False):
+    def __init__(self, block, layer_num, at_info=None, dataset='cifar100', remove_last_relu=False, connect=True, zero_init_residual=True, bn_reset_running=True, bn_no_tracking=True, full_connect=False):
         super(ResConnect, self).__init__()
         self.block = block
         self.layer_num = layer_num
