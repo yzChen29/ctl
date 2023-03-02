@@ -16,6 +16,7 @@ from easydict import EasyDict as edict
 from tensorboardX import SummaryWriter
 from copy import deepcopy
 import shutil
+from ptflops import get_model_complexity_info
 
 repo_name = 'ctl'
 base_dir = osp.realpath(".")[:osp.realpath(".").index(repo_name) + len(repo_name)]
@@ -98,59 +99,64 @@ def _train(rank, cfg, world_size, logger=None):
     for task_i in range(inc_dataset.n_tasks):
         model.before_task()
         enforce_decouple = False
+        with torch.cuda.device(0):
+            macs, params = get_model_complexity_info(model._network, (3, 32, 32), as_strings=True,
+                                                    print_per_layer_stat=False, verbose=True)
+            print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+            print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+
+#         if task_i >= cfg['retrain_from_task']:
+#             # pass
+#             model.train_task()
+#         elif task_i == cfg['retrain_from_task']-1:
+
+#             if task_i == 0:
+# #                 state_dict = torch.load(f"result/{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
+#                 state_dict = torch.load(f"{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
+
+#             else:
+# #                 load_path = f"result/{cfg['exp']['load_model_name']}/train/ckpts"
+#                 load_path = f"{cfg['exp']['load_model_name']}/train/ckpts"
+
+#                 if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
+#                     state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')
+#                 else:
+#                     state_dict = torch.load(f'{load_path}/step{task_i}.ckpt')
+#                     enforce_decouple = True
+#             model._parallel_network.load_state_dict(state_dict)
+#         else:
+#             print(f'passing task {task_i}')
+
+#         if not cfg['debug']:
+#             if task_i >= cfg['retrain_from_task'] - 1:
+#                 if cfg['device'].type == 'cuda':
+#                     model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
+#                         "acc_details": True,
+#                         "acc_aux_details": True,
+#                         "preds_details": True,
+#                         "preds_aux_details": True
+#                     })
+
+#         model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
+
+#         if not cfg['debug']:
+#             if task_i >= cfg['retrain_from_task'] - 1:
+#                 if cfg['device'].type == 'cuda':
+#                     model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
+#                         "acc_details": True,
+#                         "acc_aux_details": True,
+#                         "preds_details": True,
+#                         "preds_aux_details": True
+#                     })
 
 
-        if task_i >= cfg['retrain_from_task']:
-            model.train_task()
-        elif task_i == cfg['retrain_from_task']-1:
-
-            if task_i == 0:
-#                 state_dict = torch.load(f"result/{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
-                state_dict = torch.load(f"{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
-
-            else:
-#                 load_path = f"result/{cfg['exp']['load_model_name']}/train/ckpts"
-                load_path = f"{cfg['exp']['load_model_name']}/train/ckpts"
-
-                if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
-                    state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')
-                else:
-                    state_dict = torch.load(f'{load_path}/step{task_i}.ckpt')
-                    enforce_decouple = True
-            model._parallel_network.load_state_dict(state_dict)
-        else:
-            print(f'passing task {task_i}')
-
-        if not cfg['debug']:
-            if task_i >= cfg['retrain_from_task'] - 1:
-                if cfg['device'].type == 'cuda':
-                    model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
-                        "acc_details": True,
-                        "acc_aux_details": True,
-                        "preds_details": True,
-                        "preds_aux_details": True
-                    })
-
-        model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
-
-        if not cfg['debug']:
-            if task_i >= cfg['retrain_from_task'] - 1:
-                if cfg['device'].type == 'cuda':
-                    model.eval_task(model._cur_val_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
-                        "acc_details": True,
-                        "acc_aux_details": True,
-                        "preds_details": True,
-                        "preds_aux_details": True
-                    })
-
-
-    #         if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
-    #             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
-    #                 "acc_details": True,
-    #                 "acc_aux_details": True,
-    #                 "preds_details": True,
-    #                 "preds_aux_details": True
-    #             })
+#             if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
+#                 model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
+#                     "acc_details": True,
+#                     "acc_aux_details": True,
+#                     "preds_details": True,
+#                     "preds_aux_details": True
+#                 })
 
 
 @ex.command
@@ -259,10 +265,10 @@ def test(_run, _rnd, _seed):
 
 if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
-    # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
+    ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
-    
-    ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
+    # 
+    # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
     ex.run_commandline()
 

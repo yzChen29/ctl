@@ -1,8 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_imagenet100_connect_fs512_128_64_Feb28"
-  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_connect_fs512_128_64_Feb28'
+  name: "ctl_imagenet100_connect_fs512_128_64_Feb28_flop_test"
+  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_connect_fs512_128_64_Feb28_flop_test'
   debug: False
 
 
@@ -11,14 +11,14 @@ exp:
 # cfg_check_1
 # sample_rate & epoch
 #sample_rate: 0.3     # 0.3 or 0.001
-debug: False
-memory_enable: True
+debug: True
+memory_enable: False
 
 batch_size: 256        # 256 or 64
 num_workers: 8
 save_ckpt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
 
-auto_retrain: True
+auto_retrain: False
 bn_reset_running: False
 bn_no_tracking: False
 zero_init_residual: True
@@ -27,10 +27,10 @@ use_connection: True  # True or False
 connect_fs: [512, 128, 64]        # 512 or 128
 sample_rate_c1: 0.3   # 0.3 or 0.001
 sample_rate_c2: 0.21  # 0.21 or 0.001
-epochs: 220           # 220 or 2
+epochs: 1           # 220 or 2
 decouple:
   enable: True
-  epochs: 30           # 30 or 2
+  epochs: 1           # 30 or 2
   fullset: False
   lr: 0.1
   scheduling:

@@ -65,12 +65,14 @@ class BasicBlock(nn.Module):
 
 
 class ModuleGroup(nn.Module):
-    def __init__(self, module_type, task_info, connect=True, zero_init_residual=True, bn_reset_running=True, bn_no_tracking=True):
+    def __init__(self, module_type, task_info, connect=True, zero_init_residual=True, bn_reset_running=True, bn_no_tracking=True,
+                 full_connect=False):
         super(ModuleGroup, self).__init__()
         self.module_type = module_type
         self.module_list = nn.ModuleList()
         self.task_info = task_info
         self.connect = connect
+        self.full_connect = full_connect
         self.zero_init_residual = zero_init_residual
         self.bn_reset_running = bn_reset_running
         self.bn_no_tracking = bn_no_tracking
@@ -84,7 +86,8 @@ class ModuleGroup(nn.Module):
                 cur_dep = self.task_info.iloc[-1]['depth']
                 prev_dep = self.task_info.iloc[-2]['depth']
                 if ((self.connect) and (cur_dep == prev_dep)) or ((not self.connect) and (cur_fs == prev_fs)):
-                    module.load_state_dict(self.module_list[-1].state_dict())
+                    if not self.full_connect:
+                        module.load_state_dict(self.module_list[-1].state_dict())
                     if self.bn_reset_running:
                         for m in module.modules():
                             if isinstance(m, nn.BatchNorm2d):
@@ -180,7 +183,8 @@ class ModuleGroup(nn.Module):
 
 class MultiModuleGroup(nn.Module):
     '''This should correspond to _make_layer() function'''
-    def __init__(self, module_type, length, task_info, connect=True, zero_init_residual=True, bn_reset_running=True, bn_no_tracking=True):
+    def __init__(self, module_type, length, task_info, connect=True, zero_init_residual=True, bn_reset_running=True, bn_no_tracking=True, 
+                 full_connect=False):
         super(MultiModuleGroup, self).__init__()
         self.module_type = module_type
         self.length = length
@@ -189,7 +193,7 @@ class MultiModuleGroup(nn.Module):
         # use this since nn.Sequential.append() is not found
         groups = []      
         for _ in range(self.length):
-            groups.append(ModuleGroup(self.module_type, task_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking))
+            groups.append(ModuleGroup(self.module_type, task_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking, full_connect))
         self.groups = nn.Sequential(*groups)
 
     def expand(self, args):
@@ -209,7 +213,8 @@ class MultiModuleGroup(nn.Module):
 
 
 class ResConnect(nn.Module):
-    def __init__(self, block, layer_num, at_info=None, dataset='cifar100', remove_last_relu=False, connect=True, zero_init_residual=True, bn_reset_running=True, bn_no_tracking=True):
+    def __init__(self, block, layer_num, at_info=None, dataset='cifar100', remove_last_relu=False, connect=True, zero_init_residual=True, bn_reset_running=True, bn_no_tracking=True,
+                 full_connect=False):
         super(ResConnect, self).__init__()
         self.block = block
         self.layer_num = layer_num
@@ -218,11 +223,11 @@ class ResConnect(nn.Module):
         self.remove_last_relu = remove_last_relu
         self.connect = connect
         self.net_groups = nn.Sequential(
-            ModuleGroup('Conv', self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking), 
-            MultiModuleGroup(block, layer_num[0], self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking), 
-            MultiModuleGroup(block, layer_num[1], self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking), 
-            MultiModuleGroup(block, layer_num[2], self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking), 
-            MultiModuleGroup(block, layer_num[3], self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking), 
+            ModuleGroup('Conv', self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking, full_connect), 
+            MultiModuleGroup(block, layer_num[0], self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking, full_connect), 
+            MultiModuleGroup(block, layer_num[1], self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking, full_connect), 
+            MultiModuleGroup(block, layer_num[2], self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking, full_connect), 
+            MultiModuleGroup(block, layer_num[3], self.at_info, connect, zero_init_residual, bn_reset_running, bn_no_tracking, full_connect), 
             ModuleGroup('AvgPool', self.at_info, connect), 
         )
 

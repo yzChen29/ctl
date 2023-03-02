@@ -28,7 +28,8 @@ def get_data_folder(data_folder, dataset_name):
 class IncrementalDataset:
     def __init__(self, trial_i, dataset_name, is_distributed=False, random_order=False, shuffle=True, workers=10,
                  device=None, batch_size=128, seed=1, sample_rate_c1=0.1, sample_rate_c2=0.2, increment=10, validation_split=0.0,
-                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, connect_fs=512, debug=False):
+                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, connect_fs=512, debug=False, 
+                 full_connect=True):
         # The info about incremental split
         self.trial_i = trial_i
         self.start_class = start_class
@@ -43,6 +44,7 @@ class IncrementalDataset:
 
         self._seed = seed
         self.connect_fs = connect_fs
+        self.full_connect = full_connect
         # self._s_rate = sample_rate
         self._s_rate_c1 = sample_rate_c1
         self._s_rate_c2 = sample_rate_c2
@@ -153,6 +155,10 @@ class IncrementalDataset:
         pnode_name = self.taxonomy_tree.get_parent(cur_classes[0])
         depth = self.taxonomy_tree.nodes.get(pnode_name).depth
         feature_size = set_feature_size(depth, self.connect_fs)
+        if self.full_connect and len(self.task_info) > 0:
+            ancestors = list(self.task_info['parent_node'])
+        else: 
+            ancestors = self.taxonomy_tree.get_ancestor_list(pnode_name)
         new_task_info = {}
         new_task_info["task_order"] = [self._current_task]
         new_task_info["child_nodes"] = [cur_classes]
@@ -160,7 +166,7 @@ class IncrementalDataset:
         new_task_info["depth"] = [depth]
         new_task_info["feature_size"] = [feature_size]
         new_task_info["base_nf"] = [int(feature_size / 8)]
-        new_task_info["ancestor_tasks"] = [self.taxonomy_tree.get_ancestor_list(pnode_name)]
+        new_task_info["ancestor_tasks"] = [ancestors]
         new_task_info["task_size"] = [len(cur_classes)]
         new_task_info["n_train_data"] = [xlen]
         new_task_info["n_test_data"] = [ylen]
