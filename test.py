@@ -1,8 +1,21 @@
-import pandas as pd
-import numpy as np
-df = pd.read_csv('/Users/chenyuzhao/Downloads/weatherAUS.csv')
+tmp = 'ctl_cifar100_fully_connect_fs512_128_Mar2'
 
-res = list(df['MaxTemp'])[33:3041]
+for i in [512]:
+    print(f'mkdir /datasets/codes/ctl_imagenet100_wo_connect_fs512_256_64_Mar2')
+    print(f'cp -r ~/ctl /datasets/codes/ctl_imagenet100_wo_connect_fs512_256_64_Mar2')
 
-for i in range(9):
-    print(i, np.mean(res[365*i:365*i+365]))
+
+mkdir /datasets/codes/ctl_imagenet100_wo_connect_fs512_256_128_Mar2
+cp -r ~/ctl /datasets/codes/ctl_imagenet100_wo_connect_fs512_256_128_Mar2
+
+mkdir /datasets/codes/ctl_imagenet100_wo_connect_fs512_256_64_Mar2
+cp -r ~/ctl /datasets/codes/ctl_imagenet100_wo_connect_fs512_256_64_Mar2
+
+mkdir /datasets/codes/ctl_imagenet100_wo_connect_fs512_128_64_Mar2
+cp -r ~/ctl /datasets/codes/ctl_imagenet100_wo_connect_fs512_128_64_Mar2
+
+mkdir /datasets/codes/ctl_imagenet100_wo_connect_fs512_128_32_Mar2
+cp -r ~/ctl /datasets/codes/ctl_imagenet100_wo_connect_fs512_128_32_Mar2
+
+mkdir /datasets/codes/ctl_imagenet100_connect_fs512_128_32_Mar2
+cp -r ~/ctl /datasets/codes/ctl_imagenet100_connect_fs512_128_32_Mar2

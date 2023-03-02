@@ -12,3 +12,4 @@ Pillow~=8.4.0
 pynvml
 torchinfo
 nvidia-ml-py
+ptflops
