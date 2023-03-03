@@ -1,62 +1,177 @@
-import os
-import datetime
-import time
+import pandas as pd
+a ='''ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance cifar100(sp0.3) fs [512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance cifar100(sp0.3) fs [512, 256]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance cifar100(sp0.3) fs [512, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance cifar100(sp0.3) fs [512, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full cifar100(sp0.3) fs [512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full cifar100(sp0.3) fs [512, 256]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full cifar100(sp0.3) fs [512, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full cifar100(sp0.3) fs [512, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect cifar100(sp0.3) fs [512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect cifar100(sp0.3) fs [512, 256]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect cifar100(sp0.3) fs [512, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect cifar100(sp0.3) fs [512, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect cifar100(sp0.3) fs [256, 256]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect cifar100(sp0.3) fs [256, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect cifar100(sp0.3) fs [256, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance random_order cifar100(sp0.3) fs [512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full random_order cifar100(sp0.3) fs [512, 512]
 
 
 
-def check_yaml(pod_name: object) -> object:
-    process = os.popen(f'kubectl get pod {pod_name} -o yaml')
-    preprocessed = process.read()
-    process.close()
-    return preprocessed
-
-def check_desc(pod_name):
-    process = os.popen(f'kubectl describe pod {pod_name}')
-    preprocessed = process.read()
-    process.close()
-    return preprocessed
-
-def check_logs(pod_name):
-    process = os.popen(f'kubectl logs {pod_name}')
-    preprocessed = process.read()
-    process.close()
-    return preprocessed
-
-def check_cpu_usage(pod_name):
-    process = os.popen(f'kubectl top pod {pod_name}')
-    preprocessed = process.read()
-    process.close()
-    return preprocessed
 
 
-pod_name = 'ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-5-db4cddccc-4kldh'
-save_path = f'/Users/chenyuzhao/Downloads/checking_pods/{pod_name}'
-task_name = 'ctl_rtc_imagenet100_trial3_BFS_seed1993_retrain_from_task21_4'
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance imagenet100 fs [512, 512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance imagenet100 fs [512, 256, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance imagenet100 fs [512, 128, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance imagenet100 fs [512, 256, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full imagenet100 fs [512, 512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full imagenet100 fs [512, 256, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full imagenet100 fs [512, 128, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full imagenet100 fs [512, 256, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect imagenet100 fs [512, 512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect imagenet100 fs [512, 256, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect imagenet100 fs [512, 128, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+connect imagenet100 fs [512, 256, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect only_ance random_order imagenet100 fs [512, 512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+wo connect full random_order imagenet100 fs [512, 512, 512]
 
 
-while True:
 
-    curr_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline cifar100(sp0.3) fs [512, 512]
 
-    mesg = ''
-    mesg += f'pod_name: {pod_name}\n'
-    mesg += f'task_name: {task_name}\n'
-    mesg += f'checking_time: {curr_time}\n'
-    mesg += f'\n\n\ncheck_yaml\n'
-    mesg += check_yaml(pod_name)
-    mesg += '\n\n\ncheck_yaml\n'
-    mesg += check_desc(pod_name)
-    mesg += '\n\n\ncheck_yaml\n'
-    mesg += check_logs(pod_name)
-    mesg += '\n\n\ncheck_cpu_usage\n'
-    mesg += check_cpu_usage(pod_name)
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline cifar100(sp0.3) fs [512, 256]
 
-    with open(f'{save_path}/{curr_time}.txt', 'a') as f:
-        f.write(mesg)
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline cifar100(sp0.3) fs [512, 128]
 
-    print(f'finsh at {curr_time}')
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline cifar100(sp0.3) fs [512, 64]
 
-    if not check_yaml(pod_name):
-        break
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline cifar100(sp0.3) fs [256, 256]
 
-    time.sleep(1200)
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline cifar100(sp0.3) fs [256, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline cifar100(sp0.3) fs [256, 64]
+
+
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline imagenet100 fs [512, 512, 512]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline imagenet100 fs [512, 256, 128]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline imagenet100 fs [512, 128, 64]
+
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t
+der baseline imagenet100 fs [512, 256, 64]
+
+'''
+
+res  =  []
+flag=0
+for i in a.split('\n'):
+    if flag == 1:
+        res.append(i)
+        flag=0
+    if i == 'ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-6fj2t':
+        flag=1
+
+dataset_list = []
+model_type_list = []
+fs_list = []
+
+for i in res:
+    if 'cifar100(sp0.3)' in i:
+        dataset='cifar100(sp0.3)'
+        model_type = i.split(' cifar100(sp0.3) ')[0]
+        model_type = model_type.replace(' ', '_')
+    else:
+        dataset = 'imagenet100'
+        model_type = i.split(' imagenet100 ')[0]
+        model_type = model_type.replace(' ', '_')
+    fs_list_tmp = i.split(' fs ')[1][1:-1].split(', ')
+    fs = tuple(int(j) for j in fs_list_tmp)
+    dataset_list.append(dataset)
+    model_type_list.append(model_type)
+    fs_list.append(fs)
+
+# 'wo connect only_ance cifar100(sp0.3) fs [512, 512]'
+
+print(res)
+
+res_dict = {'job':list(range(47, 47+len(res))), 'task':res, 'dataset': dataset_list, 'model_type': model_type_list, 'fs': fs_list}
+for i in res_dict:
+    print(i, len(res_dict[i]))
+df = pd.DataFrame(res_dict)
+print(df)
+df.to_csv('/Users/chenyuzhao/Desktop/UCSD项目/server/job/job_info.csv', index=False)
+print(len(res))
+

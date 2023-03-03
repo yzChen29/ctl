@@ -65,6 +65,7 @@ class IncrementalDataset:
         # datasets is the object
         dataset_class = get_dataset(dataset_name)
 
+        self.debug = debug
         self._setup_data(dataset_class)
 
         # Currently, don't support multiple datasets
@@ -97,7 +98,6 @@ class IncrementalDataset:
         # Available data stored in cpu memory.
         self.shared_data_inc, self.shared_test_data = None, None
         self.task_info = pd.DataFrame()
-        self.debug = debug
 
     @property
     def n_tasks(self):
@@ -291,8 +291,8 @@ class IncrementalDataset:
         self.data_val, self.targets_val = [], []
         self.dict_val, self.dict_train, self.dict_test = {}, {}, {}
         # current_class_idx = 0  # When using multiple datasets
-        self.train_dataset = dataset(self.data_folder, train=True, device=self._device)
-        self.test_dataset = dataset(self.data_folder, train=False, device=self._device)
+        self.train_dataset = dataset(self.data_folder, train=True, device=self._device, debug=self.debug)
+        self.test_dataset = dataset(self.data_folder, train=False, device=self._device, debug=self.debug)
         if self.dataset_name == 'imagenet100':
             train_idx = np.isin(self.train_dataset.targets, self.train_dataset.index_list)
             test_idx = np.isin(self.test_dataset.targets, self.test_dataset.index_list)
