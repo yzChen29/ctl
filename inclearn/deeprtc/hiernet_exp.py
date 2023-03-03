@@ -56,7 +56,16 @@ class HierNetExp(nn.Module):
                         raise NotImplementedError('xxx')
 
                 elif self.feature_mode ==  'full':
-                    pass
+                    
+                    if i == self.num_nodes - 1: 
+                        self.cls_train.append(fc_name)
+                    else:
+                        if j == self.cur_task-1:
+                            self.cls_train.append(fc_name)
+                        else:
+                            self.cls_freeze.append(fc_name)
+                    
+                    
         
         for fc_name in self.cls_train:
             fc_layers = getattr(self, fc_name)
@@ -229,7 +238,7 @@ class HierNetExp(nn.Module):
 
     def filter_used_features(self, t_num):
         if self.feature_mode == 'full':
-            pass
+            use_tasks = list(range(t_num+1))
         elif self.feature_mode == 'add_zero_use_all_prev':
             pass
         elif self.feature_mode == 'add_zero_only_ancestor_fea':
@@ -239,7 +248,7 @@ class HierNetExp(nn.Module):
                 use_tasks = list(anc_tasks['task_order'])
                 use_tasks.append(t_num)
             except:
-                use_tasks = [t_num]
+                use_tasks = [t_num]  
         return use_tasks
 
     def reset_parameters(self):

@@ -414,6 +414,8 @@ class IncrementalDataset:
         return data, targets, self._get_loader(data, targets, shuffle=False, mode=mode)
 
     def _get_loader(self, x, y, share_memory=None, shuffle=True, mode="train", batch_size=None, resample=None):
+        if x.shape[0] == 0 or len(y)==0:
+            return None
         if "balanced" in mode:
             x, y = construct_balanced_subset(x, y)
 
