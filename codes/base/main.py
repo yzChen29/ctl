@@ -16,7 +16,6 @@ from easydict import EasyDict as edict
 from tensorboardX import SummaryWriter
 from copy import deepcopy
 import shutil
-from ptflops import get_model_complexity_info
 
 repo_name = 'ctl'
 base_dir = osp.realpath(".")[:osp.realpath(".").index(repo_name) + len(repo_name)]
@@ -45,6 +44,7 @@ def initialization(config, seed, mode, exp_id):
     if exp_id is None:
         exp_id = -1
     #     cfg.exp.savedir = "./logs"
+
     if cfg['auto_retrain']:
         ckpt_list = os.listdir(f"{cfg['exp']['load_model_name']}/train/ckpts")
         for i in range(1, 30):
@@ -58,6 +58,7 @@ def initialization(config, seed, mode, exp_id):
         cfg['retrain_from_task'] = retrain_task
         cfg['load_mem'] = True
         cfg['save_ckpt'] = list(range(retrain_task, 30))
+
     logger = utils.make_logger(f"{mode}", savedir=cfg['sp']['log'])
 
     # Tensorboard
@@ -65,7 +66,6 @@ def initialization(config, seed, mode, exp_id):
     # tensorboard_dir = cfg["exp"]["tensorboard_dir"] + f"/{exp_name}"
 
     tensorboard = SummaryWriter(cfg['sp']['tensorboard'])
-
     if cfg['dataset'] == 'cifar100':
         try:
             shutil.copyfile('./configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
@@ -76,7 +76,6 @@ def initialization(config, seed, mode, exp_id):
             shutil.copyfile('./configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
         except:
             shutil.copyfile('./codes/base/configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
-
     return cfg, logger, tensorboard
 
 
@@ -97,16 +96,13 @@ def _train(rank, cfg, world_size, logger=None):
     logger.info(inc_dataset.curriculum)
 
     for task_i in range(inc_dataset.n_tasks):
-        model.before_task()
+    # for task_i in range(1):
+        model.new_task()
+        model.before_task(inc_dataset)
         enforce_decouple = False
-        # with torch.cuda.device(0):
-        #     macs, params = get_model_complexity_info(model._network, (3, 32, 32), as_strings=True,
-        #                                             print_per_layer_stat=False, verbose=True)
-        #     print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
-        #     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+
 
         if task_i >= cfg['retrain_from_task']:
-            # pass
             model.train_task()
         elif task_i == cfg['retrain_from_task']-1:
 
@@ -118,6 +114,8 @@ def _train(rank, cfg, world_size, logger=None):
 #                 load_path = f"result/{cfg['exp']['load_model_name']}/train/ckpts"
                 load_path = f"{cfg['exp']['load_model_name']}/train/ckpts"
 
+
+
                 if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
                     state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')
                 else:
@@ -126,9 +124,9 @@ def _train(rank, cfg, world_size, logger=None):
             model._parallel_network.load_state_dict(state_dict)
         else:
             print(f'passing task {task_i}')
-
         if not cfg['debug']:
-            if task_i >= cfg['retrain_from_task'] - 1:
+            if task_i >= cfg['retrain_from_task'] - 1 and task_i >= cfg['coarse_task_num']:
+
                 if cfg['device'].type == 'cuda':
                     model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
                         "acc_details": True,
@@ -137,10 +135,12 @@ def _train(rank, cfg, world_size, logger=None):
                         "preds_aux_details": True
                     })
 
+   
+
         model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
 
         if not cfg['debug']:
-            if task_i >= cfg['retrain_from_task'] - 1:
+            if task_i >= cfg['retrain_from_task'] - 1 and task_i >= cfg['coarse_task_num']:
                 if cfg['device'].type == 'cuda':
                     model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
                         "acc_details": True,
@@ -150,13 +150,13 @@ def _train(rank, cfg, world_size, logger=None):
                     })
 
 
-            # if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
-            #     model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
-            #         "acc_details": True,
-            #         "acc_aux_details": True,
-            #         "preds_details": True,
-            #         "preds_aux_details": True
-            #     })
+    #         if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
+    #             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
+    #                 "acc_details": True,
+    #                 "acc_aux_details": True,
+    #                 "preds_details": True,
+    #                 "preds_aux_details": True
+    #             })
 
 
 @ex.command
@@ -194,7 +194,7 @@ def train(_run, _rnd, _seed):
     except Exception as e:
         import traceback
         traceback.print_exc(file=open(
-            '/datasets/cifar100_results/terminal_log.txt','a'))
+            '/datasets/imagenet100_results/terminal_log.txt','a'))
         print('Error Message', e)
         print('\n\n\n\n')
         raise('Error')
@@ -247,7 +247,8 @@ def test(_run, _rnd, _seed):
 
     test_results = results_utils.get_template_results(cfg)
     for task_i in range(inc_dataset.n_tasks):
-        model.before_task()
+        model.new_task()
+        model.before_task(inc_dataset)
         if task_i == 20:
             model_path = 'results/' + cfg['exp']['load_model_name'] + f'/train/ckpts/decouple_step{task_i}.ckpt'
             state_dict = torch.load(model_path)
@@ -267,7 +268,7 @@ if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
     # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
-    # 
+    
     ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
     ex.run_commandline()

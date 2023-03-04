@@ -7,19 +7,16 @@ from inclearn.tools.metrics import ClassErrorMeter, AverageValueMeter
 from inclearn.tools.utils import to_onehot
 from inclearn.deeprtc.utils import deep_rtc_nloss
 from inclearn.datasets.data import tgt_to_tgt0, tgt_to_tgt0_no_tax
-from inclearn.tools.utils import set_seed
+
 
 def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=0.1, use_joint_ce_loss=False, scheduling=None, lr_decay=0.1,
                         weight_decay=5e-4, loss_type="ce", temperature=5.0, test_loader=None, save_path='',
-                        index_map=None, feature_mode = 'add_zero_only_ancestor_fea'):
+                        index_map=None, id_list_2=None):
     if scheduling is None:
         scheduling = [15, 35]
     network.eval()
     n_module = network.module
-    # optim = SGD(n_module.classifier.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
-    optim = SGD(filter(lambda p: p.requires_grad, n_module.exp_classifier.parameters()), 
-                lr=lr, momentum=0.9, weight_decay=weight_decay)
-                
+    optim = SGD(n_module.classifier.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, scheduling, gamma=lr_decay)
 
     if loss_type == "ce":
@@ -28,7 +25,6 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
         criterion = nn.BCEWithLogitsLoss()
 
     logger.info("Begin finetuning last layer")
-    curr_node_class = [n_module.at_info.iloc[-1]['part_tree'].label_dict_index[i] for i in n_module.at_info.iloc[-1]['child_nodes']]      
     for i in range(nepoch):
         total_nloss = 0.0
         total_joint_loss = 0.0
@@ -38,15 +34,7 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
         # print(f"dataset loader length {len(loader.dataset)}")
         all_preds = None
         all_is_correct = np.array([])
-        #important
-        # set_seed(0)
         for inputs, targets in loader:
-            flag=0
-            for i in set(targets):
-                if i in curr_node_class:
-                    flag=1
-            if feature_mode=='full' and flag == 0:
-                continue
             if device.type == 'cuda':
                 inputs, targets = inputs.cuda(), targets.cuda()
                 network = network.cuda()
@@ -80,7 +68,7 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
                 all_is_correct = np.concatenate((all_is_correct, iscorrect.cpu()))
                 # print(loss)
 
-                total_loss = nloss + joint_ce_loss       
+                total_loss = nloss + joint_ce_loss
                 total_loss.backward()
                 optim.step()
                 total_nloss += nloss * inputs.size(0)
@@ -89,7 +77,11 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
                 total_count += inputs.size(0)
             else:
                 outputs = network(inputs)['output']
-                targets_0 = tgt_to_tgt0_no_tax(targets, index_map, device)
+                # targets_0 = tgt_to_tgt0_no_tax(targets, index_map, device)
+                # targets_0 = tgt_to_tgt0(targets, self._network.leaf_id, self._device)
+                targets_0 = tgt_to_tgt0(targets, id_list_2, network.module.device)
+
+
                 _, preds = outputs.max(1)
                 optim.zero_grad()
                 loss = criterion(outputs / temperature, targets_0.long())
@@ -98,6 +90,9 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
                 total_nloss += loss * inputs.size(0)
                 total_correct += (preds == targets_0).sum()
                 total_count += inputs.size(0)
+
+                # preds_ori = outputs.argmax(1)
+                # preds = tgt0_to_tgt(preds_ori, leaf_id_2)
 
                 max_z = torch.max(outputs, dim=1)[0]
                 preds = torch.eq(outputs, max_z.view(-1, 1))
@@ -119,13 +114,21 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
                     test_count += inputs.size(0)
 
         scheduler.step()
-        if test_loader is not None:
-            logger.info(
-                "Epoch %d finetuning, nloss %.3f, joint_ce_loss %.3f, acc %.3f, Eval %.3f" %
-                (i, total_nloss.item() / total_count, total_joint_loss.item() / total_count, total_correct.item() / total_count, test_correct / test_count))
+        if  n_module.taxonomy == 'rtc':
+
+            if test_loader is not None:
+                logger.info(
+                    "Epoch %d finetuning, nloss %.3f, joint_ce_loss %.3f, acc %.3f, Eval %.3f" %
+                    (i, total_nloss.item() / total_count, total_joint_loss.item() / total_count, total_correct.item() / total_count, test_correct / test_count))
+            else:
+                logger.info("Epoch %d finetuning, nloss %.3f, joint_ce_loss %.3f, acc %.3f" %
+                            (i, total_nloss.item() / total_count, total_joint_loss.item() / total_count, total_correct.item() / total_count))
         else:
-            logger.info("Epoch %d finetuning, nloss %.3f, joint_ce_loss %.3f, acc %.3f" %
-                        (i, total_nloss.item() / total_count, total_joint_loss.item() / total_count, total_correct.item() / total_count))
+            logger.info("Epoch %d finetuning, loss %.3f, acc %.3f" %
+                            (i, total_nloss.item() / total_count, total_correct.item() / total_count))
+
+
+
         if i == nepoch - 1:
             np.savetxt(save_path + f'_epoch_{i}_preds.txt', np.array(all_preds), fmt='%2.2f')
             np.savetxt(save_path + f'_epoch_{i}_iscorrect.txt', np.array(all_is_correct), fmt='%2.2f')
@@ -137,17 +140,12 @@ def extract_features(model, loader, device):
     model.eval()
     with torch.no_grad():
         for _inputs, _targets in loader:
-            if device.type == 'cuda':
+            if device == 'cuda':
                 _inputs = _inputs.cuda()
             else:
                 _inputs = _inputs
             _targets = _targets.numpy()
-
-            _features = model(_inputs)['feature']
-            fe = _features[0]
-            for k in range(1, len(_features)):
-                fe = torch.cat((fe, _features[k]), dim=1)
-            _features = fe.detach().cpu().numpy()
+            _features = model(_inputs)['feature'].detach().cpu().numpy()
             features.append(_features)
             targets.append(_targets)
     if len(targets) == 1:
