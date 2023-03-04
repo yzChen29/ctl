@@ -664,7 +664,8 @@ class IncModel(IncrementalLearner):
                                 loss_type="ce",
                                 temperature=self._decouple["temperature"],
                                 save_path=f"{self.sp['acc_detail']['train']}/task_{self._task}_decouple",
-                                index_map=self._inc_dataset.targets_all_unique)
+                                index_map=self._inc_dataset.targets_all_unique, 
+                                feature_mode=self._cfg['feature_mode'])
             # network = deepcopy(self._parallel_network)
             network = deepcopy(self._parallel_network)
             if taski in self._cfg["save_ckpt"]:
