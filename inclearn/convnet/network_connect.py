@@ -6,17 +6,21 @@ import torch.nn.functional as F
 from inclearn.tools import factory
 from inclearn.convnet.imbalance import BiC, WA
 from inclearn.convnet.classifier import CosineClassifier, RealTaxonomicClassifier
+from inclearn.convnet.resnet_con import resconnect18
 from inclearn.deeprtc import get_model
+from inclearn.deeprtc.hiernet_exp import HierNetExp
 from inclearn.deeprtc.pivot import Pivot
 
 
-class TaxonomicDer(nn.Module):  # used in incmodel.py
+class TaxConnectionDer(nn.Module):  # used in incmodel.py
     def __init__(self, convnet_type, cfg, nf=64, use_bias=False, init="kaiming", device=None, dataset="cifar100",
-                 current_tax_tree=None, current_task=0, feature_mode='full'):
-        super(TaxonomicDer, self).__init__()
+                 at_info={}, ct_info={}, feature_mode='full', connect=True):
+        super(TaxConnectionDer, self).__init__()
         self.nf = nf
         self.init = init
         self.convnet_type = convnet_type
+        # self.exp_module = resconnect18()
+        # self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'])
         self.dataset = dataset
         self.start_class = cfg['start_class']
         self.weight_normalization = cfg['weight_normalization']
@@ -28,19 +32,18 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
         self.reuse_oldfc = cfg['reuse_oldfc']
         self.module_cls = cfg['model_cls']
         self.module_pivot = cfg['model_pivot']
-        self.current_tax_tree = current_tax_tree
-        self.current_task = current_task
+        self.at_info = at_info
+        self.ct_info = ct_info
+        self.connect = connect
 
         if self.der:
             print("Enable dynamical representation expansion!")
-            self.convnets = nn.ModuleList()
-            self.convnets.append(
-                factory.get_convnet(convnet_type,
-                                    nf=nf,
-                                    dataset=dataset,
-                                    start_class=self.start_class,
-                                    remove_last_relu=self.remove_last_relu))
-            self.out_dim = self.convnets[0].out_dim
+            self.out_dim = 0
+            
+            self.exp_module = resconnect18(False, dataset=dataset, connect=cfg['use_connection'], zero_init_residual=cfg['zero_init_residual'], bn_reset_running=cfg['bn_reset_running'], bn_no_tracking=cfg['bn_no_tracking'], 
+                                           full_connect=cfg['full_connect'])
+            self.exp_classifier = HierNetExp(reuse=cfg['reuse_oldfc'], 
+                                                 feature_mode=feature_mode)
         else:
             self.convnet = factory.get_convnet(convnet_type,
                                                nf=nf,
@@ -71,28 +74,45 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
         self.to(self.device)
 
     def forward(self, x):
-        if self.classifier is None:
+        if self.classifier is None and self.exp_classifier is None:
             raise Exception("Add some classes before training.")
 
+        # get feature
         if self.der:
-            features = [convnet(x) for convnet in self.convnets]
-            features = torch.cat(features, 1)
+            # features = [convnet(x) for convnet in self.convnets]
+            features = self.exp_module(x)
+            # fe = features[0]
+            # for k in range(1, len(features)):
+            #     fe = torch.cat((fe, features[k]), dim=1)
+            # features = torch.squeeze(fe)
         else:
             features = self.convnet(x)
 
+        # classification
         if self.taxonomy is not None:
             gate = self.model_pivot(torch.ones([x.size(0), len(self.used_nodes)]))
             # gate[:, 0] = 1
             # print(features)
-            output, nout, sfmx_base = self.classifier(x=features, gate=gate)
+            # output, nout, sfmx_base = self.classifier(x=features, gate=gate)
+            output, nout, sfmx_base = self.exp_classifier(x_list=features, gate=gate)
             # logits = self.classifier(features)
         else:
             output = self.classifier(features)
             nout, sfmx_base = None, None
 
-        if self.use_aux_cls:
-            aux_logits = self.aux_classifier(features[:, -self.out_dim:]) \
-                if features.shape[1] > self.out_dim else None
+        if self.use_aux_cls and self.current_task > 0:
+
+
+            #switch aux
+            # use_features = []
+            # ancestor_name = self.ct_info['ancestor_tasks']
+            # for i in range(self.at_info.shape[0]):
+            #     if self.at_info.iloc[i]['parent_node'] in ancestor_name:
+            #         use_features.append(features[i])
+            # use_features.append(features[self.ct_info['task_order']])   
+            # aux_logits = self.aux_classifier(torch.cat(use_features, dim=1))
+
+            aux_logits = self.aux_classifier(features[self.ct_info['task_order']])
         else:
             aux_logits = None
         return {'feature': features, 'output': output, 'nout': nout, 'sfmx_base': sfmx_base, 'aux_logit': aux_logits}
@@ -100,9 +120,14 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
     @property
     def features_dim(self):
         if self.der:
-            return self.out_dim * len(self.convnets)
+            # return self.out_dim * len(self.convnets)
+            return self.out_dim
         else:
             return self.out_dim
+
+    def set_train(self):
+        self.exp_module.set_train()
+        self.exp_classifier.set_train()
 
     def freeze(self):
         for param in self.parameters():
@@ -113,30 +138,73 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
     def copy(self):
         return copy.deepcopy(self)
 
-    def add_classes(self, n_classes, feature_mode='feature_mode'):
+    
+    def new_task(self, at_info, feature_mode):
+        # update info
+        self.at_info = at_info
+        self.current_task = len(at_info) - 1
+        self.ct_info = at_info.iloc[self.current_task]
+
+        expand_info = at_info.loc[:, at_info.columns != 'part_tree']
+        self._update_tree_info()
+        self._gen_pivot()
+
+        self.exp_module.update_task_info(expand_info)
+        self.exp_classifier.update_task_info(self.used_nodes, expand_info)
+        self.out_dim = sum(at_info["feature_size"])
+
+        # add classes
         if self.der:
-            self._add_classes_multi_fc(n_classes, feature_mode)
+            n_classes = self.ct_info["task_size"]
+
+            # expand network part
+            base_nf = int(self.ct_info['feature_size'] / 8)
+            self.exp_module.expand(base_nf)
+
+            # expand classifier part
+            self.exp_classifier.expand()
+            # self._add_classes_multi_fc(feature_mode)
+
+            if self.aux_nplus1:
+            # aux_fc = self._gen_classifier(self.out_dim, n_classes + 1)
+                ct_fs = self.ct_info['feature_size']  # feature size of current task
+                ct_nclass = self.ct_info["task_size"]  # number of classes for current task
+
+                #switch aux
+                # ancestor_name = self.ct_info['ancestor_tasks']
+                # for i in range(self.at_info.shape[0]):
+                #     if self.at_info.iloc[i]['parent_node'] in ancestor_name:
+                #         ct_fs += self.at_info.iloc[i]['feature_size']
+
+                aux_fc = nn.Linear(ct_fs, ct_nclass + 1, bias=self.use_bias).to(self.device)
+                if self.init == "kaiming":
+                    nn.init.kaiming_normal_(aux_fc.weight, nonlinearity="linear")
+                if self.use_bias:
+                    nn.init.constant_(aux_fc.bias, 0.0)
+            else:
+                aux_fc = self._gen_classifier(self.out_dim, self.n_classes + n_classes)
+            del self.aux_classifier
+            self.aux_classifier = aux_fc
         else:
-            self._add_classes_single_fc(n_classes)
+            self._add_classes_single_fc()
 
-        # self.n_classes += n_classes
 
-    def _add_classes_multi_fc(self, n_classes, feature_mode='full'):
+    def _add_classes_multi_fc(self, feature_mode='full'):
+        n_classes = self.ct_info["task_size"]
         if self.taxonomy:
-            all_classes = len(self.current_tax_tree.leaf_nodes)
+            all_classes = len(self.ct_info['part_tree'].leaf_nodes)
         else:
             all_classes = self.n_classes + n_classes
 
-        if self.current_task > 0:
-            new_net = factory.get_convnet(self.convnet_type,
-                                          nf=self.nf,
-                                          dataset=self.dataset,
-                                          start_class=self.start_class,
-                                          remove_last_relu=self.remove_last_relu).to(self.device)
-            new_net.load_state_dict(self.convnets[-1].state_dict())
-            self.convnets.append(new_net)
+        # expand network part
+        base_nf = self.ct_info['base_nf']
+        self.exp_module.expand(base_nf)
 
-        new_clf = self._gen_classifier(self.out_dim * len(self.convnets), all_classes)
+        # expand classifier part
+        # new_clf = self._gen_classifier(self.out_dim * len(self.convnets), all_classes)
+        self.exp_classifier.expand(base_nf)
+    
+        new_clf = self._gen_classifier(self.out_dim, all_classes)
         if self.taxonomy:
             if self.classifier is None:
                 self.node2TFind_dict['root'] = self.current_task
@@ -188,7 +256,8 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
             if self.classifier is not None and self.feature_mode=='add_zero_only_ancestor_fea':
 
                 for j in range(self.current_task):
-                    ancestor_nodes_list = self.current_tax_tree.get_ancestor_list(new_clf.nodes[len(new_clf.nodes)-1].name)
+                    cur_tree = self.ct_info["part_tree"]
+                    ancestor_nodes_list = cur_tree.get_ancestor_list(new_clf.nodes[len(new_clf.nodes)-1].name)
                     ancestor_self_nodes_list = ancestor_nodes_list + [curr_node_name]
                     self.ancestor_self_nodes_list = ancestor_self_nodes_list
 
@@ -216,7 +285,8 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
 
         if self.aux_nplus1:
             # aux_fc = self._gen_classifier(self.out_dim, n_classes + 1)
-            aux_fc = nn.Linear(self.out_dim, n_classes + 1, bias=self.use_bias).to(self.device)
+            ct_fs = self.ct_info['feature_size']  # feature size of current task
+            aux_fc = nn.Linear(ct_fs, n_classes + 1, bias=self.use_bias).to(self.device)
             if self.init == "kaiming":
                 nn.init.kaiming_normal_(aux_fc.weight, nonlinearity="linear")
             if self.use_bias:
@@ -225,7 +295,6 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
             aux_fc = self._gen_classifier(self.out_dim, self.n_classes + n_classes)
         del self.aux_classifier
         self.aux_classifier = aux_fc
-        c = 9
 
     def _add_classes_single_fc(self, n_classes):
         if self.classifier is not None:
@@ -245,7 +314,7 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
 
     def _gen_classifier(self, in_features, n_classes):
         if self.taxonomy is not None:
-            self._update_tree_info()
+            # self._update_tree_info()
             if self.taxonomy == 'rtc':
                 # classifier
                 # used_nodes = setup_tree(self.current_task, self.current_tax_tree)
@@ -283,7 +352,9 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
         self.model_pivot = model_pivot
 
     def _update_tree_info(self):
-        used_nodes, leaf_id, node_labels = self.current_tax_tree.prepro()
+        used_nodes, leaf_id, node_labels = self.ct_info['part_tree'].prepro()
         self.used_nodes = used_nodes
         self.node_labels = node_labels
         self.leaf_id = leaf_id
+
+

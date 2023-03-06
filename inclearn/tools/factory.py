@@ -63,8 +63,10 @@ def get_data(cfg):
         increment=cfg["increment"],
         data_folder=cfg["data_folder"],
         mode_train=cfg["exp"]["mode_train"],
-        taxonomy=cfg["taxonomy"],
+        taxonomy=cfg["taxonomy"], 
+        connect_fs = cfg['connect_fs'],
         debug = cfg['debug'],
+        full_connect = cfg['full_connect']
     )
 
 

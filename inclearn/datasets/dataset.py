@@ -147,7 +147,7 @@ class iCIFAR100(iCIFAR10):
     taxonomy_tree = Tree('cifar100', data_name_hier_dict, data_label_index_dict)
     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
 
-    def __init__(self, data_folder, train, device, is_fine_label=False, debug=False):
+    def __init__(self, data_folder, train, device, is_fine_label=False):
         super().__init__(data_folder, train, is_fine_label)
         self.base_dataset = self.base_dataset_cls(data_folder, train=train, download=True)
         self.data = self.base_dataset.data
@@ -1125,16 +1125,24 @@ class iImageNet100(DataHandler):
         self.data = np.array(self.data)
         self.targets = np.array(self.targets)
         self.n_cls = 100
+
         if debug:
-            index_list_trial3 = [398, 146, 279, 414, 428, 438, 337, 100, 10, 464, 16, 138, 471, 378, 479, 480, 491, 293, 492, 19, 513, 519, 527, 274, 136, 561, 565, 368, 11, 99, 583, 338, 584, 333, 594, 351, 595, 344, 12, 379,276, 352, 14, 17, 612, 13, 145, 618, 135, 291, 131, 18, 636, 637, 336, 268, 666, 670, 676, 683, 345, 694,695, 86, 371, 84, 709, 283, 725, 728, 334, 739, 81, 746, 748, 85, 755, 757, 139, 82, 769, 771, 772,776,797, 129, 829, 837, 844, 847, 292, 282, 269, 380, 866, 875, 876, 880, 20, 340]
+            index_list_trial3 = [398, 146, 279, 414, 428, 438, 337, 100, 10, 464, 16, 138, 471, 378, 479, 480, 491, 293,
+                                 492, 19, 513, 519, 527, 274, 136, 561, 565, 368, 11, 99, 583, 338, 584, 333, 594, 351,
+                                 595, 344, 12, 379, 276, 352, 14, 17, 612, 13, 145, 618, 135, 291, 131, 18, 636, 637,
+                                 336, 268, 666, 670, 676, 683, 345, 694, 695, 86, 371, 84, 709, 283, 725, 728, 334, 739,
+                                 81, 746, 748, 85, 755, 757, 139, 82, 769, 771, 772, 776, 797, 129, 829, 837, 844, 847,
+                                 292, 282, 269, 380, 866, 875, 876, 880, 20, 340]
             data_loader_x = self.data
             data_loader_y = self.targets
             full_index = np.array([], dtype=int)
             for i in index_list_trial3:
-                index_i = np.where(data_loader_y==i)[0][:10]
+                index_i = np.where(data_loader_y == i)[0][:10]
                 full_index = np.concatenate((full_index, index_i))
             self.data = data_loader_x[full_index]
             self.targets = self.targets = data_loader_y[full_index]
+
+
 
     @property
     def is_proc_inc_data(self):
