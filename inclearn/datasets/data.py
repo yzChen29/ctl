@@ -114,17 +114,17 @@ class IncrementalDataset:
             raise Exception("No more tasks.")
 
         # important
-        if not self.debug:
-            if self.mode_train:
-                if self._current_task > 0:
-                    self._update_memory_for_new_task(self.curriculum[self._current_task])
+        # if not self.debug:
+        #     if self.mode_train:
+        #         if self._current_task > 0:
+        #             self._update_memory_for_new_task(self.curriculum[self._current_task])
 
-                # if self.data_memory is not None:
-                    data_memory, targets_memory = self.gen_memory_array_from_dict()
-                    print("Set memory of size: {}.".format(len(data_memory)))
-                    if len(data_memory) != 0:
-                        x_train = np.concatenate((x_train, data_memory))
-                        y_train = np.concatenate((y_train, targets_memory))
+        #         # if self.data_memory is not None:
+        #             data_memory, targets_memory = self.gen_memory_array_from_dict()
+        #             print("Set memory of size: {}.".format(len(data_memory)))
+        #             if len(data_memory) != 0:
+        #                 x_train = np.concatenate((x_train, data_memory))
+        #                 y_train = np.concatenate((y_train, targets_memory))
 
         self.data_inc, self.targets_inc = x_train, y_train
         self.data_test_inc, self.targets_test_inc = x_test, y_test

@@ -397,17 +397,21 @@
 #
 #
 import pandas as pd
-import numpy as np
-a = np.array([[1, 1, 0], [1, 4, 0], [0, 0, 9]])
-b = np.array([[2, 1, 1], [1, -1, 1]])
-# c = np.array([[4/3, -1/3, 0], [-1/3, 1/3, 0], [0, 0, 1/9]])
 
-print(b@a@b.T)
-# for i in range(-3, 3):
-#         for j in range(-3, 3):
-#                 for k in range(-3, 3):
+# import numpy as np
+# a = np.array([[1, 1, 0], [1, 4, 0], [0, 0, 9]])
+# b = np.array([[2, 1, 1], [1, -1, 1]])
+# # c = np.array([[4/3, -1/3, 0], [-1/3, 1/3, 0], [0, 0, 1/9]])
 #
-#                         b = np.array([i, j, k])
-#                         print(a)
-#                         print(np.linalg.eig(a)[0])
-#                         print((i, j, k), b@a@b.T)
+# print(b@a@b.T)
+# # for i in range(-3, 3):
+# #         for j in range(-3, 3):
+# #                 for k in range(-3, 3):
+# #
+# #                         b = np.array([i, j, k])
+# #                         print(a)
+# #                         print(np.linalg.eig(a)[0])
+# #                         print((i, j, k), b@a@b.T)
+
+for i in range(98, 111):
+    print(f'kubectl create -f /Users/chenyuzhao/Desktop/UCSD项目/server/job/gen_job_info/job_{i}.yaml')

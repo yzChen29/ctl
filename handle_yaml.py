@@ -729,103 +729,133 @@ def gen_job_command(job_ind):
     print(f'kubectl create -f /Users/chenyuzhao/Desktop/UCSD项目/server/job/gen_job_info/job_{job_ind}.yaml')
 
 
-pod_mesg = '''cogrob-7bc56f8466-jl8rf                                           1/1     Running                  0          9d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-15-pq6kz           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-17-t47mx           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-18-v64vf           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-19-wbxt4           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-20-gsfv5           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-21-6hhv7           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-22-bgrxp           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-23-dtlhc           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-24-lqchx           0/1     Completed                0          4d13h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-25-5tsbj           0/1     Completed                0          4d2h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-26-bgkpj           0/1     Completed                0          4d2h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-28-mwpz4           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-29-7rb4s           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-30-n4l8r           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-32-j6jmx           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-33-4z7h8           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-34-958kb           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-35-x76bk           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-36-nkwwr           0/1     Completed                0          3d9h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-43-fjwzm           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-44-knd98           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-45-mfvdl           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-7n2qv           0/1     Completed                0          3d
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-47-nrk7h           0/1     Completed                0          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-48-ttxfv           0/1     Completed                0          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-49-gs9q8           0/1     Completed                0          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-50-qsxdz           0/1     Completed                0          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-51-5j5kk           0/1     Completed                0          44h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-52-tw6gn           0/1     Completed                0          44h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-54-jz8mh           0/1     Completed                0          44h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-55-jkdhz           0/1     Completed                0          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-56-zxsq4           0/1     Completed                0          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-57-s5xxl           0/1     Completed                0          2d4h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-57-sxf2m           0/1     ContainerStatusUnknown   1          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-59-bmzsb           0/1     Completed                0          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-60-9nqrx           0/1     Completed                0          2d11h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-62-zvdmw           0/1     Completed                0          2d9h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-63-mt45q           0/1     Completed                0          44h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-78-2k7m2           0/1     Completed                0          2d4h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-78-s5jwv           0/1     Error                    0          2d7h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-79-6qz46           0/1     Completed                0          2d7h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-80-vznb5           0/1     Completed                0          2d7h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-81-7684k           0/1     Completed                0          2d7h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-82-6dcwk           0/1     Completed                0          2d7h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-83-vcxw9           0/1     Completed                0          2d7h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-84-nhs56           0/1     Completed                0          2d7h
-ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-89-xzkhb           0/1     Completed                0          20h
-ctl-imagenet-4cpu-1gpu24g-32mem-pvc-datasets2-1-577bf649f-8dwcw   1/1     Running                  0          30h
-ctl-imagenet-4cpu-1gpu24g-32mem-pvc-datasets2-11-65b586976h58q4   1/1     Running                  0          4h5m
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-1-4cwpd            0/1     Completed                0          5d14h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-12-6tpv5           0/1     Completed                0          4d13h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-13-pkhfp           0/1     Completed                0          4d13h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-69g4q           0/1     Error                    0          4d13h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-6rktx           0/1     Error                    0          25h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-7ddcx           0/1     Error                    0          24h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-f7q85           0/1     Error                    0          24h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-mww8k           0/1     Error                    0          43h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-3-sw7jz            0/1     Completed                0          5d15h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-37-7dp5l           0/1     Completed                0          3d9h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-38-bjc4f           0/1     Completed                0          3d
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-39-rzmq7           0/1     Completed                0          3d
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-40-d2h79           0/1     Completed                0          3d
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-41-bpllm           0/1     Completed                0          2d15h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-42-trp5h           0/1     Completed                0          3d
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-64-285xw           1/1     Running                  0          5h24m
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-65-t5fbl           0/1     Completed                0          2d11h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-66-lhhbl           0/1     Completed                0          2d11h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-67-hpncw           0/1     Completed                0          2d11h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-68-7nvmr           0/1     Error                    0          28h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-68-cwhrh           0/1     ContainerStatusUnknown   1          44h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-68-dbdqr           1/1     Running                  0          4h20m
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-69-khx9w           0/1     Completed                0          44h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-70-d78q6           0/1     Completed                0          37h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-71-sm456           0/1     Completed                0          44h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-72-hx4lt           0/1     Error                    0          2d11h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-72-nfnxz           1/1     Running                  0          7h19m
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-73-8r8bd           1/1     Running                  0          2d11h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-74-qctql           0/1     Completed                0          2d11h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-75-drxzq           0/1     Completed                0          2d11h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-76-pfrx6           1/1     Running                  0          2d9h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-77-7dmj2           1/1     Running                  0          44h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-85-vxkdf           1/1     Running                  0          2d7h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-86-4bdkr           1/1     Running                  0          28h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-86-bxw7d           0/1     ContainerStatusUnknown   1          2d7h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-87-mc2h4           0/1     Completed                0          2d7h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-88-qwfpq           1/1     Running                  0          2d7h
-ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-90-fxxn5           1/1     Running                  0          20h
-ctl-imagenet-con2-668f9c745d-2n8jk                                1/1     Running                  0          4d5h
-debug                                                             1/1     Running                  0          4h43m
-dne-job-dytox-12heads-imagenet100-order3-j6lmq                    0/1     Completed                0          2d16h
-dne-job-dytox-26heads-order2-6sd84                                1/1     Running                  0          23h
-dne-job-dytox-50heads-order2-j4wkc                                1/1     Running                  0          4h39m
-egovlp-dep-85fc7684fd-59ghg                                       1/1     Running                  0          5d3h
-pycil-job-foster-b292-order2-lf79r                                1/1     Running                  0          4h40m
-pycil-job-icarl-b292-order2-cgpfg                                 1/1     Running                  0          4h40m
-pycil-job-podnet-b292-order2-rmmrv                                1/1     Running                  0          4h41m'''
+pod_mesg = '''ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-15-pq6kz           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-17-t47mx           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-18-v64vf           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-19-wbxt4           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-20-gsfv5           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-21-6hhv7           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-22-bgrxp           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-23-dtlhc           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-24-lqchx           0/1     Completed                0          5d20h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-25-5tsbj           0/1     Completed                0          5d9h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-26-bgkpj           0/1     Completed                0          5d9h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-28-mwpz4           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-29-7rb4s           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-30-n4l8r           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-32-j6jmx           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-33-4z7h8           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-34-958kb           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-35-x76bk           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-36-nkwwr           0/1     Completed                0          4d16h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-43-fjwzm           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-44-knd98           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-45-mfvdl           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-46-7n2qv           0/1     Completed                0          4d8h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-49-gs9q8           0/1     Completed                0          3d18h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-50-qsxdz           0/1     Completed                0          3d18h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-51-5j5kk           0/1     Completed                0          3d3h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-54-jz8mh           0/1     Completed                0          3d3h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-55-jkdhz           0/1     Completed                0          3d18h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-56-zxsq4           0/1     Completed                0          3d18h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-57-sxf2m           0/1     ContainerStatusUnknown   1          3d18h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-59-bmzsb           0/1     Completed                0          3d18h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-60-9nqrx           0/1     Completed                0          3d18h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-62-zvdmw           0/1     Completed                0          3d16h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-63-mt45q           0/1     Completed                0          3d3h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-78-2k7m2           0/1     Completed                0          3d11h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-78-s5jwv           0/1     Error                    0          3d14h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-79-6qz46           0/1     Completed                0          3d14h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-80-vznb5           0/1     Completed                0          3d14h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-81-7684k           0/1     Completed                0          3d14h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-82-6dcwk           0/1     Completed                0          3d14h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-83-vcxw9           0/1     Completed                0          3d14h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-84-nhs56           0/1     Completed                0          3d14h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-89-xzkhb           0/1     Completed                0          2d3h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-91-xh2lt           0/1     Completed                0          28h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-92-xvsq2           0/1     Completed                0          28h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-93-c5s2s           0/1     Completed                0          28h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-94-qr9lp           0/1     Completed                0          28h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-95-fjt8m           0/1     Completed                0          28h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-96-x2vj7           0/1     Completed                0          28h
+ctl-imagenet-4cpu-1gpu-64mem-pvc-datasets2-job-97-d8r2x           0/1     Completed                0          28h
+ctl-imagenet-4cpu-1gpu24g-32mem-pvc-datasets2-1-577bf649f-8dwcw   1/1     Running                  0          2d13h
+ctl-imagenet-4cpu-1gpu24g-32mem-pvc-datasets2-11-65b586976h58q4   1/1     Running                  0          35h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-1-4cwpd            0/1     Completed                0          6d21h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-107-5mlwl          0/1     Error                    0          103m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-107-69t2p          0/1     Error                    0          68m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-107-8fwh5          0/1     Error                    0          82m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-107-dw4lv          0/1     Error                    0          60m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-107-lw8xq          0/1     Error                    0          89m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-108-4d9jx          0/1     Error                    0          62m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-108-bqmqq          0/1     Error                    0          44m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-108-fdwpl          0/1     Error                    0          75m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-108-hz2r6          0/1     Error                    0          54m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-108-vddbq          0/1     Error                    0          103m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-109-b964z          0/1     Error                    0          96m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-109-jmjfc          0/1     Error                    0          103m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-109-wcb96          0/1     Error                    0          75m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-109-xgdjn          0/1     Error                    0          67m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-109-zlwls          0/1     Error                    0          89m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-110-stxcw          0/1     Pending                  0          36m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-111-8gkl7          0/1     Pending                  0          36m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-112-whrjz          1/1     Running                  0          36m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-113-hkksz          1/1     Running                  0          37m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-114-pm8n5          1/1     Running                  0          37m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-12-6tpv5           0/1     Completed                0          5d20h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-13-pkhfp           0/1     Completed                0          5d20h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-69g4q           0/1     Error                    0          5d20h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-6rktx           0/1     Error                    0          2d8h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-7ddcx           0/1     Error                    0          2d7h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-f7q85           0/1     Error                    0          2d7h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-14-mww8k           0/1     Error                    0          3d2h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-3-sw7jz            0/1     Completed                0          6d22h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-37-7dp5l           0/1     Completed                0          4d16h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-38-bjc4f           0/1     Completed                0          4d8h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-39-rzmq7           0/1     Completed                0          4d8h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-42-trp5h           0/1     Completed                0          4d8h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-64-285xw           0/1     Error                    0          36h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-64-jx25b           0/1     Error                    0          13h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-64-mmcn8           0/1     Error                    0          7h46m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-64-wts5d           0/1     Error                    0          6h30m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-64-zppgl           0/1     Error                    0          6h33m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-65-t5fbl           0/1     Completed                0          3d18h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-66-lhhbl           0/1     Completed                0          3d18h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-67-hpncw           0/1     Completed                0          3d18h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-68-5x5bb           0/1     Error                    0          28h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-68-6tjfl           0/1     Error                    0          30h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-68-7nvmr           0/1     Error                    0          2d11h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-68-cwhrh           0/1     ContainerStatusUnknown   1          3d3h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-68-dbdqr           0/1     Error                    0          35h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-72-hx4lt           0/1     Error                    0          3d18h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-72-nfnxz           0/1     Error                    0          38h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-72-r2rn9           0/1     Error                    0          24h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-72-r9ksd           0/1     Error                    0          29h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-72-swf9g           0/1     Error                    0          25h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-73-8r8bd           0/1     Completed                0          3d18h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-74-qctql           0/1     Completed                0          3d18h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-75-drxzq           0/1     Completed                0          3d18h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-76-9tx9p           0/1     Error                    0          14h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-76-gbd46           0/1     Error                    0          12h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-76-pfrx6           0/1     Error                    0          3d16h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-76-qndqk           0/1     Error                    0          13h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-76-wwt5c           0/1     Error                    0          23h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-77-7dmj2           0/1     Completed                0          3d3h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-86-4bdkr           0/1     Completed                0          2d11h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-86-bxw7d           0/1     ContainerStatusUnknown   1          3d14h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-87-mc2h4           0/1     Completed                0          3d14h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-88-qwfpq           0/1     Completed                0          3d14h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-90-fxxn5           0/1     Error                    0          2d3h
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-90-hc6jp           0/1     Error                    0          6h31m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-90-p5g5c           0/1     Error                    0          6h33m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-90-p94qk           0/1     Error                    0          6h24m
+ctl-imagenet-8cpu-1gpu-64mem-pvc-datasets2-job-90-pbzr9           0/1     Error                    0          6h27m
+ctl-imagenet-con2-668f9c745d-2n8jk                                1/1     Running                  0          5d12h
+debug                                                             0/1     Error                    0          6h35m
+dne-job-dytox-50heads-order2-j4wkc                                1/1     Running                  0          35h
+egovlp-dep-85fc7684fd-59ghg                                       1/1     Running                  0          6d10h
+egovlp-pod                                                        0/1     Error                    0          13h
+pycil-job-foster-b292-order2-lf79r                                1/1     Running                  0          35h'''
 
 def analysis_pod(pod_mesg, start_index):
     job_list = []
@@ -834,10 +864,12 @@ def analysis_pod(pod_mesg, start_index):
     for i in pod_mesg.split('\n'):
         if 'cpu-1gpu-64mem-pvc-datasets2-job-' in i:
             pod_index = int(i.split('-job-')[1].split('-')[0])
-            if pod_index  in total_list:
-                total_list.remove(pod_index)
-            if pod_index >= start_index:
-                job_list.append(pod_index)
+            if pod_index in list(range(64, 76)):
+                print(i)
+            # if pod_index  in total_list:
+            #     total_list.remove(pod_index)
+            # if pod_index >= start_index:
+            #     job_list.append(pod_index)
     return job_list, total_list
 
 def show_pod_log(pod_mesg, index, ind2name, start_index):
@@ -921,8 +953,8 @@ for i in range(df.shape[0]):
         # No No No
         # addition_server_command(model_name)
         # gen_job_command(job_ind)
-    if job_ind in list(range(91, 98)):
-        gen_yaml_setting(cpu_num, job_ind, model_name, train_server, save_path=yaml_save_path)
+    # if job_ind in list(range(91, 98)):
+    #     gen_yaml_setting(cpu_num, job_ind, model_name, train_server, save_path=yaml_save_path)
 
 
 # print(ind2name)
