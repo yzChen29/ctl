@@ -904,8 +904,6 @@ ind2name = {}
 
 for i in range(df.shape[0]):
 
-# for i in range(1):
-
     addition_info = ''
     job_ind = df.iloc[i, 0]
     dataset = df.iloc[i, 2]
@@ -933,6 +931,8 @@ for i in range(df.shape[0]):
     else:
         cpu_num = 8
         train_server = 'train_server'
+    if job_ind in list(range(65, 72)):
+
     # gen_yaml_setting(cpu_num, job_ind, model_name, train_server, save_path=yaml_save_path)
 
     # if 'der_baseline' not in model_name and 'random_order' not in model_name:
