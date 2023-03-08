@@ -147,7 +147,7 @@ class iCIFAR100(iCIFAR10):
     taxonomy_tree = Tree('cifar100', data_name_hier_dict, data_label_index_dict)
     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
 
-    def __init__(self, data_folder, train, device, is_fine_label=False):
+    def __init__(self, data_folder, train, device, is_fine_label=False, debug=False):
         super().__init__(data_folder, train, is_fine_label)
         self.base_dataset = self.base_dataset_cls(data_folder, train=train, download=True)
         self.data = self.base_dataset.data
