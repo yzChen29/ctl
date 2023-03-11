@@ -246,7 +246,7 @@ class IncModel(IncrementalLearner):
         acc_list, acc_list_k, acc_list_aux = [], [], []
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
-
+                    
         #important
         # if self._task >= 1:
         #     a = np.load('aux_classifier_para.npy')
