@@ -2,8 +2,8 @@
 
 # check name / load_model_name / connect_fs
 exp:
-  name: "ctl_cifar100_wo_connect_fs512_512_only_ance_3layer_Mar11"
-  load_model_name: '/datasets/cifar100_results/ctl_cifar100_wo_connect_fs512_512_only_ance_3layer_Mar11'
+  name: "ctl_cifar100_wo_connect_only_ance_fs512_512_Mar11"
+  load_model_name: '/datasets/cifar100_results/ctl_cifar100_wo_connect_only_ance_fs512_512_Mar11'
   debug: False
 
 # important cfg
@@ -13,7 +13,7 @@ debug: False
 memory_enable: True
 
 use_joint_ce_loss: True
-feature_mode: 'add_zero_only_self' # ['full', 'add_zero_only_ance',  'add_zero_only_prev', 'add_zero_only_self']  # 新任务选用哪些feature
+feature_mode: 'add_zero_only_ance' # ['full', 'add_zero_only_ance',  'add_zero_only_prev', 'add_zero_only_self']  # 新任务选用哪些feature
 
 auto_retrain: True
 bn_reset_running: False
