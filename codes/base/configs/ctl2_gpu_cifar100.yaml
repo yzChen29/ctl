@@ -13,7 +13,7 @@ debug: False
 memory_enable: True
 
 use_joint_ce_loss: True
-feature_mode: 'add_zero_only_self' # ['full', 'add_zero_only_ance',  'add_zero_only_prev', 'add_zero_only_self']  # 新任务选用哪些feature
+feature_mode: 'add_zero_only_ance' # ['full', 'add_zero_only_ance',  'add_zero_only_prev', 'add_zero_only_self']  # 新任务选用哪些feature
 
 auto_retrain: True
 bn_reset_running: False
