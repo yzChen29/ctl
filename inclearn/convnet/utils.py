@@ -28,6 +28,7 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
         criterion = nn.BCEWithLogitsLoss()
 
     logger.info("Begin finetuning last layer")
+    curr_node_class = [n_module.at_info.iloc[-1]['part_tree'].label_dict_index[i] for i in n_module.at_info.iloc[-1]['child_nodes']]      
     for i in range(nepoch):
         total_nloss = 0.0
         total_joint_loss = 0.0
@@ -40,6 +41,12 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
         #important
         # set_seed(0)
         for inputs, targets in loader:
+            flag=0
+            for j in set(targets):
+                if j in curr_node_class:
+                    flag=1
+            if not use_joint_ce_loss and flag == 0:
+                continue
             if device.type == 'cuda':
                 inputs, targets = inputs.cuda(), targets.cuda()
                 network = network.cuda()
@@ -73,7 +80,7 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
                 all_is_correct = np.concatenate((all_is_correct, iscorrect.cpu()))
                 # print(loss)
 
-                total_loss = nloss + joint_ce_loss
+                total_loss = nloss + joint_ce_loss       
                 total_loss.backward()
                 optim.step()
                 total_nloss += nloss * inputs.size(0)
