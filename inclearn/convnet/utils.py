@@ -11,7 +11,7 @@ from inclearn.tools.utils import set_seed
 
 def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=0.1, use_joint_ce_loss=False, scheduling=None, lr_decay=0.1,
                         weight_decay=5e-4, loss_type="ce", temperature=5.0, test_loader=None, save_path='',
-                        index_map=None, feature_mode = 'add_zero_only_ancestor_fea'):
+                        index_map=None):
     if scheduling is None:
         scheduling = [15, 35]
     network.eval()
@@ -42,10 +42,10 @@ def finetune_last_layer(logger, network, loader, n_class, device, nepoch=30, lr=
         # set_seed(0)
         for inputs, targets in loader:
             flag=0
-            for i in set(targets):
-                if i in curr_node_class:
+            for j in set(targets):
+                if j in curr_node_class:
                     flag=1
-            if feature_mode=='full' and flag == 0:
+            if not use_joint_ce_loss and flag == 0:
                 continue
             if device.type == 'cuda':
                 inputs, targets = inputs.cuda(), targets.cuda()

@@ -68,14 +68,16 @@ def initialization(config, seed, mode, exp_id):
 
     if cfg['dataset'] == 'cifar100':
         try:
-            shutil.copyfile('./configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
-        except:
             shutil.copyfile('./codes/base/configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
+        except:
+            
+            shutil.copyfile('./configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
     else:
         try:
-            shutil.copyfile('./configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
-        except:
             shutil.copyfile('./codes/base/configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
+        except:
+        
+            shutil.copyfile('./configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
 
     return cfg, logger, tensorboard
 
@@ -127,15 +129,15 @@ def _train(rank, cfg, world_size, logger=None):
         else:
             print(f'passing task {task_i}')
 
-        if not cfg['debug']:
-            if task_i >= cfg['retrain_from_task'] - 1:
-                if cfg['device'].type == 'cuda':
-                    model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
-                        "acc_details": True,
-                        "acc_aux_details": True,
-                        "preds_details": True,
-                        "preds_aux_details": True
-                    })
+        # if not cfg['debug']:
+        #     if task_i >= cfg['retrain_from_task'] - 1:
+        #         if cfg['device'].type == 'cuda':
+        #             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
+        #                 "acc_details": True,
+        #                 "acc_aux_details": True,
+        #                 "preds_details": True,
+        #                 "preds_aux_details": True
+        #             })
 
         model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
 
@@ -268,8 +270,8 @@ if __name__ == "__main__":
     # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
     # 
-    ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
-    # ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
+    # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
+    ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
     ex.run_commandline()
 
 
