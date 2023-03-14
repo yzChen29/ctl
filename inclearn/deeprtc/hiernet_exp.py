@@ -37,7 +37,7 @@ class HierNetExp(nn.Module):
                 ct_info = self.task_info.iloc[i]
                 fc_name = ct_info['parent_node'] + f'_TF{j}'
 
-                if self.feature_mode == 'add_zero_only_ance':
+                if self.feature_mode == 'add_zero_only_ancestor_fea':
                     if i < j:
                         self.cls_zeros.append(fc_name)
                     elif i < self.num_nodes - 1:  # latest network, set to train
@@ -64,26 +64,7 @@ class HierNetExp(nn.Module):
                             self.cls_train.append(fc_name)
                         else:
                             self.cls_freeze.append(fc_name)
-                elif self.feature_mode ==  'add_zero_only_prev':
                     
-                    if i != self.num_nodes - 1:
-                        if i < j:
-                            self.cls_zeros.append(fc_name)
-                        else:
-                            self.cls_freeze.append(fc_name)
-                    else:
-                        self.cls_train.append(fc_name)
-
-                elif self.feature_mode == 'add_zero_only_self':
-                    if i == j:
-                        if i == self.num_nodes - 1:
-                            self.cls_train.append(fc_name)
-                        else:
-                            self.cls_freeze.append(fc_name)
-                    else:
-                        self.cls_zeros.append(fc_name)
-                else:
-                    raise('not impletement')                    
                     
         
         for fc_name in self.cls_train:
@@ -258,10 +239,9 @@ class HierNetExp(nn.Module):
     def filter_used_features(self, t_num):
         if self.feature_mode == 'full':
             use_tasks = list(range(t_num+1))
-            # raise('Error')
-        elif self.feature_mode == 'add_zero_only_prev':
-            use_tasks = list(range(self.task_info.iloc[t_num]['task_order']+1))
-        elif self.feature_mode == 'add_zero_only_ance':
+        elif self.feature_mode == 'add_zero_use_all_prev':
+            pass
+        elif self.feature_mode == 'add_zero_only_ancestor_fea':
             ancestors = self.task_info.iloc[t_num]["ancestor_tasks"]
             try:
                 anc_tasks = self.task_info.loc[self.task_info['parent_node'].isin(ancestors)]
@@ -269,8 +249,6 @@ class HierNetExp(nn.Module):
                 use_tasks.append(t_num)
             except:
                 use_tasks = [t_num]  
-        elif self.feature_mode == 'add_zero_only_self':
-            use_tasks = [t_num]
         return use_tasks
 
     def reset_parameters(self):

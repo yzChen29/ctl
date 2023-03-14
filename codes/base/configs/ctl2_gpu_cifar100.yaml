@@ -2,8 +2,8 @@
 
 # check name / load_model_name / connect_fs
 exp:
-  name: "ctl_cifar100_wo_connect_only_ance_fs512_512_Mar11"
-  load_model_name: '/datasets/cifar100_results/ctl_cifar100_wo_connect_only_ance_fs512_512_Mar11'
+  name: "ctl_cifar100_connect_fs512_128_sp03_more_data_Mar3"
+  load_model_name: '/datasets/cifar100_results/ctl_cifar100_connect_fs512_128_sp03_more_data_Mar3'
   debug: False
 
 # important cfg
@@ -13,7 +13,7 @@ debug: False
 memory_enable: True
 
 use_joint_ce_loss: True
-feature_mode: 'add_zero_only_ance' # ['full', 'add_zero_only_ance',  'add_zero_only_prev', 'add_zero_only_self']  # 新任务选用哪些feature
+feature_mode: 'add_zero_only_ancestor_fea' # ['full', 'add_zero_only_ancestor_fea',  'add_zero_use_all_prev']  # 新任务选用哪些feature
 
 auto_retrain: True
 bn_reset_running: False
@@ -23,10 +23,10 @@ zero_init_residual: True
 validation: 0  # Validation split (0. <= x <= 1.)
 
 full_connect: False
-use_connection: False  # True or False
-
-connect_fs: [512, 512]        # 512 or 128
-sample_rate: [0.3, 0.2]  # 0.21 or 0.001
+use_connection: True  # True or False
+connect_fs: [512, 128]        # 512 or 128
+sample_rate_c1: 0.21   # 0.3 or 0.001
+sample_rate_c2: 0.3  # 0.21 or 0.001
 epochs: 170           # 170 or 2
 decouple:
   enable: True
