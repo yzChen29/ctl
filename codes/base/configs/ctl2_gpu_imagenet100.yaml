@@ -1,8 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_imagenet100_wo_connect_only_ance_3layer_BFS_fs512_512_512_Mar11"
-  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_wo_connect_only_ance_3layer_BFS_fs512_512_512_Mar11'
+  name: "ctl_imagenet100_wo_connect_only_ance_3layer_H2E_BFS_sp0203_May26"
+  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_wo_connect_only_ance_3layer_H2E_BFS_sp0203_May26'
   debug: False
 
 # important cfg
@@ -38,7 +38,8 @@ use_connection: False  # True or False
 
 batch_size: 256        # 256 or 64
 num_workers: 8
-save_ckpt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+# save_ckpt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+save_ckpt: []
 
 
 epochs: 220          # 220 or 2
