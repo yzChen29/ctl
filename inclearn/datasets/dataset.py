@@ -1058,9 +1058,9 @@ class iImageNet100(DataHandler):
     # trial 3
     
 
-    trial_setting_list = ['trial_3_3layers', 'trial_3_2layers', 'trial_3_3layers_DFS', 'trial_3_4layers', 'trial_3_3layers_random_nodes_0', 'trial_3_3layers_random_nodes_1', 'trial_3_3layers_random_nodes_2', 'trial_3_3layers_E2H', 'trial_3_3layers_H2E']       # ['trial_3_BFS', 'trial_3_DFS']
+    trial_setting_list = ['trial_3_3layers', 'trial_3_2layers', 'trial_3_3layers_DFS', 'trial_3_4layers', 'trial_3_3layers_random_nodes_0', 'trial_3_3layers_random_nodes_1', 'trial_3_3layers_random_nodes_2', 'trial_3_3layers_E2H', 'trial_3_3layers_H2E', 'trial_3_2.5_layers', 'trial_3_3.5_layers']       # ['trial_3_BFS', 'trial_3_DFS']
 
-    trial_setting = trial_setting_list[-1]
+    trial_setting = trial_setting_list[-2]
 
     # trial3 2 layers
 
@@ -1153,6 +1153,72 @@ class iImageNet100(DataHandler):
                                                         'unicycle': {}}}
                     },
             }
+    elif trial_setting == 'trial_3_2.5_layers':
+        data_name_hier_dict_100_trial3 = {
+            'mammal': {'ungulate': {'hippopotamus': {}, 'ox': {}, 'hartebeest': {}, 'impala': {}, 'zebra': {}},
+                    'rodent': {'guinea_pig': {}, 'marmot': {}, 'porcupine': {}, 'hamster': {}, 'beaver': {}},
+                    'primate': {'titi': {}, 'capuchin': {}, 'howler_monkey': {}, 'patas': {}, 'gibbon': {}},
+                    'feline': {'tiger_cat': {}, 'tiger': {}, 'persian_cat': {}, 'cheetah': {}, 'lion': {}},
+                    'canine': {'hyena': {}, 'dhole': {}, 'mexican_hairless': {}, 'arctic_fox': {}, 'timber_wolf': {}}},
+            'device': {'instrument': {'sunglasses': {}, 'cannon': {}, 'rule': {}, 'radio_telescope': {}, 'guillotine': {}},
+                    'restraint': {'buckle': {}, 'padlock': {}, 'hair_slide': {}, 'safety_pin': {}, 'muzzle': {}},
+                    'mechanism': {'paddlewheel': {}, 'potters_wheel': {}, 'puck': {}, 'car_wheel': {}, 'switch': {}},
+                    'musical_instrument': {'harp': {}, 'sax': {}, 'trombone': {}, 'oboe': {}, 'cornet': {}},
+                    'machine': {'chain_saw': {}, 'cash_machine': {}, 'abacus': {}, 'harvester': {},
+                                'desktop_computer': {}}},
+            # bird
+            'game_bird': {'ruffed_grouse': {}, 'peacock': {}, 'ptarmigan': {}, 'partridge': {}, 'quail': {}},
+            'finch': {'goldfinch': {}, 'junco': {}, 'brambling': {}, 'indigo_bunting': {}, 'house_finch': {}},
+            'wading_bird': {'bustard': {}, 'ruddy_turnstone': {}, 'little_blue_heron': {}, 'limpkin': {},
+                                    'spoonbill': {}},
+            'other_oscine': {'bulbul': {}, 'jay': {}, 'magpie': {}, 'chickadee': {}, 'water_ouzel': {}},
+            'other_aquatic_bird': {'goose': {}, 'black_swan': {}, 'european_gallinule': {}, 'king_penguin': {},
+                                            'albatross': {}},
+            # container
+            'vessel': {'mortar': {}, 'ladle': {}, 'tub': {}, 'pitcher': {}, 'beaker': {}},
+            'box': {'safe': {}, 'pencil_box': {}, 'mailbox': {}, 'crate': {}, 'chest': {}},
+            'bag': {'backpack': {}, 'sleeping_bag': {}, 'mailbag': {}, 'purse': {}, 'plastic_bag': {}},
+            'self-propelled_vehicle': {'streetcar': {}, 'forklift': {}, 'tank': {}, 'tractor': {},
+                                                    'recreational_vehicle': {}},
+            'other_wheeled_vehicle': {'barrow': {}, 'freight_car': {}, 'jinrikisha': {}, 'motor_scooter': {},
+                                                    'unicycle': {}}
+            }
+        
+
+    elif trial_setting == 'trial_3_3.5_layers':
+        data_name_hier_dict_100_trial3 = {
+            'animal': {
+                'mammal': {'ungulate': {'hippopotamus': {}, 'ox': {}, 'hartebeest': {}, 'impala': {}, 'zebra': {}},
+                        'rodent': {'guinea_pig': {}, 'marmot': {}, 'porcupine': {}, 'hamster': {}, 'beaver': {}},
+                        'primate': {'titi': {}, 'capuchin': {}, 'howler_monkey': {}, 'patas': {}, 'gibbon': {}},
+                        'feline': {'tiger_cat': {}, 'tiger': {}, 'persian_cat': {}, 'cheetah': {}, 'lion': {}},
+                        'canine': {'hyena': {}, 'dhole': {}, 'mexican_hairless': {}, 'arctic_fox': {}, 'timber_wolf': {}}},
+                'bird': {'game_bird': {'ruffed_grouse': {}, 'peacock': {}, 'ptarmigan': {}, 'partridge': {}, 'quail': {}},
+                        'finch': {'goldfinch': {}, 'junco': {}, 'brambling': {}, 'indigo_bunting': {}, 'house_finch': {}},
+                        'wading_bird': {'bustard': {}, 'ruddy_turnstone': {}, 'little_blue_heron': {}, 'limpkin': {},
+                                        'spoonbill': {}},
+                        'other_oscine': {'bulbul': {}, 'jay': {}, 'magpie': {}, 'chickadee': {}, 'water_ouzel': {}},
+                        'other_aquatic_bird': {'goose': {}, 'black_swan': {}, 'european_gallinule': {}, 'king_penguin': {},
+                                                'albatross': {}}},
+                    },
+
+            # artifact
+            'device': {'instrument': {'sunglasses': {}, 'cannon': {}, 'rule': {}, 'radio_telescope': {}, 'guillotine': {}},
+                    'restraint': {'buckle': {}, 'padlock': {}, 'hair_slide': {}, 'safety_pin': {}, 'muzzle': {}},
+                    'mechanism': {'paddlewheel': {}, 'potters_wheel': {}, 'puck': {}, 'car_wheel': {}, 'switch': {}},
+                    'musical_instrument': {'harp': {}, 'sax': {}, 'trombone': {}, 'oboe': {}, 'cornet': {}},
+                    'machine': {'chain_saw': {}, 'cash_machine': {}, 'abacus': {}, 'harvester': {},
+                                    'desktop_computer': {}}},
+            'container': {'vessel': {'mortar': {}, 'ladle': {}, 'tub': {}, 'pitcher': {}, 'beaker': {}},
+                        'box': {'safe': {}, 'pencil_box': {}, 'mailbox': {}, 'crate': {}, 'chest': {}},
+                        'bag': {'backpack': {}, 'sleeping_bag': {}, 'mailbag': {}, 'purse': {}, 'plastic_bag': {}},
+                        'self-propelled_vehicle': {'streetcar': {}, 'forklift': {}, 'tank': {}, 'tractor': {},
+                                                        'recreational_vehicle': {}},
+                        'other_wheeled_vehicle': {'barrow': {}, 'freight_car': {}, 'jinrikisha': {}, 'motor_scooter': {},
+                                                        'unicycle': {}}}
+                    
+            }
+
     else:
         raise('Not implement')
     
@@ -1270,9 +1336,9 @@ class iImageNet100(DataHandler):
 
         elif trial_i == 3:
             # trial setting 2
-            trial_setting_list = ['trial_3_3layers', 'trial_3_2layers', 'trial_3_3layers_DFS', 'trial_3_4layers', 'trial_3_3layers_random_nodes_0', 'trial_3_3layers_random_nodes_1', 'trial_3_3layers_random_nodes_2', 'trial_3_3layers_E2H', 'trial_3_3layers_H2E']       # ['trial_3_BFS', 'trial_3_DFS']
+            trial_setting_list = ['trial_3_3layers', 'trial_3_2layers', 'trial_3_3layers_DFS', 'trial_3_4layers', 'trial_3_3layers_random_nodes_0', 'trial_3_3layers_random_nodes_1', 'trial_3_3layers_random_nodes_2', 'trial_3_3layers_E2H', 'trial_3_3layers_H2E', 'trial_3_2.5_layers', 'trial_3_3.5_layers']       # ['trial_3_BFS', 'trial_3_DFS']
 
-            trial_setting = trial_setting_list[-1]
+            trial_setting = trial_setting_list[-2]
 
             if trial_setting == 'trial_3_2layers':
 
@@ -1323,16 +1389,19 @@ class iImageNet100(DataHandler):
                     ['titi', 'capuchin', 'howler_monkey', 'patas', 'gibbon'],  # primate
                     ['tiger_cat', 'tiger', 'persian_cat', 'cheetah', 'lion'],  # feline
                     ['hyena', 'dhole', 'mexican_hairless', 'arctic_fox', 'timber_wolf'],  # canine
+
                     ['ruffed_grouse', 'peacock', 'ptarmigan', 'partridge', 'quail'],  # game_bird
                     ['goldfinch', 'junco', 'brambling', 'indigo_bunting', 'house_finch'],  # finch
                     ['bustard', 'ruddy_turnstone', 'little_blue_heron', 'limpkin', 'spoonbill'],  # wading_bird
                     ['bulbul', 'jay', 'magpie', 'chickadee', 'water_ouzel'],  # other_oscine
                     ['goose', 'black_swan', 'european_gallinule', 'king_penguin', 'albatross'],  # other_aquatic_bird
+
                     ['sunglasses', 'cannon', 'rule', 'radio_telescope', 'guillotine'],  # instrument
                     ['buckle', 'padlock', 'hair_slide', 'safety_pin', 'muzzle'],  # restraint
                     ['paddlewheel', 'potters_wheel', 'puck', 'car_wheel', 'switch'],  # mechanism
                     ['harp', 'sax', 'trombone', 'oboe', 'cornet'],  # musical_instrument
                     ['chain_saw', 'cash_machine', 'abacus', 'harvester', 'desktop_computer'],  # machine
+
                     ['mortar', 'ladle', 'tub', 'pitcher', 'beaker'],  # vessel
                     ['safe', 'pencil_box', 'mailbox', 'crate', 'chest'],  # box
                     ['backpack', 'sleeping_bag', 'mailbag', 'purse', 'plastic_bag'],  # bag
@@ -1555,6 +1624,69 @@ class iImageNet100(DataHandler):
                     ['goose', 'black_swan', 'european_gallinule', 'king_penguin', 'albatross'],  # other_aquatic_bird
 
                     ]
+            elif trial_setting == 'trial_3_2.5_layers':
+                return [
 
+                    ['mammal', 'device', 'game_bird', 'finch', 'wading_bird', 'other_oscine', 'other_aquatic_bird', 'vessel', 'box', 'bag', 'self-propelled_vehicle', 'other_wheeled_vehicle']
+
+                    ['ungulate', 'rodent', 'primate', 'feline', 'canine'],  # mammal
+                    ['instrument', 'restraint', 'mechanism', 'musical_instrument', 'machine'],  # device
+                    ['ruffed_grouse', 'peacock', 'ptarmigan', 'partridge', 'quail'],  # game_bird
+                    ['goldfinch', 'junco', 'brambling', 'indigo_bunting', 'house_finch'],  # finch
+                    ['bustard', 'ruddy_turnstone', 'little_blue_heron', 'limpkin', 'spoonbill'],  # wading_bird
+                    ['bulbul', 'jay', 'magpie', 'chickadee', 'water_ouzel'],  # other_oscine
+                    ['goose', 'black_swan', 'european_gallinule', 'king_penguin', 'albatross'],  # other_aquatic_bird
+                    ['mortar', 'ladle', 'tub', 'pitcher', 'beaker'],  # vessel
+                    ['safe', 'pencil_box', 'mailbox', 'crate', 'chest'],  # box
+                    ['backpack', 'sleeping_bag', 'mailbag', 'purse', 'plastic_bag'],  # bag
+                    ['streetcar', 'forklift', 'tank', 'tractor', 'recreational_vehicle'],  # self-propelled_vehicle
+                    ['barrow', 'freight_car', 'jinrikisha', 'motor_scooter', 'unicycle'],  # other_wheeled_vehicle
+
+
+                    ['hippopotamus', 'ox', 'hartebeest', 'impala', 'zebra'],  # ungulate
+                    ['guinea_pig', 'marmot', 'porcupine', 'hamster', 'beaver'],  # rodent
+                    ['titi', 'capuchin', 'howler_monkey', 'patas', 'gibbon'],  # primate
+                    ['tiger_cat', 'tiger', 'persian_cat', 'cheetah', 'lion'],  # feline
+                    ['hyena', 'dhole', 'mexican_hairless', 'arctic_fox', 'timber_wolf'],  # canine
+                    ['sunglasses', 'cannon', 'rule', 'radio_telescope', 'guillotine'],  # instrument
+                    ['buckle', 'padlock', 'hair_slide', 'safety_pin', 'muzzle'],  # restraint
+                    ['paddlewheel', 'potters_wheel', 'puck', 'car_wheel', 'switch'],  # mechanism
+                    ['harp', 'sax', 'trombone', 'oboe', 'cornet'],  # musical_instrument
+                    ['chain_saw', 'cash_machine', 'abacus', 'harvester', 'desktop_computer'],  # machine
+                ]
+                
+            elif trial_setting == 'trial_3_3.5_layers':
+                return [
+                    ['animal', 'device', 'container'],  # init
+                    
+                    ['mammal', 'bird']
+                    ['instrument', 'restraint', 'mechanism', 'musical_instrument', 'machine'],  # device
+                    ['vessel', 'box', 'bag', 'self-propelled_vehicle', 'other_wheeled_vehicle'],  # container
+
+                    ['ungulate', 'rodent', 'primate', 'feline', 'canine'],  # mammal
+                    ['game_bird', 'finch', 'wading_bird', 'other_oscine', 'other_aquatic_bird'],  # bird
+                    ['sunglasses', 'cannon', 'rule', 'radio_telescope', 'guillotine'],  # instrument
+                    ['buckle', 'padlock', 'hair_slide', 'safety_pin', 'muzzle'],  # restraint
+                    ['paddlewheel', 'potters_wheel', 'puck', 'car_wheel', 'switch'],  # mechanism
+                    ['harp', 'sax', 'trombone', 'oboe', 'cornet'],  # musical_instrument
+                    ['chain_saw', 'cash_machine', 'abacus', 'harvester', 'desktop_computer'],  # machine
+                    ['mortar', 'ladle', 'tub', 'pitcher', 'beaker'],  # vessel
+                    ['safe', 'pencil_box', 'mailbox', 'crate', 'chest'],  # box
+                    ['backpack', 'sleeping_bag', 'mailbag', 'purse', 'plastic_bag'],  # bag
+                    ['streetcar', 'forklift', 'tank', 'tractor', 'recreational_vehicle'],  # self-propelled_vehicle
+                    ['barrow', 'freight_car', 'jinrikisha', 'motor_scooter', 'unicycle'],  # other_wheeled_vehicle
+                    
+                    ['hippopotamus', 'ox', 'hartebeest', 'impala', 'zebra'],  # ungulate
+                    ['guinea_pig', 'marmot', 'porcupine', 'hamster', 'beaver'],  # rodent
+                    ['titi', 'capuchin', 'howler_monkey', 'patas', 'gibbon'],  # primate
+                    ['tiger_cat', 'tiger', 'persian_cat', 'cheetah', 'lion'],  # feline
+                    ['hyena', 'dhole', 'mexican_hairless', 'arctic_fox', 'timber_wolf'],  # canine
+                    ['ruffed_grouse', 'peacock', 'ptarmigan', 'partridge', 'quail'],  # game_bird
+                    ['goldfinch', 'junco', 'brambling', 'indigo_bunting', 'house_finch'],  # finch
+                    ['bustard', 'ruddy_turnstone', 'little_blue_heron', 'limpkin', 'spoonbill'],  # wading_bird
+                    ['bulbul', 'jay', 'magpie', 'chickadee', 'water_ouzel'],  # other_oscine
+                    ['goose', 'black_swan', 'european_gallinule', 'king_penguin', 'albatross'],  # other_aquatic_bird
+                ]
+            
             else:
                 raise ('check_trial_setting_cp2')

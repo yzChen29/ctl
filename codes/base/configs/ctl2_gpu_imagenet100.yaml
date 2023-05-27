@@ -1,7 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_imagenet100_wo_connect_only_ance_3layer_H2E_BFS_sp0203_May26"
+  # name: "ctl_imagenet100_wo_connect_only_ance_3layer_H2E_BFS_sp0203_May26"
+  name: "ctl_imagenet100_test"
   load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_wo_connect_only_ance_3layer_H2E_BFS_sp0203_May26'
   debug: False
 
@@ -10,23 +11,26 @@ dataset: "imagenet100" # 'imagenet100' or 'cifar100'
 trial: 3               # 3 or 2
 
 # cfg_check_1
-debug: False
-memory_enable: True
+debug: True
+memory_enable: False
 
 
 connect_fs: [512, 512, 512, 512]        # 512 or 128
 # 2 layer
 # sample_rate: [0.3]
 # 3 layer
-sample_rate: [0.2, 0.3]
+# sample_rate: [0.2, 0.3]
 # 4 layer
 # sample_rate: [0.15, 0.15, 0.3]
+
+#imbalance
+sample_rate: [[0.3],[0.2, 0.3],[0.15, 0.15, 0.3]]
 
 
 use_joint_ce_loss: True
 feature_mode:  'add_zero_only_ance' # ['full', 'add_zero_only_ance',  'add_zero_use_all_prev',  'add_zero_only_self']  # 新任务选用哪些feature
 
-auto_retrain: True
+auto_retrain: False
 bn_reset_running: False
 bn_no_tracking: False
 zero_init_residual: True
