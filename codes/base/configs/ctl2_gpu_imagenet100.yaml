@@ -1,10 +1,9 @@
 # for imagenet100
 
 exp:
-  name: "ctl_imagenet100_der_baseline_only_ance_3layer_E2H_BFS_sp0203_May27"
-  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_der_baseline_only_ance_3layer_E2H_BFS_sp0203_May27'
+  name: "ctl_imagenet100_der_baseline_only_ance_imbalance_3_4layer_order_BFS_May27"
+  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_der_baseline_only_ance_imbalance_3_4layer_order_BFS_May27'
   debug: False
-
 
 # important cfg
 
@@ -14,8 +13,48 @@ exp:
 debug: False
 memory_enable: True
 
+# 2 layer
+# sample_rate: [0.3]
+# coarse_task_num: [0]
+
+# 3 layer
+# sample_rate: [0.2, 0.3]
+
+# BFS
+# coarse_task_num: [0, 1, 2, 3, 4]
+
+# DFS
+# coarse_task_num: [0, 1, 7, 13, 19]
+
+# random_nodes_0
+# coarse_task_num: [0, 1, 3, 13, 14]
+
+# random_nodes_1
+# coarse_task_num: [0, 1, 2, 7, 9]
+
+# random_nodes_2
+# coarse_task_num: [0, 1, 2, 3, 19]
+
+# E2H / H2E
+# coarse_task_num: [0, 1, 2, 3, 4]
+
+# 4 layer
+# sample_rate: [0.15, 0.15, 0.3]
+# coarse_task_num: [0, 1, 2, 3, 4, 5, 6]
+
+#imbalance
+sample_rate: [[0.3],[0.2, 0.3],[0.15, 0.15, 0.3]]
+
+# 2.5_layer
+# coarse_task_num: [0, 1, 2]
+
+# 3.5_layer
+coarse_task_num: [0, 1, 2, 3, 4, 5]
+
+
+
 taxonomy: 'der_baseline' # ['rtc', 'der_ori', 'der_baseline']
-coarse_task_num: 5
+
 
 batch_size: 256        # 256 or 64
 num_workers: 8
@@ -28,12 +67,6 @@ zero_init_residual: True
 
 use_connection: False  # True or False
 connect_fs: [512, 512, 512]        # 512 or 128
-
-# 3 layer
-sample_rate: [0.2, 0.3]
-
-#imbalance (list of layer2, layer3, layer4, ...)
-# sample_rate: [[0.3],[0.2, 0.3],[0.15, 0.15, 0.3]]
 
 epochs: 220           # 220 or 2
 decouple:

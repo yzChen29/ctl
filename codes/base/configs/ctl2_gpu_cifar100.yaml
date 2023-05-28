@@ -3,7 +3,8 @@
 
 # check name / load_model_name / connect_fs
 exp:
-  name: "ctl_cifar100_der_baseline_fs512_512_sp03_more_data_Mar3"
+  # name: "ctl_cifar100_der_baseline_fs512_512_sp03_more_data_Mar3"
+  name: "ctl_cifar100_test"
   load_model_name: '/datasets/cifar100_results/ctl_cifar100_der_baseline_fs512_512_sp03_more_data_Mar3'
   debug: False
 
@@ -17,21 +18,21 @@ debug: False
 memory_enable: True
 
 taxonomy: 'der_baseline' # ['rtc', 'der_ori', 'der_baseline']
-coarse_task_num: 1
 
-auto_retrain: True
+sample_rate: [0.3]
+coarse_task_num: [0]
+
+auto_retrain: False
 bn_reset_running: False
 bn_no_tracking: False
 zero_init_residual: True
 
 use_connection: True  # True or False
 connect_fs: [512, 512]        # 512 or 128
-sample_rate_c1: 0.21   # 0.3 or 0.001
-sample_rate_c2: 0.3  # 0.21 or 0.001
-epochs: 170           # 170 or 2
+epochs: 2           # 170 or 2
 decouple:
   enable: True
-  epochs: 50          # 50 or 2
+  epochs: 2          # 50 or 2
   fullset: False
   lr: 0.05            # 0.1 or 0.05
   scheduling:

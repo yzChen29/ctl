@@ -16,6 +16,7 @@ from inclearn.deeprtc.libs import Tree
 from inclearn.tools.data_utils import construct_balanced_subset
 from collections import OrderedDict
 import warnings
+import copy
 warnings.filterwarnings("ignore", "Corrupt EXIF data", UserWarning)
 
 
@@ -25,8 +26,8 @@ def get_data_folder(data_folder, dataset_name):
 
 class IncrementalDataset:
     def __init__(self, trial_i, dataset_name, is_distributed=False, random_order=False, shuffle=True, workers=10,
-                 device=None, batch_size=128, seed=1, sample_rate=[0.1, 0.2, 0.3], increment=10, validation_split=0.0,
-                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, debug=False):
+                 device=None, batch_size=128, seed=1, sample_rate=[0.15, 0.15, 0.3], increment=10, validation_split=0.0,
+                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, debug=False, coarse_task_num = []):
         # The info about incremental split
         self.trial_i = trial_i
         self.start_class = start_class
@@ -40,9 +41,8 @@ class IncrementalDataset:
         self._device = device
 
         self._seed = seed
+        # self._s_rate = sample_rate
         self._s_rate = sample_rate
-        # self._s_rate_c1 = sample_rate_c1
-        # self._s_rate_c2 = sample_rate_c2
         self._workers = workers
         self._shuffle = shuffle
         self._batch_size = batch_size
@@ -91,7 +91,7 @@ class IncrementalDataset:
         # self.targets_ori = None
         # Available data stored in cpu memory.
         self.shared_data_inc, self.shared_test_data = None, None
-        self.debug = debug
+        self.coarse_task_num = coarse_task_num
 
     @property
     def n_tasks(self):
@@ -107,7 +107,12 @@ class IncrementalDataset:
         if self._current_task >= len(self.curriculum):
             raise Exception("No more tasks.")
         if not self.debug:
-            if self.mode_train and self._current_task > coarse_task_num:
+            coarse_task_num_tmp = copy.deepcopy(self.coarse_task_num)
+            for i in range(len(coarse_task_num_tmp)+1):
+                if i not in coarse_task_num_tmp:
+                    coarse_task_num_tmp.append(i)
+                    break
+            if self.mode_train and self._current_task not in coarse_task_num_tmp:
                 if self._current_task > 0:
                     self._update_memory_for_new_task(self.curriculum[self._current_task])
                 # if self.data_memory is not None:
@@ -159,7 +164,9 @@ class IncrementalDataset:
             parent_names = set([self.taxonomy_tree.nodes[x].parent for x in labels])
             parent_labels = set([self.taxonomy_tree.nodes[x].label_index for x in parent_names])
             for lb in parent_labels:
-                self.memory_dict.pop(lb, -1)
+                tmp = self.memory_dict.pop(lb, -1)
+                if tmp != -1:
+                    raise('Memory pop more')
 
     def gen_memory_array_from_dict(self):
         data_memory = []
@@ -204,20 +211,18 @@ class IncrementalDataset:
                 # if coarse node, select by a fraction; if leaf node, select all remaining
                 data_frac = self._sample_rate(label_map[lf][1], label_map[lf][2])
 
+                
+
                 if self._device.type == 'cuda':
                     if data_frac > 0 and self.taxonomy:
                         # important
 
                         # sel_ind = random.sample(list(idx_available), round(data_frac * len(lfx_all)))
-                        if not self.debug:
-                            sel_ind = random.sample(list(idx_available), round(data_frac * len(lfx_all)))
-                        else:
-                            sel_ind = list(idx_available)[:10]
+                        sel_ind = random.sample(list(idx_available), round(data_frac * len(lfx_all)))
+                        
                     else:
-                        if not self.debug:
-                            sel_ind = idx_available
-                        else:
-                            sel_ind = list(idx_available)[:10]
+                        sel_ind = idx_available
+                        
                 else:
                     if not self.debug:
                         sel_ind = idx_available
@@ -229,7 +234,6 @@ class IncrementalDataset:
                 y_selected = np.concatenate((y_selected, lfy_all[sel_ind]))
                 self.dict_train_used[lf][sel_ind] = 1
                 print(f'task{self._current_task}, finest class: {self.taxonomy_tree.nodes.get(self.taxonomy_tree.label2name[lf]).name}, sample rate: {data_frac}')
-    
         else:
             for lf in label_map:
                 if label_map[lf][0] >= 0:
@@ -240,14 +244,10 @@ class IncrementalDataset:
                     # y_selected = np.concatenate((y_selected, lfy_all))
                     
                     # important
-                    if not self.debug:
-                        x_selected = np.concatenate((x_selected, lfx_all))
-                        y_selected = np.concatenate((y_selected, lfy_all))
-                    else:
-                        idx_available = np.arange(len(lfx_all))
-                        sel_ind = list(idx_available)[:10]
-                        x_selected = np.concatenate((x_selected, lfx_all[sel_ind]))
-                        y_selected = np.concatenate((y_selected, lfy_all[sel_ind]))
+                    
+                    x_selected = np.concatenate((x_selected, lfx_all))
+                    y_selected = np.concatenate((y_selected, lfy_all))
+                    
 
             if y_selected.shape[0] == 0:
                 for lf in label_map:
@@ -268,23 +268,8 @@ class IncrementalDataset:
         return x_selected, y_selected
 
     def _sample_rate(self, leaf_depth, parent_depth):
-        assert leaf_depth >= parent_depth
+        # assert leaf_depth >= parent_depth
         # return -1 if leaf_depth == parent_depth else self._s_rate
-
-
-        # depth_diff = leaf_depth - parent_depth
-
-        # assert depth_diff >= 0
-        # if depth_diff == 0:
-        #     return -1
-        # elif depth_diff == 1:
-        #     return self._s_rate[0]
-        # elif depth_diff == 2:
-        #     return self._s_rate[1]
-        # elif depth_diff == 3:
-        #     return self._s_rate[2]
-        # else:
-        #     raise NotImplementedError('no such depth')
         if isinstance(self._s_rate[0], float):
             # balance tree
             if leaf_depth == parent_depth:
@@ -297,6 +282,7 @@ class IncrementalDataset:
                 return -1
             else:
                 return self._s_rate[leaf_depth-2][parent_depth-1]
+
     def _get_cur_step_data_for_raw_data(self, ):
         min_class = sum(self.increments[:self._current_task])
         max_class = sum(self.increments[:self._current_task + 1])

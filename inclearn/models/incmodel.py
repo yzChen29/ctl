@@ -23,6 +23,7 @@ from inclearn.datasets.data import tgt_to_tgt0, tgt0_to_tgt, tgt_to_aux_tgt, aux
 import pandas as pd
 import time
 import pynvml
+import copy
 
 # Constants
 EPSILON = 1e-8
@@ -66,6 +67,7 @@ class IncModel(IncrementalLearner):
 
         # Model
         self._der = cfg['der']  # Whether to expand the representation
+        self.sp = cfg['sp']
         self._network = network.TaxonomicDer(
             cfg["convnet"],
             cfg=cfg,
@@ -74,6 +76,7 @@ class IncModel(IncrementalLearner):
             use_bias=cfg["use_bias"],
             dataset=cfg["dataset"],
             feature_mode=cfg['feature_mode'],
+            sp = self.sp
         )
         if self._cfg["is_distributed"]:
             self._parallel_network = DDP(self._network, device_ids=[self._rank], output_device=self._rank)
@@ -127,7 +130,6 @@ class IncModel(IncrementalLearner):
 
         # Save paths
         self.train_save_option = cfg['train_save_option']
-        self.sp = cfg['sp']
         self.check_cgpu_batch_period = self._cfg['check_cgpu_batch_period']
         self.check_cgpu_info = self._cfg['check_cgpu_info']
         self.id_list_2  = {}
@@ -150,7 +152,7 @@ class IncModel(IncrementalLearner):
             self._n_classes = len(self._current_tax_tree.leaf_nodes)
         elif self._cfg["taxonomy"] == 'der_baseline':
             self._current_tax_tree = task_info["partial_tree"]
-            if self._task >= self._cfg['coarse_task_num']:
+            if self._task not in self._cfg['coarse_task_num']:
                 self._n_classes += self._task_size
         else:
             # prob
@@ -206,6 +208,7 @@ class IncModel(IncrementalLearner):
 
         self._network.add_classes(self._task_size, feature_mode=self._cfg['feature_mode'])
         self._network.n_classes = self._n_classes
+        print('finest_level_class number', self._n_classes)
         self.set_optimizer()
 
     def set_optimizer(self, lr=None):
@@ -255,10 +258,13 @@ class IncModel(IncrementalLearner):
         # utils.display_feature_norm(self._logger, self._parallel_network, train_loader, self._n_classes,
         #                            self._increments, "Initial trainset")
 
+        # self._parallel_network.to(self._device)
+
         acc_list, acc_list_k, acc_list_aux = [], [], []
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
 
+        
         class_index = set(train_loader.dataset.y)
         class_count = {self._current_tax_tree.label2name[i]: np.sum(train_loader.dataset.y==i) for i in class_index}
         print(f'task{self._task}: class_count —— {class_count}')
@@ -355,7 +361,10 @@ class IncModel(IncrementalLearner):
 
                 if self._cfg["use_joint_ce_loss"]:
                     total_loss += joint_ce_loss
-                    
+
+
+
+
                 # if ce_loss < 0:
                 #     print('ce_loss: ', ce_loss)
                 # if loss_aux < 0:
@@ -495,7 +504,7 @@ class IncModel(IncrementalLearner):
         if self._cfg["taxonomy"] == 'der_ori':
             targets_0 = tgt_to_tgt0_no_tax(targets, self._inc_dataset.targets_all_unique, self._device)   
         else:
-            if self._task >= self._cfg['coarse_task_num']:
+            if self._task not in self._cfg['coarse_task_num']:
                 # targets_0 = tgt_to_tgt0(targets, self._network.leaf_id, self._device)
                 targets_0 = tgt_to_tgt0(targets, self.id_list_2, self._device)
             else:
@@ -578,7 +587,7 @@ class IncModel(IncrementalLearner):
             output = outputs['output']
             aux_output = outputs['aux_logit']
             criterion = torch.nn.CrossEntropyLoss(reduction='none')
-            if self._task >= self._cfg['coarse_task_num']:
+            if self._task not in self._cfg['coarse_task_num']:
                 # leaf_id_2_list = sorted([i for i in self._network.leaf_id if i>=0])
                 # leaf_id_2 = {leaf_id_2_list[i]:i for i in range(len(leaf_id_2_list))}
                 targets_0 = tgt_to_tgt0(targets, self.id_list_2, self._device)
@@ -666,7 +675,13 @@ class IncModel(IncrementalLearner):
             # save_path = os.path.join(os.getcwd(), "ckpts")
             torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
 
-        if enforce_decouple or (self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task) and self._task > self._cfg['coarse_task_num']:
+        coarse_task_num_tmp = copy.deepcopy(self._cfg['coarse_task_num'])
+        for i in range(len(coarse_task_num_tmp)+1):
+            if i not in coarse_task_num_tmp:
+                coarse_task_num_tmp.append(i)
+                break
+
+        if enforce_decouple or (self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task) and self._task not in coarse_task_num_tmp:
             if self._cfg["decouple"]["fullset"]:
                 train_loader = inc_dataset._get_loader(inc_dataset.data_inc, inc_dataset.targets_inc, mode="train")
             else:
@@ -699,11 +714,23 @@ class IncModel(IncrementalLearner):
                                 index_map=self._inc_dataset.targets_all_unique,
                                 id_list_2=self.id_list_2)
             # network = deepcopy(self._parallel_network)
-            network = deepcopy(self._parallel_network)
+            # network = deepcopy(self._parallel_network)
+            # if taski in self._cfg["save_ckpt"]:
+            #     # save_path = os.path.join(os.getcwd(), "ckpts")
+            #     torch.save(network.cpu().state_dict(),
+            #                "{}/decouple_step{}.ckpt".format(self.sp['model'], self._task))
+            
+        if self._task in coarse_task_num_tmp:
+            network = deepcopy(self._parallel_network)      
             if taski in self._cfg["save_ckpt"]:
-                # save_path = os.path.join(os.getcwd(), "ckpts")
-                torch.save(network.cpu().state_dict(),
-                           "{}/decouple_step{}.ckpt".format(self.sp['model'], self._task))
+                    # save_path = os.path.join(os.getcwd(), "ckpts")
+                if taski != 0:
+                    torch.save(network.cpu().state_dict(),
+                                "{}/decouple_step{}.ckpt".format(self.sp['model'], self._task))
+                else:
+                    torch.save(network.cpu().state_dict(),
+                                "{}/step{}.ckpt".format(self.sp['model'], self._task))
+                    
 
         if self._cfg["postprocessor"]["enable"]:
             self._update_postprocessor(inc_dataset)
@@ -713,7 +740,7 @@ class IncModel(IncrementalLearner):
             self.update_prototype()
 
         # careful
-        if self._cfg['memory_enable'] and self._memory_size.memsize != 0 and self._task >= self._cfg['coarse_task_num']:
+        if self._cfg['memory_enable'] and self._memory_size.memsize != 0 and self._task not in self._cfg['coarse_task_num']:
             self._logger.info("build memory")
     
             self.build_exemplars(inc_dataset, self._coreset_strategy)
@@ -1118,10 +1145,11 @@ class IncModel(IncrementalLearner):
         # TODO: fix the output!
         preds_ori = output.argmax(1)
         if self._cfg['taxonomy']:
-            if self._task >= self._cfg['coarse_task_num']:
+            if self._task not in self._cfg['coarse_task_num']:
             #     leaf_id_2_list = sorted([i for i in self._network.leaf_id if i>=0])
             #     leaf_id_2 = {leaf_id_2_list[i]:i for i in range(len(leaf_id_2_list))}
                 preds = tgt0_to_tgt(preds_ori, self.id_list_2)
+                print()
             else:
                 preds = tgt0_to_tgt(preds_ori, self._network.leaf_id)
         elif preds_ori.device.type == 'cuda':

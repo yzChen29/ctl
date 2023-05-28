@@ -53,9 +53,8 @@ def get_data(cfg):
         shuffle=True,
         batch_size=cfg["batch_size"],
         seed=cfg["seed"],
+        # sample_rate=cfg["sample_rate"],
         sample_rate=cfg["sample_rate"],
-        # sample_rate_c1=cfg["sample_rate_c1"],
-        # sample_rate_c2=cfg["sample_rate_c2"],
         workers=cfg["num_workers"],
         device=cfg["device"],
         validation_split=cfg["validation"],
@@ -65,6 +64,7 @@ def get_data(cfg):
         mode_train=cfg["exp"]["mode_train"],
         taxonomy=cfg["taxonomy"],
         debug = cfg['debug'],
+        coarse_task_num = cfg['coarse_task_num'],
     )
 
 
