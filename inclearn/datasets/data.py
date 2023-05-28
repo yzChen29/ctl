@@ -274,7 +274,7 @@ class IncrementalDataset:
         #     return self._s_rate[2]
         # else:
         #     raise NotImplementedError('no such depth')
-        if isinstance(self._s_rate[0], int):
+        if isinstance(self._s_rate[0], float):
             # balance tree
             if leaf_depth == parent_depth:
                 return -1

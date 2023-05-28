@@ -1060,7 +1060,7 @@ class iImageNet100(DataHandler):
 
     trial_setting_list = ['trial_3_3layers', 'trial_3_2layers', 'trial_3_3layers_DFS', 'trial_3_4layers', 'trial_3_3layers_random_nodes_0', 'trial_3_3layers_random_nodes_1', 'trial_3_3layers_random_nodes_2', 'trial_3_3layers_E2H', 'trial_3_3layers_H2E', 'trial_3_2.5_layers_perf', 'trial_3_2.5_layers_order', 'trial_3_3.5_layers_perf', 'trial_3_3.5_layers_order']
 
-    trial_setting = trial_setting_list[-3]
+    trial_setting = trial_setting_list[-4]
 
     # trial3 2 layers
 
@@ -1403,7 +1403,7 @@ class iImageNet100(DataHandler):
             # trial setting 2
             trial_setting_list = ['trial_3_3layers', 'trial_3_2layers', 'trial_3_3layers_DFS', 'trial_3_4layers', 'trial_3_3layers_random_nodes_0', 'trial_3_3layers_random_nodes_1', 'trial_3_3layers_random_nodes_2', 'trial_3_3layers_E2H', 'trial_3_3layers_H2E', 'trial_3_2.5_layers_perf', 'trial_3_2.5_layers_order', 'trial_3_3.5_layers_perf', 'trial_3_3.5_layers_order']
 
-            trial_setting = trial_setting_list[-3]
+            trial_setting = trial_setting_list[-4]
 
             if trial_setting == 'trial_3_2layers':
 

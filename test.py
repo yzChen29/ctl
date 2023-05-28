@@ -1,4 +1,7 @@
 import numpy as np
 
-a = np.array(list(range(10)))
-print(a[[5, 2, 3]])
+
+d = 3
+n = 5
+X = np.array(list(range(15))).reshape((d, n))
+
