@@ -241,6 +241,7 @@ class IncrementalDataset:
                 x_selected = np.concatenate((x_selected, lfx_all[sel_ind]))
                 y_selected = np.concatenate((y_selected, lfy_all[sel_ind]))
                 self.dict_train_used[lf][sel_ind] = 1
+                print(f'task{self._current_task}, finest class: {self.taxonomy_tree.nodes.get(self.taxonomy_tree.label2name[lf]).name}, sample rate: {data_frac}')
         else:
             for lf in label_map:
                 lfx_all = data_dict[lf]
@@ -273,9 +274,19 @@ class IncrementalDataset:
         #     return self._s_rate[2]
         # else:
         #     raise NotImplementedError('no such depth')
-        if leaf_depth == parent_depth:
-            return -1
-        return self._s_rate[parent_depth-1]
+        if isinstance(self._s_rate[0], int):
+            # balance tree
+            if leaf_depth == parent_depth:
+                return -1
+            else:
+                return self._s_rate[parent_depth-1]
+        else:
+            # imbalance tree
+            if leaf_depth == parent_depth:
+                return -1
+            else:
+                return self._s_rate[leaf_depth-2][parent_depth-1]
+        
 
 
 
