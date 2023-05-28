@@ -68,14 +68,15 @@ def initialization(config, seed, mode, exp_id):
     tensorboard = SummaryWriter(cfg['sp']['tensorboard'])
     if cfg['dataset'] == 'cifar100':
         try:
-            shutil.copyfile('./configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
-        except:
             shutil.copyfile('./codes/base/configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
+        except:
+            shutil.copyfile('./configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
     else:
         try:
-            shutil.copyfile('./configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
-        except:
             shutil.copyfile('./codes/base/configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
+        except:
+            shutil.copyfile('./configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
+
     return cfg, logger, tensorboard
 
 
@@ -269,8 +270,8 @@ if __name__ == "__main__":
     # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
     
-    ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
-    # ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
+    # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
+    ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
     ex.run_commandline()
 
 

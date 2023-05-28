@@ -259,6 +259,10 @@ class IncModel(IncrementalLearner):
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
 
+        class_index = set(train_loader.dataset.y)
+        class_count = {self._current_tax_tree.label2name[i]: np.sum(train_loader.dataset.y==i) for i in class_index}
+        print(f'task{self._task}: class_count —— {class_count}')
+        print()
         
         for epoch in range(self._n_epochs):
             _ce_loss, _joint_ce_loss, _loss_aux, _total_loss = 0.0, 0.0, 0.0, 0.0
@@ -351,10 +355,7 @@ class IncModel(IncrementalLearner):
 
                 if self._cfg["use_joint_ce_loss"]:
                     total_loss += joint_ce_loss
-
-
-
-
+                    
                 # if ce_loss < 0:
                 #     print('ce_loss: ', ce_loss)
                 # if loss_aux < 0:
@@ -1121,7 +1122,6 @@ class IncModel(IncrementalLearner):
             #     leaf_id_2_list = sorted([i for i in self._network.leaf_id if i>=0])
             #     leaf_id_2 = {leaf_id_2_list[i]:i for i in range(len(leaf_id_2_list))}
                 preds = tgt0_to_tgt(preds_ori, self.id_list_2)
-                print()
             else:
                 preds = tgt0_to_tgt(preds_ori, self._network.leaf_id)
         elif preds_ori.device.type == 'cuda':

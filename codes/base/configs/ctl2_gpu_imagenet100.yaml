@@ -1,8 +1,8 @@
 # for imagenet100
 
 exp:
-  name: "ctl_imagenet100_der_baseline_test"
-  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_der_baseline_fs512_512_512_Mar2'
+  name: "ctl_imagenet100_der_baseline_only_ance_3layer_E2H_BFS_sp0203_May27"
+  load_model_name: '/datasets/imagenet100_results/ctl_imagenet100_der_baseline_only_ance_3layer_E2H_BFS_sp0203_May27'
   debug: False
 
 
@@ -11,8 +11,8 @@ exp:
 # cfg_check_1
 # sample_rate & epoch
 #sample_rate: 0.3     # 0.3 or 0.001
-debug: True
-memory_enable: False
+debug: False
+memory_enable: True
 
 taxonomy: 'der_baseline' # ['rtc', 'der_ori', 'der_baseline']
 coarse_task_num: 5
@@ -21,19 +21,24 @@ batch_size: 256        # 256 or 64
 num_workers: 8
 save_ckpt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
 
-auto_retrain: False
+auto_retrain: True
 bn_reset_running: False
 bn_no_tracking: False
 zero_init_residual: True
 
-use_connection: True  # True or False
+use_connection: False  # True or False
 connect_fs: [512, 512, 512]        # 512 or 128
-sample_rate_c1: 0.3   # 0.3 or 0.001
-sample_rate_c2: 0.21  # 0.21 or 0.001
-epochs: 2           # 220 or 2
+
+# 3 layer
+sample_rate: [0.2, 0.3]
+
+#imbalance (list of layer2, layer3, layer4, ...)
+# sample_rate: [[0.3],[0.2, 0.3],[0.15, 0.15, 0.3]]
+
+epochs: 220           # 220 or 2
 decouple:
   enable: True
-  epochs: 2           # 30 or 2
+  epochs: 30           # 30 or 2
   fullset: False
   lr: 0.1
   scheduling:
