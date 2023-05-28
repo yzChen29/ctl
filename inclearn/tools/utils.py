@@ -58,9 +58,6 @@ def get_featnorm_grouped_by_class(network, cur_n_cls, loader):
             feat_norms[i] = torch.norm(feat_cls, p=2, dim=1).mean().data.numpy()
     return feat_norms
 
-def set_feature_size(node_depth, connect_fs):
-    assert len(connect_fs) >= 2
-    return int(connect_fs[node_depth])
 
 def set_seed(seed):
     print("Set seed", seed)
