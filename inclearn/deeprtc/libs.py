@@ -74,6 +74,7 @@ class Tree:
             self.gen_rel_path()
             self.gen_Id2name()
             self.init_depth_dict()
+        
 
     def prepro(self, save_path=None):
         # find nodes we want, and get codewords under these nodes

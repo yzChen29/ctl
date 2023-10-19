@@ -23,6 +23,8 @@ def get_dataset(dataset_name):
         return iImageNet100
     elif dataset_name == "imagenet":
         return iImageNet
+    elif dataset_name == "plankton":
+        return Plankton
     else:
         raise NotImplementedError("Unknown dataset {}.".format(dataset_name))
 
@@ -1729,7 +1731,7 @@ class iImageNet100(DataHandler):
                  return [
                      ['animal', 'device', 'container'],  # init
 
-                     ['mammal', 'bird']
+                     ['mammal', 'bird'],
                      ['instrument', 'restraint', 'mechanism', 'musical_instrument', 'machine'],  # device
                      ['vessel', 'box', 'bag', 'self-propelled_vehicle', 'other_wheeled_vehicle'],  # container
 
@@ -1794,3 +1796,91 @@ class iImageNet100(DataHandler):
             
             else:
                 raise ('check_trial_setting_cp2')
+
+
+class Plankton(DataHandler):
+    base_dataset_cls = datasets.ImageFolder
+    # base_dataset_cls = datasets.ImageNet
+    train_transforms = A.Compose([
+        A.RandomResizedCrop(32, 32),
+        A.HorizontalFlip(),
+        # A.ColorJitter(brightness=63 / 255),
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ToTensorV2()
+    ])
+    test_transforms = A.Compose([
+        A.Resize(256, 256),
+        A.CenterCrop(224, 224),
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ToTensorV2()
+    ])
+
+    data_name_hier_dict = OrderedDict({
+        'Chromista_1': {'Dinophysis': {}, 'Cochlodinium': {}, 'Gyrodinium': {}, 'Polykrikos': {}, 'Torodinium': {}, 
+                        'Prorocentrum_gracile': {}, 'Prorocentrum_micans': {}},
+
+        'Chromista_2': {'Ceratium_falcatiforme': {}, 'Ceratium_furca': {}, 'Ceratium_Other': {}, 'Lingulodinium_polyedrum': {}, 
+                        'Protoperidinium': {}, 'Unknown_dinoflagellates_elongated': {}},
+
+        'Ochrophyta': {'Pseudo_nitzschia': {}, 'Chaetoceros_socialis': {}, 'Eucampia': {}, 'Thalassionema_or_Thalassiothrix': {}, 
+                       'diatom_chain': {}, 'pennate_diatom': {}, 'Kelp_Fragment': {}, 'Chatonella': {}, 'Heterosigma': {}}, 
+
+        'Protista': {'Acantharea': {}, 'Ciliates': {}, 'Nauplii': {}}, 
+
+        'Other': {'Sand': {}, 'Aggregate': {}, 'Bubble': {}, 'Marine_lashes': {}, 'Bad_segmentation': {}}, 
+    })
+
+    data_label_index_dict = {
+        'Chromista_1': -1, 'Chromista_2': -2, 'Ochrophyta': -3, 'Protista': -4, 'Other': -5, 
+        'Dinophysis': 0, 'Cochlodinium': 1, 'Gyrodinium': 2, 'Polykrikos': 3, 'Torodinium': 4, 
+        'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
+        'Lingulodinium_polyedrum': 10, 'Protoperidinium': 11, 'Unknown_dinoflagellates_elongated': 12, 'Pseudo_nitzschia': 13, 
+        'Chaetoceros_socialis': 14, 'Eucampia': 15, 'Thalassionema_or_Thalassiothrix': 16, 'diatom_chain': 17, 'pennate_diatom': 18, 
+        'Kelp_Fragment': 19, 'Chatonella': 20, 'Heterosigma': 21, 'Acantharea': 22, 'Ciliates': 23, 'Nauplii': 24, 'Sand': 25, 
+        'Aggregate': 26, 'Bubble': 27, 'Marine_lashes': 28, 'Bad_segmentation': 29}
+
+    taxonomy_tree = Tree('plankton', data_name_hier_dict, data_label_index_dict)
+    used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
+
+    def __init__(self, data_folder, train, device, is_fine_label=False, debug=False):
+        super().__init__(data_folder, train, is_fine_label)
+        self.base_dataset = self.base_dataset_cls(data_folder, train=train, download=True)
+        self.data = self.base_dataset.data
+        self.targets = self.base_dataset.targets
+        self.n_cls = 30
+        self.transform_type = 'torchvision'
+
+    @property
+    def is_proc_inc_data(self):
+        return False
+
+    @classmethod
+    def class_order(cls, trial_i):
+        idx_to_label = {cls.data_label_index_dict[x]: x for x in cls.data_label_index_dict}
+        if trial_i == 1:
+            label_list = [
+                ['Chromista_1', 'Chromista_2', 'Ochrophyta', 'Protista', 'Other'],
+                ['motorcycle', 'bus', 'train', 'bicycle', 'pickup_truck'],
+                ['palm_tree', 'willow_tree', 'maple_tree', 'oak_tree', 'pine_tree'],
+                ['bridge', 'road', 'skyscraper', 'house', 'castle'],
+                ['can', 'cup', 'plate', 'bowl', 'bottle'],
+                ['hamster', 'mouse', 'shrew', 'rabbit', 'squirrel'],  #
+                ['cattle', 'camel', 'chimpanzee', 'kangaroo', 'elephant'],
+                ['rose', 'tulip', 'poppy', 'orchid', 'sunflower'],
+                ['forest', 'plain', 'cloud', 'mountain', 'sea'],
+                ['turtle', 'crocodile', 'dinosaur', 'lizard', 'snake'],
+                ['wardrobe', 'bed', 'couch', 'chair', 'table'],
+                ['apple', 'pear', 'mushroom', 'sweet_pepper', 'orange'],
+                ['bear', 'leopard', 'tiger', 'wolf', 'lion'],
+                ['streetcar', 'tractor', 'tank', 'lawn_mower', 'rocket'],
+                ['man', 'boy', 'girl', 'baby', 'woman'],  #
+                ['butterfly', 'bee', 'beetle', 'caterpillar', 'cockroach'],
+                ['lamp', 'television', 'telephone', 'keyboard', 'clock'],
+                ['crab', 'snail', 'lobster', 'worm', 'spider'],  #
+                ['dolphin', 'whale', 'otter', 'seal', 'beaver'],  #
+                ['aquarium_fish', 'flatfish', 'ray', 'trout', 'shark'],  #
+                ['raccoon', 'fox', 'porcupine', 'skunk', 'possum']]
+            return label_list
+        else:
+            raise(NotImplementedError)
+        

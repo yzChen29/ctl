@@ -19,7 +19,7 @@
             "program": "codes/base/main.py",
             "console": "integratedTerminal",
             "args": ["train"],
-            // "args": ["train with './codes/base/configs/ctl2_gpu.yaml' --force"],
+            // "args": ["train with './codes/base/configs/ctl_plankton_1.yaml' --force"],
             "justMyCode": true
         }
     ]

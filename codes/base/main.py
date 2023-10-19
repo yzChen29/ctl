@@ -115,7 +115,6 @@ def _train(rank, cfg, world_size, logger=None):
                 load_path = f"{cfg['exp']['load_model_name']}/train/ckpts"
 
 
-
                 if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
                     state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')
                 else:
@@ -270,7 +269,7 @@ if __name__ == "__main__":
     # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
     
     # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
-    ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
+    ex.add_config("./codes/base/configs/ctl_plankton_1.yaml")
     ex.run_commandline()
 
 
