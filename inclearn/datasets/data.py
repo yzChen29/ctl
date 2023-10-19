@@ -525,7 +525,7 @@ class DummyDataset(torch.utils.data.Dataset):
         if isinstance(x, np.ndarray):
             # assume cifar
             x = Image.fromarray(np.uint8(x))
-            # add padding here
+            # add padding + resize here
 
 
         else:

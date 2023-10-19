@@ -23,8 +23,8 @@ def get_dataset(dataset_name):
         return iImageNet100
     elif dataset_name == "imagenet":
         return iImageNet
-    elif dataset_name == "plankton":
-        return Plankton
+    elif dataset_name == "plankton29":
+        return Plankton29
     else:
         raise NotImplementedError("Unknown dataset {}.".format(dataset_name))
 
@@ -1798,7 +1798,7 @@ class iImageNet100(DataHandler):
                 raise ('check_trial_setting_cp2')
 
 
-class Plankton(DataHandler):
+class Plankton29(DataHandler):
     base_dataset_cls = datasets.ImageFolder
     # base_dataset_cls = datasets.ImageNet
     train_transforms = A.Compose([
@@ -1860,26 +1860,15 @@ class Plankton(DataHandler):
         if trial_i == 1:
             label_list = [
                 ['Chromista_1', 'Chromista_2', 'Ochrophyta', 'Protista', 'Other'],
-                ['motorcycle', 'bus', 'train', 'bicycle', 'pickup_truck'],
-                ['palm_tree', 'willow_tree', 'maple_tree', 'oak_tree', 'pine_tree'],
-                ['bridge', 'road', 'skyscraper', 'house', 'castle'],
-                ['can', 'cup', 'plate', 'bowl', 'bottle'],
-                ['hamster', 'mouse', 'shrew', 'rabbit', 'squirrel'],  #
-                ['cattle', 'camel', 'chimpanzee', 'kangaroo', 'elephant'],
-                ['rose', 'tulip', 'poppy', 'orchid', 'sunflower'],
-                ['forest', 'plain', 'cloud', 'mountain', 'sea'],
-                ['turtle', 'crocodile', 'dinosaur', 'lizard', 'snake'],
-                ['wardrobe', 'bed', 'couch', 'chair', 'table'],
-                ['apple', 'pear', 'mushroom', 'sweet_pepper', 'orange'],
-                ['bear', 'leopard', 'tiger', 'wolf', 'lion'],
-                ['streetcar', 'tractor', 'tank', 'lawn_mower', 'rocket'],
-                ['man', 'boy', 'girl', 'baby', 'woman'],  #
-                ['butterfly', 'bee', 'beetle', 'caterpillar', 'cockroach'],
-                ['lamp', 'television', 'telephone', 'keyboard', 'clock'],
-                ['crab', 'snail', 'lobster', 'worm', 'spider'],  #
-                ['dolphin', 'whale', 'otter', 'seal', 'beaver'],  #
-                ['aquarium_fish', 'flatfish', 'ray', 'trout', 'shark'],  #
-                ['raccoon', 'fox', 'porcupine', 'skunk', 'possum']]
+                ['Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
+                 'Prorocentrum_gracile', 'Prorocentrum_micans'],
+                ['Ceratium_falcatiforme', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedrum', 
+                 'Protoperidinium', 'Unknown_dinoflagellates_elongated'],
+                ['Pseudo_nitzschia', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix', 
+                 'diatom_chain', 'pennate_diatom', 'Kelp_Fragment', 'Chatonella', 'Heterosigma'],
+                ['Acantharea', 'Ciliates', 'Nauplii'],
+                ['Sand', 'Aggregate', 'Bubble', 'Marine_lashes', 'Bad_segmentation']
+            ]
             return label_list
         else:
             raise(NotImplementedError)
