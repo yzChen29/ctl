@@ -3,7 +3,7 @@
 
 # check name / load_model_name / connect_fs
 exp:
-  name: "ctl_plankton_test"
+  name: "ctl_plankton29_der_baseline_sp03_Oct24"
   # name: "ctl_rtc_plankton_BFS_seed500"
   load_model_name: '/datasets/cifar100_results/ctl_cifar100_der_baseline_fs512_512_sp03_more_data_Mar3'
 
@@ -13,7 +13,7 @@ exp:
 # cfg_check_1
 # sample_rate & epoch
 #sample_rate: 0.3     # 0.3 or 0.001
-debug: True
+debug: False
 memory_enable: True
 
 taxonomy: 'der_baseline' # ['rtc', 'der_ori', 'der_baseline']
@@ -21,7 +21,7 @@ taxonomy: 'der_baseline' # ['rtc', 'der_ori', 'der_baseline']
 sample_rate: [0.3]
 coarse_task_num: [0]
 
-auto_retrain: True
+auto_retrain: False
 bn_reset_running: False
 bn_no_tracking: False
 zero_init_residual: True
@@ -31,7 +31,7 @@ connect_fs: [512, 512]        # 512 or 128
 epochs: 170           # 170 or 2
 decouple:
   enable: True
-  epochs: 170          # 50 or 2
+  epochs: 50          # 50 or 2
   fullset: False
   lr: 0.05            # 0.1 or 0.05
   scheduling:
