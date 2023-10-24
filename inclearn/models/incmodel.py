@@ -1146,8 +1146,8 @@ class IncModel(IncrementalLearner):
         preds_ori = output.argmax(1)
         if self._cfg['taxonomy']:
             if self._task not in self._cfg['coarse_task_num']:
-            #     leaf_id_2_list = sorted([i for i in self._network.leaf_id if i>=0])
-            #     leaf_id_2 = {leaf_id_2_list[i]:i for i in range(len(leaf_id_2_list))}
+                # leaf_id_2_list = sorted([i for i in self._network.leaf_id if i>=0])
+                # leaf_id_2 = {leaf_id_2_list[i]:i for i in range(len(leaf_id_2_list))}
                 preds = tgt0_to_tgt(preds_ori, self.id_list_2)
                 print()
             else:

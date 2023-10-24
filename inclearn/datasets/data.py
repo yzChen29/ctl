@@ -10,6 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import datasets, transforms
+from torchvision.transforms import functional as F
 
 from .dataset import get_dataset
 from inclearn.deeprtc.libs import Tree
@@ -50,8 +51,12 @@ class IncrementalDataset:
         # -------------------------------------
         # Dataset Info
         # -------------------------------------
-        self.data_folder = get_data_folder(data_folder, dataset_name)
-        ds_name = 'imagenet-ilsvrc2012' if 'imagenet' in dataset_name else dataset_name
+        if 'imagenet' in dataset_name:
+            ds_name = 'imagenet-ilsvrc2012'
+        elif 'plankton' in dataset_name:
+            ds_name = 'workshop2019_v2_datasets'
+        else:
+            ds_name = dataset_name
         self.data_folder = get_data_folder(data_folder, ds_name)
         self.dataset_name = dataset_name
         self.train_dataset = None
@@ -198,7 +203,7 @@ class IncrementalDataset:
 
     def _select_from_idx(self, data_dict, label_map, train=True):
         x_selected = np.empty([0, 32, 32, 3], dtype=np.uint8)
-        if self.dataset_name == 'imagenet100':
+        if self.dataset_name == 'imagenet100' or self.dataset_name == 'plankton29':
             x_selected = np.empty([0], dtype='<U74')
         y_selected = np.empty([0], dtype=np.uint8)
         if train:
@@ -525,12 +530,10 @@ class DummyDataset(torch.utils.data.Dataset):
         if isinstance(x, np.ndarray):
             # assume cifar
             x = Image.fromarray(np.uint8(x))
-            # add padding + resize here
-
-
+            
         else:
             # Assume the dataset is ImageNet
-            x = cv2.imread(x)
+            x = cv2.imread(x) 
             x = x[:, :, ::-1]
             # if idx < len(self.share_memory):
             #     if self.share_memory[idx] is not None:
@@ -543,8 +546,26 @@ class DummyDataset(torch.utils.data.Dataset):
             #     x = cv2.imread(x)
             #     x = x[:, :, ::-1]
 
+        if 'plankton' in self.dataset_name:
+            # add padding   
+            m, n, _ = x.shape
+            offset = abs(n-m)
+            left_offset, top_offset, right_offset, bottom_offset = 0, 0, 0, 0
+            if m<n:
+                top_offset = int(offset/2)
+                bottom_offset = offset-top_offset
+            elif m>n:
+                left_offset = int(offset/2)
+                right_offset = offset-left_offset
+            else:
+                pass
+            padding = (left_offset, top_offset, right_offset, bottom_offset)
+
+            x = F.pad(Image.fromarray(x), padding)
+
         if 'torch' in self.trsf_type:
             x = self.trsf(x)
+            x = np.array(x)
         else:
             x = self.trsf(image=x)['image']
         return x, y

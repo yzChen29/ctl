@@ -14,8 +14,8 @@ exp:
 # cfg_check_1
 # sample_rate & epoch
 #sample_rate: 0.3     # 0.3 or 0.001
-debug: False
-memory_enable: True
+debug: True
+memory_enable: False
 
 taxonomy: 'der_baseline' # ['rtc', 'der_ori', 'der_baseline']
 
@@ -27,7 +27,7 @@ bn_reset_running: False
 bn_no_tracking: False
 zero_init_residual: True
 
-use_connection: True  # True or False
+use_connection: False  # True or False
 connect_fs: [512, 512]        # 512 or 128
 epochs: 2           # 170 or 2
 decouple:

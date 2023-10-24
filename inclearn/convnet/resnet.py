@@ -109,7 +109,7 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.remove_last_relu = remove_last_relu
         self.inplanes = nf
-        if 'cifar' in dataset:
+        if 'cifar' in dataset or 'plankton' in dataset:
             self.conv1 = nn.Sequential(nn.Conv2d(3, nf, kernel_size=3, stride=1, padding=1, bias=False),
                                        nn.BatchNorm2d(nf), nn.ReLU(inplace=True))
         elif 'imagenet' in dataset:

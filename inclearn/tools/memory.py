@@ -30,6 +30,7 @@ class MemorySize:
         else:
             if n_classes == task_size:
                 self.update_memory_per_cls_uniform(n_classes)
+        
 
     @property
     def memsize(self):

@@ -173,7 +173,7 @@ def train(_run, _rnd, _seed):
             cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             factory.set_device(cfg)
-        if cfg["device"].type == 'cuda' and 'imagenet' in cfg["dataset"]:
+        if cfg["device"].type == 'cuda' and ('imagenet' in cfg["dataset"] or 'plankton' in cfg["dataset"]):
             cfg.data_folder = '/datasets'
         else:
             cfg.data_folder = osp.join(base_dir, "data")
@@ -267,9 +267,13 @@ if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
     # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
+    ex.add_config("./codes/base/configs/ctl2_gpu_plankton29.yaml")
+
     
     # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
-    ex.add_config("./codes/base/configs/ctl_plankton_1.yaml")
+    # ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
+    # ex.add_config("./configs/ctl2_gpu_plankton29.yaml")
+
     ex.run_commandline()
 
 

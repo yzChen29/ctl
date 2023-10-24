@@ -7,6 +7,7 @@ from albumentations.pytorch import ToTensorV2
 
 from torchvision import datasets, transforms
 from collections import defaultdict, OrderedDict
+import pandas as pd
 
 
 def get_datasets(dataset_names):
@@ -1799,55 +1800,73 @@ class iImageNet100(DataHandler):
 
 
 class Plankton29(DataHandler):
-    base_dataset_cls = datasets.ImageFolder
+    # base_dataset_cls = datasets.ImageFolder
     # base_dataset_cls = datasets.ImageNet
-    train_transforms = A.Compose([
-        A.RandomResizedCrop(32, 32),
-        A.HorizontalFlip(),
-        # A.ColorJitter(brightness=63 / 255),
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ToTensorV2()
+    transform_type = 'torchvision'
+    train_transforms = transforms.Compose([
+        transforms.Resize((32, 32)),
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=63 / 255),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
     ])
-    test_transforms = A.Compose([
-        A.Resize(256, 256),
-        A.CenterCrop(224, 224),
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ToTensorV2()
+    test_transforms = transforms.Compose([
+        transforms.Resize((32, 32)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
     ])
 
     data_name_hier_dict = OrderedDict({
         'Chromista_1': {'Dinophysis': {}, 'Cochlodinium': {}, 'Gyrodinium': {}, 'Polykrikos': {}, 'Torodinium': {}, 
                         'Prorocentrum_gracile': {}, 'Prorocentrum_micans': {}},
 
-        'Chromista_2': {'Ceratium_falcatiforme': {}, 'Ceratium_furca': {}, 'Ceratium_Other': {}, 'Lingulodinium_polyedrum': {}, 
+        'Chromista_2': {'Ceratium_falcatiforme_or_fusus': {}, 'Ceratium_furca': {}, 'Ceratium_Other': {}, 'Lingulodinium_polyedra': {}, 
                         'Protoperidinium': {}, 'Unknown_dinoflagellates_elongated': {}},
 
-        'Ochrophyta': {'Pseudo_nitzschia': {}, 'Chaetoceros_socialis': {}, 'Eucampia': {}, 'Thalassionema_or_Thalassiothrix': {}, 
-                       'diatom_chain': {}, 'pennate_diatom': {}, 'Kelp_Fragment': {}, 'Chatonella': {}, 'Heterosigma': {}}, 
+        'Ochrophyta': {'Pseudo_nitzschia_chain': {}, 'Chaetoceros_socialis': {}, 'Eucampia': {}, 'Thalassionema_or_Thalassiothrix_chain': {}, 
+                       'diatom_chain': {}, 'Unknown_pennate_diatom': {}, 'Kelp_Fragment': {}, 'Chattonella': {}, 'Akashiwo': {}}, 
 
         'Protista': {'Acantharea': {}, 'Ciliates': {}, 'Nauplii': {}}, 
 
-        'Other': {'Sand': {}, 'Aggregate': {}, 'Bubble': {}, 'Marine_lashes': {}, 'Bad_segmentation': {}}, 
+        'Other': {'Sand': {}, 'Aggregate': {}, 'Bubble': {}, 'BadImageSegmentation': {}}, 
     })
 
     data_label_index_dict = {
         'Chromista_1': -1, 'Chromista_2': -2, 'Ochrophyta': -3, 'Protista': -4, 'Other': -5, 
         'Dinophysis': 0, 'Cochlodinium': 1, 'Gyrodinium': 2, 'Polykrikos': 3, 'Torodinium': 4, 
-        'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
-        'Lingulodinium_polyedrum': 10, 'Protoperidinium': 11, 'Unknown_dinoflagellates_elongated': 12, 'Pseudo_nitzschia': 13, 
-        'Chaetoceros_socialis': 14, 'Eucampia': 15, 'Thalassionema_or_Thalassiothrix': 16, 'diatom_chain': 17, 'pennate_diatom': 18, 
-        'Kelp_Fragment': 19, 'Chatonella': 20, 'Heterosigma': 21, 'Acantharea': 22, 'Ciliates': 23, 'Nauplii': 24, 'Sand': 25, 
-        'Aggregate': 26, 'Bubble': 27, 'Marine_lashes': 28, 'Bad_segmentation': 29}
+        'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme_or_fusus': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
+        'Lingulodinium_polyedra': 10, 'Protoperidinium': 11, 'Unknown_dinoflagellates_elongated': 12, 'Pseudo_nitzschia_chain': 13, 
+        'Chaetoceros_socialis': 14, 'Eucampia': 15, 'Thalassionema_or_Thalassiothrix_chain': 16, 'diatom_chain': 17, 'Unknown_pennate_diatom': 18, 
+        'Kelp_Fragment': 19, 'Chattonella': 20, 'Akashiwo': 21, 'Acantharea': 22, 'Ciliates': 23, 'Nauplii': 24, 'Sand': 25, 
+        'Aggregate': 26, 'Bubble': 27, 'BadImageSegmentation': 28}
 
-    taxonomy_tree = Tree('plankton', data_name_hier_dict, data_label_index_dict)
+    taxonomy_tree = Tree('plankton29', data_name_hier_dict, data_label_index_dict)
     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
 
     def __init__(self, data_folder, train, device, is_fine_label=False, debug=False):
-        super().__init__(data_folder, train, is_fine_label)
-        self.base_dataset = self.base_dataset_cls(data_folder, train=train, download=True)
-        self.data = self.base_dataset.data
-        self.targets = self.base_dataset.targets
-        self.n_cls = 30
+        # super().__init__(data_folder, train, is_fine_label)
+        # self.base_dataset = self.base_dataset_cls(data_folder, train=train, download=True)
+        self.df = pd.read_csv(f'{data_folder}/workshop2019_processed.csv')
+        if debug or not train:
+            df = self.df[self.df['train_flag']==0]
+        else:
+            df = self.df[self.df['train_flag']==1]
+        data_label_index_dict = {
+            'Chromista_1': -1, 'Chromista_2': -2, 'Ochrophyta': -3, 'Protista': -4, 'Other': -5, 
+            'Dinophysis': 0, 'Cochlodinium': 1, 'Gyrodinium': 2, 'Polykrikos': 3, 'Torodinium': 4, 
+            'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme_or_fusus': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
+            'Lingulodinium_polyedra': 10, 'Protoperidinium': 11, 'Unknown_dinoflagellates_elongated': 12, 'Pseudo_nitzschia_chain': 13, 
+            'Chaetoceros_socialis': 14, 'Eucampia': 15, 'Thalassionema_or_Thalassiothrix_chain': 16, 'diatom_chain': 17, 'Unknown_pennate_diatom': 18, 
+            'Kelp_Fragment': 19, 'Chattonella': 20, 'Akashiwo': 21, 'Acantharea': 22, 'Ciliates': 23, 'Nauplii': 24, 'Sand': 25, 
+            'Aggregate': 26, 'Bubble': 27, 'BadImageSegmentation': 28}
+        df['label'].replace(data_label_index_dict, inplace=True)
+        self.data = np.array([f'{data_folder}/{i}' for i in df['images']])
+        self.targets = np.array(df['label'])
+
+        # self.data = self.base_dataset.data
+        # self.targets = self.base_dataset.targets
+        self.n_cls = 29
         self.transform_type = 'torchvision'
 
     @property
@@ -1862,12 +1881,12 @@ class Plankton29(DataHandler):
                 ['Chromista_1', 'Chromista_2', 'Ochrophyta', 'Protista', 'Other'],
                 ['Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
                  'Prorocentrum_gracile', 'Prorocentrum_micans'],
-                ['Ceratium_falcatiforme', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedrum', 
+                ['Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
                  'Protoperidinium', 'Unknown_dinoflagellates_elongated'],
-                ['Pseudo_nitzschia', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix', 
-                 'diatom_chain', 'pennate_diatom', 'Kelp_Fragment', 'Chatonella', 'Heterosigma'],
+                ['Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
+                 'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo'],
                 ['Acantharea', 'Ciliates', 'Nauplii'],
-                ['Sand', 'Aggregate', 'Bubble', 'Marine_lashes', 'Bad_segmentation']
+                ['Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation']
             ]
             return label_list
         else:

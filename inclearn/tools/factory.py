@@ -63,7 +63,7 @@ def get_data(cfg):
         data_folder=cfg["data_folder"],
         mode_train=cfg["exp"]["mode_train"],
         taxonomy=cfg["taxonomy"],
-        debug = cfg['exp']['debug'],
+        debug = cfg['debug'],
         coarse_task_num = cfg['coarse_task_num'],
     )
 
