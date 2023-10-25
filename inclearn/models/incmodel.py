@@ -720,7 +720,8 @@ class IncModel(IncrementalLearner):
             #     torch.save(network.cpu().state_dict(),
             #                "{}/decouple_step{}.ckpt".format(self.sp['model'], self._task))
             
-        if self._task in coarse_task_num_tmp:
+        # if self._task in coarse_task_num_tmp:
+        if True:
             network = deepcopy(self._parallel_network)      
             if taski in self._cfg["save_ckpt"]:
                     # save_path = os.path.join(os.getcwd(), "ckpts")
