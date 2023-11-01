@@ -80,6 +80,7 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
 
         if self.der:
             if self.current_task in self.coarse_task_num:
+                # only using feature from coarse level
                 features = []
                 for i in self.coarse_task_num[:self.coarse_task_num.index(self.current_task)+1]:
                     features.append(self.convnets[i](x))
@@ -105,6 +106,7 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
                 if i not in coarse_task_num_tmp:
                     coarse_task_num_tmp.append(i)
                     break
+            # coarse_task_num_tmp = self.coarse_task_num + index of first task not in self.coarse_task_num
             if self.current_task not in coarse_task_num_tmp:
                 aux_logits = self.aux_classifier(features[:, -self.out_dim:])
             else:
@@ -254,7 +256,7 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
             self.inherit_cls_flag = False
             self.inherit_cls_saved_flag = False
 
-            
+            # save classifier as npy before coarse_level and then load it after training coarse_level
             coarse_task_num_tmp = copy.deepcopy(self.coarse_task_num)
             for i in range(len(coarse_task_num_tmp)+1):
                 if i not in coarse_task_num_tmp:

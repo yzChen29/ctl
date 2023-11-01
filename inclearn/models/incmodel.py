@@ -501,7 +501,8 @@ class IncModel(IncrementalLearner):
 
     def record_details(self, outputs, targets, acc, acc_k, acc_aux, save_option=None):
         # rtc
-        if self._cfg["taxonomy"] == 'der_ori':
+        # if self._cfg["taxonomy"] == 'der_ori':
+        if False:
             targets_0 = tgt_to_tgt0_no_tax(targets, self._inc_dataset.targets_all_unique, self._device)   
         else:
             if self._task not in self._cfg['coarse_task_num']:
@@ -681,7 +682,7 @@ class IncModel(IncrementalLearner):
                 coarse_task_num_tmp.append(i)
                 break
 
-        if enforce_decouple or (self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task) and self._task not in coarse_task_num_tmp:
+        if enforce_decouple or ((self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task) and self._task not in coarse_task_num_tmp):
             if self._cfg["decouple"]["fullset"]:
                 train_loader = inc_dataset._get_loader(inc_dataset.data_inc, inc_dataset.targets_inc, mode="train")
             else:
@@ -1150,7 +1151,6 @@ class IncModel(IncrementalLearner):
                 # leaf_id_2_list = sorted([i for i in self._network.leaf_id if i>=0])
                 # leaf_id_2 = {leaf_id_2_list[i]:i for i in range(len(leaf_id_2_list))}
                 preds = tgt0_to_tgt(preds_ori, self.id_list_2)
-                print()
             else:
                 preds = tgt0_to_tgt(preds_ori, self._network.leaf_id)
         elif preds_ori.device.type == 'cuda':
