@@ -1798,7 +1798,7 @@ class iImageNet100(DataHandler):
             else:
                 raise ('check_trial_setting_cp2')
 
-
+# derbaseline version
 # class Plankton29(DataHandler):
 #     # base_dataset_cls = datasets.ImageFolder
 #     # base_dataset_cls = datasets.ImageNet
@@ -1922,6 +1922,7 @@ class Plankton29(DataHandler):
         'Sand': {}, 'Aggregate': {}, 'Bubble': {}, 'BadImageSegmentation': {}}
     )
 
+
     data_label_index_dict = {
         'Dinophysis': 0, 'Cochlodinium': 1, 'Gyrodinium': 2, 'Polykrikos': 3, 'Torodinium': 4, 
         'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme_or_fusus': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
@@ -1965,29 +1966,32 @@ class Plankton29(DataHandler):
     def class_order(cls, trial_i):
         idx_to_label = {cls.data_label_index_dict[x]: x for x in cls.data_label_index_dict}
         if trial_i == 1:
-            # der ori
-            # label_list = [
-            #     ['Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
-            #      'Prorocentrum_gracile', 'Prorocentrum_micans'],
-            #     ['Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
-            #      'Protoperidinium', 'Unknown_dinoflagellates_elongated'],
-            #     ['Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
-            #      'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo'],
-            #     ['Acantharea', 'Ciliates', 'Nauplii'],
-            #     ['Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation']
-            # ]
+            # der ori random order
+
+            label_list = [
+                ['Prorocentrum_gracile', 'Ciliates', 'diatom_chain', 'Nauplii', 'Akashiwo', 
+                 'Protoperidinium', 'Gyrodinium'],
+                ['Pseudo_nitzschia_chain', 'Cochlodinium', 'Kelp_Fragment', 'Ceratium_falcatiforme_or_fusus', 
+                 'Bubble', 'Unknown_dinoflagellates_elongated'],
+                ['Thalassionema_or_Thalassiothrix_chain', 'Torodinium', 'Unknown_pennate_diatom', 'Lingulodinium_polyedra', 
+                 'Aggregate', 'Ceratium_furca', 'Eucampia', 'Acantharea', 'Chaetoceros_socialis'],
+                ['Prorocentrum_micans', 'BadImageSegmentation', 'Polykrikos'],
+                ['Ceratium_Other', 'Chattonella', 'Dinophysis', 'Sand']
+            ]
+
+
 
             # joint train
-            label_list = [[
-                'Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
-                 'Prorocentrum_gracile', 'Prorocentrum_micans',
-                'Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
-                 'Protoperidinium', 'Unknown_dinoflagellates_elongated',
-                'Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
-                 'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo',
-                'Acantharea', 'Ciliates', 'Nauplii',
-                'Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation'
-            ]]
+            # label_list = [[
+            #     'Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
+            #      'Prorocentrum_gracile', 'Prorocentrum_micans',
+            #     'Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
+            #      'Protoperidinium', 'Unknown_dinoflagellates_elongated',
+            #     'Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
+            #      'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo',
+            #     'Acantharea', 'Ciliates', 'Nauplii',
+            #     'Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation'
+            # ]]
 
             return label_list
         else:

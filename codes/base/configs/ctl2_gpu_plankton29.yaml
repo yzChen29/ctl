@@ -3,9 +3,8 @@
 
 # check name / load_model_name / connect_fs
 exp:
-  # name: "ctl_plankton29_der_ori_same_order_Oct31"
-  name: "ctl_plankton29_joint_train_Oct31"
-  # name: "ctl_rtc_plankton_BFS_seed500"
+  name: "ctl_plankton29_der_ori_random_order_mem2000_Nov2"
+  # name: "ctl_plankton29_der_ori_test"
   load_model_name: '/datasets/cifar100_results/ctl_cifar100_der_baseline_fs512_512_sp03_more_data_Mar3'
 
 
@@ -22,8 +21,9 @@ memory_enable: True
 taxonomy: 'der_baseline' # ['rtc', 'der_ori', 'der_baseline']
 # taxonomy: 'der_ori' # ['rtc', 'der_ori', 'der_baseline']
 
-sample_rate: [1] # [0.3] or [1]
-coarse_task_num: []  # [0] or []
+sample_rate: [1] # [0.3]:baseline or [1]:joint/der ori
+coarse_task_num: []  # [0]:baseline or []:joint/der ori
+memory_size: 2000  # Max number of storable examplars
 
 auto_retrain: False
 bn_reset_running: False
@@ -190,7 +190,6 @@ max_task:  # Cap the number of task
 # memory_enable: False
 coreset_strategy: "iCaRL"  # iCaRL, random
 mem_size_mode: "uniform_fixed_total_mem"  # uniform_fixed_per_cls, uniform_fixed_total_mem
-memory_size: 2000  # Max number of storable examplars
 fixed_memory_per_cls: 20  # the fixed number of exemplars per cls
 
 # Misc
