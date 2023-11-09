@@ -3,18 +3,23 @@
 
 # check name / load_model_name / connect_fs
 exp:
-  name: "ctl_plankton29_der_ori_random_order_mem2000_Nov2"
+  name: "ctl_plankton29_der_ori_random_order_mem600_Nov2"
   # name: "ctl_plankton29_der_ori_test"
   load_model_name: '/datasets/cifar100_results/ctl_cifar100_der_baseline_fs512_512_sp03_more_data_Mar3'
 
 
 # important cfg
 
+# random Tax: [trial: 1, sp:[0.3], ctn:[0] ]
+# ordered Tax: [trial: 2, sp:[0.3], ctn:[0] ]
+# der ori random order: [trial: 3, sp:[1], ctn:[] ]
+# joint train: [trial: 4, sp:[1], ctn:[] ]
+
 # cfg_check_1
-# sample_rate & epoch
-#sample_rate: 0.3     # 0.3 or 0.001
 debug: False
 memory_enable: True
+dataset_path: '' # '' or '/opt/app-root/src/'
+trial: 1               # 1 or 2 or 3 or 4
 
 # sample_rate, coarse_task_num, dataset
 
@@ -23,7 +28,7 @@ taxonomy: 'der_baseline' # ['rtc', 'der_ori', 'der_baseline']
 
 sample_rate: [1] # [0.3]:baseline or [1]:joint/der ori
 coarse_task_num: []  # [0]:baseline or []:joint/der ori
-memory_size: 2000  # Max number of storable examplars
+memory_size: 600  # Max number of storable examplars
 
 auto_retrain: False
 bn_reset_running: False
@@ -59,7 +64,6 @@ show_noutput_detail: False  # True or False
 # change seed & dataset
 seed: 500              # 500 or 600 or 1993
 dataset: "plankton29" # 'imagenet100' or 'cifar100' or 'plankton29'
-trial: 1               # 3 or 2
 acc_k: 0               # record top k acc   =0 then no res
 
 # check datasets.py trial2 / trial3 BFS / DFS

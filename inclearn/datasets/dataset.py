@@ -26,6 +26,8 @@ def get_dataset(dataset_name):
         return iImageNet
     elif dataset_name == "plankton29":
         return Plankton29
+    elif dataset_name == 'iNat100':
+        return iNat100
     else:
         raise NotImplementedError("Unknown dataset {}.".format(dataset_name))
 
@@ -1799,100 +1801,6 @@ class iImageNet100(DataHandler):
                 raise ('check_trial_setting_cp2')
 
 # derbaseline version
-# class Plankton29(DataHandler):
-#     # base_dataset_cls = datasets.ImageFolder
-#     # base_dataset_cls = datasets.ImageNet
-#     transform_type = 'torchvision'
-#     train_transforms = transforms.Compose([
-#         transforms.Resize((32, 32)),
-#         transforms.RandomCrop(32, padding=4),
-#         transforms.RandomHorizontalFlip(),
-#         transforms.ColorJitter(brightness=63 / 255),
-#         transforms.ToTensor(),
-#         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
-#     ])
-#     test_transforms = transforms.Compose([
-#         transforms.Resize((32, 32)),
-#         transforms.ToTensor(),
-#         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)),
-#     ])
-
-#     data_name_hier_dict = OrderedDict({
-#         'Chromista_1': {'Dinophysis': {}, 'Cochlodinium': {}, 'Gyrodinium': {}, 'Polykrikos': {}, 'Torodinium': {}, 
-#                         'Prorocentrum_gracile': {}, 'Prorocentrum_micans': {}},
-
-#         'Chromista_2': {'Ceratium_falcatiforme_or_fusus': {}, 'Ceratium_furca': {}, 'Ceratium_Other': {}, 'Lingulodinium_polyedra': {}, 
-#                         'Protoperidinium': {}, 'Unknown_dinoflagellates_elongated': {}},
-
-#         'Ochrophyta': {'Pseudo_nitzschia_chain': {}, 'Chaetoceros_socialis': {}, 'Eucampia': {}, 'Thalassionema_or_Thalassiothrix_chain': {}, 
-#                        'diatom_chain': {}, 'Unknown_pennate_diatom': {}, 'Kelp_Fragment': {}, 'Chattonella': {}, 'Akashiwo': {}}, 
-
-#         'Protista': {'Acantharea': {}, 'Ciliates': {}, 'Nauplii': {}}, 
-
-#         'Other': {'Sand': {}, 'Aggregate': {}, 'Bubble': {}, 'BadImageSegmentation': {}}, 
-#     })
-
-#     data_label_index_dict = {
-#         'Chromista_1': -1, 'Chromista_2': -2, 'Ochrophyta': -3, 'Protista': -4, 'Other': -5, 
-#         'Dinophysis': 0, 'Cochlodinium': 1, 'Gyrodinium': 2, 'Polykrikos': 3, 'Torodinium': 4, 
-#         'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme_or_fusus': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
-#         'Lingulodinium_polyedra': 10, 'Protoperidinium': 11, 'Unknown_dinoflagellates_elongated': 12, 'Pseudo_nitzschia_chain': 13, 
-#         'Chaetoceros_socialis': 14, 'Eucampia': 15, 'Thalassionema_or_Thalassiothrix_chain': 16, 'diatom_chain': 17, 'Unknown_pennate_diatom': 18, 
-#         'Kelp_Fragment': 19, 'Chattonella': 20, 'Akashiwo': 21, 'Acantharea': 22, 'Ciliates': 23, 'Nauplii': 24, 'Sand': 25, 
-#         'Aggregate': 26, 'Bubble': 27, 'BadImageSegmentation': 28}
-
-#     taxonomy_tree = Tree('plankton29', data_name_hier_dict, data_label_index_dict)
-#     used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
-
-#     def __init__(self, data_folder, train, device, is_fine_label=False, debug=False):
-#         # super().__init__(data_folder, train, is_fine_label)
-#         # self.base_dataset = self.base_dataset_cls(data_folder, train=train, download=True)
-#         self.df = pd.read_csv(f'{data_folder}/workshop2019_processed.csv')
-#         if debug or not train:
-#             df = self.df[self.df['train_flag']==0]
-#         else:
-#             df = self.df[self.df['train_flag']==1]
-#         data_label_index_dict = {
-#             'Chromista_1': -1, 'Chromista_2': -2, 'Ochrophyta': -3, 'Protista': -4, 'Other': -5, 
-#             'Dinophysis': 0, 'Cochlodinium': 1, 'Gyrodinium': 2, 'Polykrikos': 3, 'Torodinium': 4, 
-#             'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme_or_fusus': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
-#             'Lingulodinium_polyedra': 10, 'Protoperidinium': 11, 'Unknown_dinoflagellates_elongated': 12, 'Pseudo_nitzschia_chain': 13, 
-#             'Chaetoceros_socialis': 14, 'Eucampia': 15, 'Thalassionema_or_Thalassiothrix_chain': 16, 'diatom_chain': 17, 'Unknown_pennate_diatom': 18, 
-#             'Kelp_Fragment': 19, 'Chattonella': 20, 'Akashiwo': 21, 'Acantharea': 22, 'Ciliates': 23, 'Nauplii': 24, 'Sand': 25, 
-#             'Aggregate': 26, 'Bubble': 27, 'BadImageSegmentation': 28}
-#         df['label'].replace(data_label_index_dict, inplace=True)
-#         self.data = np.array([f'{data_folder}/{i}' for i in df['images']])
-#         self.targets = np.array(df['label'])
-
-#         # self.data = self.base_dataset.data
-#         # self.targets = self.base_dataset.targets
-#         self.n_cls = 29
-#         self.transform_type = 'torchvision'
-
-#     @property
-#     def is_proc_inc_data(self):
-#         return False
-
-#     @classmethod
-#     def class_order(cls, trial_i):
-#         idx_to_label = {cls.data_label_index_dict[x]: x for x in cls.data_label_index_dict}
-#         if trial_i == 1:
-#             label_list = [
-#                 ['Chromista_1', 'Chromista_2', 'Ochrophyta', 'Protista', 'Other'],
-#                 ['Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
-#                  'Prorocentrum_gracile', 'Prorocentrum_micans'],
-#                 ['Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
-#                  'Protoperidinium', 'Unknown_dinoflagellates_elongated'],
-#                 ['Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
-#                  'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo'],
-#                 ['Acantharea', 'Ciliates', 'Nauplii'],
-#                 ['Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation']
-#             ]
-#             return label_list
-#         else:
-#             raise(NotImplementedError)
-
-# der ori version
 class Plankton29(DataHandler):
     # base_dataset_cls = datasets.ImageFolder
     # base_dataset_cls = datasets.ImageNet
@@ -1912,23 +1820,27 @@ class Plankton29(DataHandler):
     ])
 
     data_name_hier_dict = OrderedDict({
-        'Dinophysis': {}, 'Cochlodinium': {}, 'Gyrodinium': {}, 'Polykrikos': {}, 'Torodinium': {}, 
-                        'Prorocentrum_gracile': {}, 'Prorocentrum_micans': {},
-        'Ceratium_falcatiforme_or_fusus': {}, 'Ceratium_furca': {}, 'Ceratium_Other': {}, 'Lingulodinium_polyedra': {}, 
-                        'Protoperidinium': {}, 'Unknown_dinoflagellates_elongated': {},
-        'Pseudo_nitzschia_chain': {}, 'Chaetoceros_socialis': {}, 'Eucampia': {}, 'Thalassionema_or_Thalassiothrix_chain': {}, 
-                       'diatom_chain': {}, 'Unknown_pennate_diatom': {}, 'Kelp_Fragment': {}, 'Chattonella': {}, 'Akashiwo': {},
-        'Acantharea': {}, 'Ciliates': {}, 'Nauplii': {},
-        'Sand': {}, 'Aggregate': {}, 'Bubble': {}, 'BadImageSegmentation': {}}
-    )
+        'Chromista_1': {'Dinophysis': {}, 'Cochlodinium': {}, 'Gyrodinium': {}, 'Polykrikos': {}, 'Torodinium': {}, 
+                        'Prorocentrum_gracile': {}, 'Prorocentrum_micans': {}},
 
+        'Chromista_2': {'Ceratium_falcatiforme_or_fusus': {}, 'Ceratium_furca': {}, 'Ceratium_Other': {}, 'Lingulodinium_polyedra': {}, 
+                        'Protoperidinium': {}, 'Unknown_dinoflagellates_elongated': {}},
+
+        'Ochrophyta': {'Pseudo_nitzschia_chain': {}, 'Chaetoceros_socialis': {}, 'Eucampia': {}, 'Thalassionema_or_Thalassiothrix_chain': {}, 
+                       'diatom_chain': {}, 'Unknown_pennate_diatom': {}, 'Kelp_Fragment': {}, 'Chattonella': {}, 'Akashiwo': {}}, 
+
+        'Protista': {'Acantharea': {}, 'Ciliates': {}, 'Nauplii': {}},
+
+        'Other': {'Sand': {}, 'Aggregate': {}, 'Bubble': {}, 'BadImageSegmentation': {}}
+    })
 
     data_label_index_dict = {
+        'Chromista_1': -1, 'Chromista_2': -2, 'Ochrophyta': -3, 'Protista': -4, 'Other': -5, 
         'Dinophysis': 0, 'Cochlodinium': 1, 'Gyrodinium': 2, 'Polykrikos': 3, 'Torodinium': 4, 
         'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme_or_fusus': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
         'Lingulodinium_polyedra': 10, 'Protoperidinium': 11, 'Unknown_dinoflagellates_elongated': 12, 'Pseudo_nitzschia_chain': 13, 
         'Chaetoceros_socialis': 14, 'Eucampia': 15, 'Thalassionema_or_Thalassiothrix_chain': 16, 'diatom_chain': 17, 'Unknown_pennate_diatom': 18, 
-        'Kelp_Fragment': 19, 'Chattonella': 20, 'Akashiwo': 21, 'Acantharea': 22, 'Ciliates': 23, 'Nauplii': 24, 'Sand': 25, 
+        'Kelp_Fragment': 19, 'Chattonella': 20, 'Akashiwo': 21, 'Acantharea': 22, 'Ciliates': 23, 'Nauplii': 24, 'Sand': 25,
         'Aggregate': 26, 'Bubble': 27, 'BadImageSegmentation': 28}
 
     taxonomy_tree = Tree('plankton29', data_name_hier_dict, data_label_index_dict)
@@ -1943,6 +1855,7 @@ class Plankton29(DataHandler):
         else:
             df = self.df[self.df['train_flag']==1]
         data_label_index_dict = {
+            'Chromista_1': -1, 'Chromista_2': -2, 'Ochrophyta': -3, 'Protista': -4, 'Other': -5, 
             'Dinophysis': 0, 'Cochlodinium': 1, 'Gyrodinium': 2, 'Polykrikos': 3, 'Torodinium': 4, 
             'Prorocentrum_gracile': 5, 'Prorocentrum_micans': 6, 'Ceratium_falcatiforme_or_fusus': 7, 'Ceratium_furca': 8, 'Ceratium_Other': 9, 
             'Lingulodinium_polyedra': 10, 'Protoperidinium': 11, 'Unknown_dinoflagellates_elongated': 12, 'Pseudo_nitzschia_chain': 13, 
@@ -1965,9 +1878,38 @@ class Plankton29(DataHandler):
     @classmethod
     def class_order(cls, trial_i):
         idx_to_label = {cls.data_label_index_dict[x]: x for x in cls.data_label_index_dict}
+        # random Tax
         if trial_i == 1:
-            # der ori random order
+            label_list = [
+                ['Chromista_1', 'Chromista_2', 'Ochrophyta', 'Protista', 'Other'],
+                ['Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
+                 'Prorocentrum_gracile', 'Prorocentrum_micans'],
+                ['Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
+                 'Protoperidinium', 'Unknown_dinoflagellates_elongated'],
+                ['Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
+                 'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo'],
+                ['Acantharea', 'Ciliates', 'Nauplii'],
+                ['Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation']
+            ]
+            return label_list
+        
+        # ordered Tax
+        elif trial_i == 2:
+            label_list = [
+                ['Chromista_1', 'Chromista_2', 'Ochrophyta', 'Protista', 'Other'],
+                ['Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation'],
+                ['Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
+                 'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo'],
+                ['Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
+                 'Prorocentrum_gracile', 'Prorocentrum_micans'],
+                ['Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
+                 'Protoperidinium', 'Unknown_dinoflagellates_elongated'],
+                ['Acantharea', 'Ciliates', 'Nauplii'],
+            ]
+            return label_list
 
+        # der ori random order
+        elif trial_i == 3:
             label_list = [
                 ['Prorocentrum_gracile', 'Ciliates', 'diatom_chain', 'Nauplii', 'Akashiwo', 
                  'Protoperidinium', 'Gyrodinium'],
@@ -1978,21 +1920,178 @@ class Plankton29(DataHandler):
                 ['Prorocentrum_micans', 'BadImageSegmentation', 'Polykrikos'],
                 ['Ceratium_Other', 'Chattonella', 'Dinophysis', 'Sand']
             ]
+            return label_list
 
-
-
-            # joint train
-            # label_list = [[
-            #     'Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
-            #      'Prorocentrum_gracile', 'Prorocentrum_micans',
-            #     'Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
-            #      'Protoperidinium', 'Unknown_dinoflagellates_elongated',
-            #     'Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
-            #      'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo',
-            #     'Acantharea', 'Ciliates', 'Nauplii',
-            #     'Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation'
-            # ]]
+        # joint train
+        elif trial_i == 4:    
+            label_list = [[
+                'Dinophysis', 'Cochlodinium', 'Gyrodinium', 'Polykrikos', 'Torodinium', 
+                 'Prorocentrum_gracile', 'Prorocentrum_micans',
+                'Ceratium_falcatiforme_or_fusus', 'Ceratium_furca', 'Ceratium_Other', 'Lingulodinium_polyedra', 
+                 'Protoperidinium', 'Unknown_dinoflagellates_elongated',
+                'Pseudo_nitzschia_chain', 'Chaetoceros_socialis', 'Eucampia', 'Thalassionema_or_Thalassiothrix_chain', 
+                 'diatom_chain', 'Unknown_pennate_diatom', 'Kelp_Fragment', 'Chattonella', 'Akashiwo',
+                'Acantharea', 'Ciliates', 'Nauplii',
+                'Sand', 'Aggregate', 'Bubble', 'BadImageSegmentation'
+            ]]
 
             return label_list
+        
         else:
             raise(NotImplementedError)
+
+
+
+
+class iNat100(DataHandler):
+    # base_dataset_cls = datasets.ImageFolder
+    # base_dataset_cls = datasets.ImageNet
+    transform_type = 'albumentations'
+    if transform_type == 'albumentations':
+        train_transforms = A.Compose([
+            A.RandomResizedCrop(224, 224),
+            A.HorizontalFlip(),
+            # A.ColorJitter(brightness=63 / 255),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2()
+        ])
+        test_transforms = A.Compose([
+            A.Resize(256, 256),
+            A.CenterCrop(224, 224),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2()
+        ])
+    else:
+        train_transforms = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            # transforms.ColorJitter(brightness=63 / 255),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        test_transforms = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    data_name_hier_dict = OrderedDict({
+        'Animalia': {'Pachygrapsus crassipes': {}, 'Pollicipes polymerus': {}, 'Dermasterias imbricata': {}, 'Patiria miniata': {}, 'Anthopleura xanthogrammica': {}, 'Strongylocentrotus purpuratus': {}, 'Armadillidium vulgare': {}, 'Anthopleura sola': {}, 'Pisaster ochraceus': {}, 'Procambarus clarkii': {}}, 
+        'Insecta': {'Pieris rapae': {}, 'Agraulis vanillae': {}, 'Vanessa atalanta': {}, 'Danaus plexippus': {}, 'Junonia coenia': {}, 'Pachydiplax longipennis': {}, 'Erythemis simplicicollis': {}, 'Harmonia axyridis': {}, 'Plathemis lydia': {}, 'Apis mellifera': {}}, 
+        'Mammalia': {'Sciurus carolinensis': {}, 'Odocoileus hemionus': {}, 'Canis latrans': {}, 'Sylvilagus floridanus': {}, 'Procyon lotor': {}, 'Lynx rufus': {}, 'Odocoileus virginianus': {}, 'Otospermophilus beecheyi': {}, 'Sciurus niger': {}, 'Castor canadensis': {}}, 
+        'Arachnida': {'Argiope argentata': {}, 'Nephila clavipes': {}, 'Phidippus audax': {}, 'Leucauge venusta': {}, 'Araneus diadematus': {}, 'Gasteracantha cancriformis': {}, 'Peucetia viridans': {}, 'Argiope trifasciata': {}, 'Argiope aurantia': {}, 'Latrodectus geometricus': {}}, 
+        'Fungi': {'Polyporus squamosus': {}, 'Schizophyllum commune': {}, 'Coprinus comatus': {}, 'Laetiporus sulphureus': {}, 'Trametes versicolor': {}, 'Ramalina menziesii': {}, 'Lobaria pulmonaria': {}, 'Ganoderma applanatum': {}, 'Amanita muscaria': {}, 'Pleurotus ostreatus': {}}, 
+        'Aves': {'Ardea alba': {}, 'Cathartes aura': {}, 'Branta canadensis': {}, 'Haemorhous mexicanus': {}, 'Melospiza melodia': {}, 'Buteo jamaicensis': {}, 'Passer domesticus': {}, 'Anas platyrhynchos': {}, 'Turdus migratorius': {}, 'Ardea herodias': {}}, 
+        'Plantae': {'Eschscholzia californica': {}, 'Toxicodendron diversilobum': {}, 'Pinus strobus': {}, 'Daucus carota': {}, 'Fagus grandifolia': {}, 'Asclepias syriaca': {}, 'Achillea millefolium': {}, 'Arisaema triphyllum': {}, 'Taraxacum officinale': {}, 'Toxicodendron radicans': {}}, 
+        'Reptilia': {'Uta stansburiana': {}, 'Anolis carolinensis': {}, 'Sceloporus occidentalis': {}, 'Alligator mississippiensis': {}, 'Thamnophis sirtalis sirtalis': {}, 'Crotalus atrox': {}, 'Pituophis catenifer': {}, 'Elgaria multicarinata': {}, 'Chelydra serpentina': {}, 'Trachemys scripta elegans': {}}, 
+        'Amphibia': {'Notophthalmus viridescens': {}, 'Batrachoseps attenuatus': {}, 'Pseudacris sierra': {}, 'Lithobates clamitans': {}, 'Anaxyrus americanus': {}, 'Incilius nebulifer': {}, 'Acris blanchardi': {}, 'Lithobates catesbeianus': {}, 'Plethodon cinereus': {}, 'Taricha torosa': {}}, 
+        'Mollusca': {'Triopha maculata': {}, 'Phidiana hiltoni': {}, 'Rumina decollata': {}, 'Okenia rosacea': {}, 'Limax maximus': {}, 'Mytilus californianus': {}, 'Peltodoris nobilis': {}, 'Triopha catalinae': {}, 'Cornu aspersum': {}, 'Otala lactea': {}}})
+
+    data_label_index_dict = {
+        'Insecta':-1, 'Mammalia':-2, 'Arachnida':-3, 'Plantae':-4, 'Amphibia':-5, 'Reptilia':-6, 'Aves':-7, 'Mollusca':-8, 'Fungi':-9, 'Animalia':-10,
+        'Apis mellifera': 0, 'Pachydiplax longipennis': 1, 'Danaus plexippus': 2, 'Agraulis vanillae': 3, 'Harmonia axyridis': 4, 'Junonia coenia': 5, 'Vanessa atalanta': 6, 'Plathemis lydia': 7, 'Pieris rapae': 8, 'Erythemis simplicicollis': 9, 'Canis latrans': 10, 'Otospermophilus beecheyi': 11, 'Odocoileus hemionus': 12, 'Sylvilagus floridanus': 13, 'Lynx rufus': 14, 'Odocoileus virginianus': 15, 'Procyon lotor': 16, 'Sciurus niger': 17, 'Sciurus carolinensis': 18, 'Castor canadensis': 19, 'Latrodectus geometricus': 20, 'Leucauge venusta': 21, 'Argiope trifasciata': 22, 'Phidippus audax': 23, 'Argiope argentata': 24, 'Nephila clavipes': 25, 'Peucetia viridans': 26, 'Araneus diadematus': 27, 'Argiope aurantia': 28, 'Gasteracantha cancriformis': 29, 'Fagus grandifolia': 30, 'Taraxacum officinale': 31, 'Asclepias syriaca': 32, 'Achillea millefolium': 33, 'Eschscholzia californica': 34, 'Arisaema triphyllum': 35, 'Daucus carota': 36, 'Toxicodendron diversilobum': 37, 'Toxicodendron radicans': 38, 'Pinus strobus': 39, 'Acris blanchardi': 40, 'Notophthalmus viridescens': 41, 'Pseudacris sierra': 42, 'Incilius nebulifer': 43, 'Lithobates catesbeianus': 44, 'Batrachoseps attenuatus': 45, 'Lithobates clamitans': 46, 'Plethodon cinereus': 47, 'Anaxyrus americanus': 48, 'Taricha torosa': 49, 'Trachemys scripta elegans': 50, 'Anolis carolinensis': 51, 'Chelydra serpentina': 52, 'Alligator mississippiensis': 53, 'Uta stansburiana': 54, 'Pituophis catenifer': 55, 'Crotalus atrox': 56, 'Sceloporus occidentalis': 57, 'Thamnophis sirtalis sirtalis': 58, 'Elgaria multicarinata': 59, 'Ardea alba': 60, 'Buteo jamaicensis': 61, 'Branta canadensis': 62, 'Turdus migratorius': 63, 'Cathartes aura': 64, 'Anas platyrhynchos': 65, 'Melospiza melodia': 66, 'Passer domesticus': 67, 'Haemorhous mexicanus': 68, 'Ardea herodias': 69, 'Mytilus californianus': 70, 'Limax maximus': 71, 'Rumina decollata': 72, 'Cornu aspersum': 73, 'Otala lactea': 74, 'Triopha maculata': 75, 'Okenia rosacea': 76, 'Peltodoris nobilis': 77, 'Phidiana hiltoni': 78, 'Triopha catalinae': 79, 'Amanita muscaria': 80, 'Ramalina menziesii': 81, 'Lobaria pulmonaria': 82, 'Coprinus comatus': 83, 'Laetiporus sulphureus': 84, 'Trametes versicolor': 85, 'Polyporus squamosus': 86, 'Pleurotus ostreatus': 87, 'Ganoderma applanatum': 88, 'Schizophyllum commune': 89, 'Anthopleura xanthogrammica': 90, 'Armadillidium vulgare': 91, 'Pisaster ochraceus': 92, 'Patiria miniata': 93, 'Pachygrapsus crassipes': 94, 'Anthopleura sola': 95, 'Pollicipes polymerus': 96, 'Strongylocentrotus purpuratus': 97, 'Procambarus clarkii': 98, 'Dermasterias imbricata': 99}
+
+
+    taxonomy_tree = Tree('iNat100', data_name_hier_dict, data_label_index_dict)
+    used_nodes, leaf_id, node_labels = taxonomy_tree.prepro()
+
+    def __init__(self, data_folder, train, device, is_fine_label=False, debug=False):
+        # super().__init__(data_folder, train, is_fine_label)
+        # self.base_dataset = self.base_dataset_cls(data_folder, train=train, download=True)
+        if debug:
+            self.df = pd.read_csv(f'{data_folder}/train_img_info_600_processed_only_for_debug.csv')
+        else:
+            self.df = pd.read_csv(f'{data_folder}/train_img_info_600_processed.csv')
+        if debug or not train:
+            df = self.df[self.df['train_flag']==0]
+        else:
+            df = self.df[self.df['train_flag']==1]
+        data_label_index_dict = {
+            'Insecta':-1, 'Mammalia':-2, 'Arachnida':-3, 'Plantae':-4, 'Amphibia':-5, 'Reptilia':-6, 'Aves':-7, 'Mollusca':-8, 'Fungi':-9, 'Animalia':-10,
+            'Apis mellifera': 0, 'Pachydiplax longipennis': 1, 'Danaus plexippus': 2, 'Agraulis vanillae': 3, 'Harmonia axyridis': 4, 'Junonia coenia': 5, 'Vanessa atalanta': 6, 'Plathemis lydia': 7, 'Pieris rapae': 8, 'Erythemis simplicicollis': 9, 'Canis latrans': 10, 'Otospermophilus beecheyi': 11, 'Odocoileus hemionus': 12, 'Sylvilagus floridanus': 13, 'Lynx rufus': 14, 'Odocoileus virginianus': 15, 'Procyon lotor': 16, 'Sciurus niger': 17, 'Sciurus carolinensis': 18, 'Castor canadensis': 19, 'Latrodectus geometricus': 20, 'Leucauge venusta': 21, 'Argiope trifasciata': 22, 'Phidippus audax': 23, 'Argiope argentata': 24, 'Nephila clavipes': 25, 'Peucetia viridans': 26, 'Araneus diadematus': 27, 'Argiope aurantia': 28, 'Gasteracantha cancriformis': 29, 'Fagus grandifolia': 30, 'Taraxacum officinale': 31, 'Asclepias syriaca': 32, 'Achillea millefolium': 33, 'Eschscholzia californica': 34, 'Arisaema triphyllum': 35, 'Daucus carota': 36, 'Toxicodendron diversilobum': 37, 'Toxicodendron radicans': 38, 'Pinus strobus': 39, 'Acris blanchardi': 40, 'Notophthalmus viridescens': 41, 'Pseudacris sierra': 42, 'Incilius nebulifer': 43, 'Lithobates catesbeianus': 44, 'Batrachoseps attenuatus': 45, 'Lithobates clamitans': 46, 'Plethodon cinereus': 47, 'Anaxyrus americanus': 48, 'Taricha torosa': 49, 'Trachemys scripta elegans': 50, 'Anolis carolinensis': 51, 'Chelydra serpentina': 52, 'Alligator mississippiensis': 53, 'Uta stansburiana': 54, 'Pituophis catenifer': 55, 'Crotalus atrox': 56, 'Sceloporus occidentalis': 57, 'Thamnophis sirtalis sirtalis': 58, 'Elgaria multicarinata': 59, 'Ardea alba': 60, 'Buteo jamaicensis': 61, 'Branta canadensis': 62, 'Turdus migratorius': 63, 'Cathartes aura': 64, 'Anas platyrhynchos': 65, 'Melospiza melodia': 66, 'Passer domesticus': 67, 'Haemorhous mexicanus': 68, 'Ardea herodias': 69, 'Mytilus californianus': 70, 'Limax maximus': 71, 'Rumina decollata': 72, 'Cornu aspersum': 73, 'Otala lactea': 74, 'Triopha maculata': 75, 'Okenia rosacea': 76, 'Peltodoris nobilis': 77, 'Phidiana hiltoni': 78, 'Triopha catalinae': 79, 'Amanita muscaria': 80, 'Ramalina menziesii': 81, 'Lobaria pulmonaria': 82, 'Coprinus comatus': 83, 'Laetiporus sulphureus': 84, 'Trametes versicolor': 85, 'Polyporus squamosus': 86, 'Pleurotus ostreatus': 87, 'Ganoderma applanatum': 88, 'Schizophyllum commune': 89, 'Anthopleura xanthogrammica': 90, 'Armadillidium vulgare': 91, 'Pisaster ochraceus': 92, 'Patiria miniata': 93, 'Pachygrapsus crassipes': 94, 'Anthopleura sola': 95, 'Pollicipes polymerus': 96, 'Strongylocentrotus purpuratus': 97, 'Procambarus clarkii': 98, 'Dermasterias imbricata': 99}
+
+        df['label'].replace(data_label_index_dict, inplace=True)
+        self.data = np.array([f'{data_folder}/{i}' for i in df['images']])
+        self.targets = np.array(df['label'])
+
+        # self.data = self.base_dataset.data
+        # self.targets = self.base_dataset.targets
+        self.n_cls = 100
+        # self.transform_type = 'torchvision'
+
+    @property
+    def is_proc_inc_data(self):
+        return False
+
+    @classmethod
+    def class_order(cls, trial_i):
+        idx_to_label = {cls.data_label_index_dict[x]: x for x in cls.data_label_index_dict}
+        # random Tax
+        if trial_i == 1:
+            label_list = [
+                ['Aves', 'Amphibia', 'Mollusca', 'Reptilia', 'Animalia', 'Mammalia', 'Fungi', 'Arachnida', 'Plantae', 'Insecta'], 
+                ['Triopha maculata', 'Triopha catalinae', 'Cornu aspersum', 'Limax maximus', 'Okenia rosacea', 'Peltodoris nobilis', 'Mytilus californianus', 'Otala lactea', 'Phidiana hiltoni', 'Rumina decollata'], 
+                ['Pinus strobus', 'Arisaema triphyllum', 'Toxicodendron diversilobum', 'Asclepias syriaca', 'Achillea millefolium', 'Taraxacum officinale', 'Eschscholzia californica', 'Fagus grandifolia', 'Daucus carota', 'Toxicodendron radicans'], 
+                ['Anthopleura xanthogrammica', 'Patiria miniata', 'Armadillidium vulgare', 'Pisaster ochraceus', 'Pachygrapsus crassipes', 'Pollicipes polymerus', 'Anthopleura sola', 'Dermasterias imbricata', 'Strongylocentrotus purpuratus', 'Procambarus clarkii'], 
+                ['Pachydiplax longipennis', 'Vanessa atalanta', 'Plathemis lydia', 'Harmonia axyridis', 'Junonia coenia', 'Agraulis vanillae', 'Apis mellifera', 'Erythemis simplicicollis', 'Danaus plexippus', 'Pieris rapae'], 
+                ['Anaxyrus americanus', 'Incilius nebulifer', 'Pseudacris sierra', 'Lithobates catesbeianus', 'Batrachoseps attenuatus', 'Acris blanchardi', 'Notophthalmus viridescens', 'Taricha torosa', 'Plethodon cinereus', 'Lithobates clamitans'], 
+                ['Coprinus comatus', 'Lobaria pulmonaria', 'Trametes versicolor', 'Pleurotus ostreatus', 'Ganoderma applanatum', 'Amanita muscaria', 'Laetiporus sulphureus', 'Ramalina menziesii', 'Schizophyllum commune', 'Polyporus squamosus'], 
+                ['Argiope argentata', 'Leucauge venusta', 'Argiope trifasciata', 'Araneus diadematus', 'Argiope aurantia', 'Peucetia viridans', 'Nephila clavipes', 'Gasteracantha cancriformis', 'Phidippus audax', 'Latrodectus geometricus'], 
+                ['Trachemys scripta elegans', 'Pituophis catenifer', 'Sceloporus occidentalis', 'Anolis carolinensis', 'Elgaria multicarinata', 'Alligator mississippiensis', 'Uta stansburiana', 'Crotalus atrox', 'Thamnophis sirtalis sirtalis', 'Chelydra serpentina'], 
+                ['Anas platyrhynchos', 'Ardea herodias', 'Cathartes aura', 'Ardea alba', 'Branta canadensis', 'Passer domesticus', 'Buteo jamaicensis', 'Melospiza melodia', 'Haemorhous mexicanus', 'Turdus migratorius'], 
+                ['Otospermophilus beecheyi', 'Procyon lotor', 'Odocoileus virginianus', 'Lynx rufus', 'Sciurus niger', 'Sciurus carolinensis', 'Canis latrans', 'Sylvilagus floridanus', 'Castor canadensis', 'Odocoileus hemionus']
+            ]
+            return label_list
+        
+        # ordered Tax
+        elif trial_i == 2:
+            label_list = [
+                ['Aves', 'Amphibia', 'Mollusca', 'Reptilia', 'Animalia', 'Mammalia', 'Fungi', 'Arachnida', 'Plantae', 'Insecta'], 
+                ['Turdus migratorius', 'Melospiza melodia', 'Ardea herodias', 'Cathartes aura', 'Buteo jamaicensis', 'Haemorhous mexicanus', 'Branta canadensis', 'Anas platyrhynchos', 'Passer domesticus', 'Ardea alba'], 
+                ['Toxicodendron radicans', 'Eschscholzia californica', 'Pinus strobus', 'Fagus grandifolia', 'Asclepias syriaca', 'Daucus carota', 'Toxicodendron diversilobum', 'Taraxacum officinale', 'Arisaema triphyllum', 'Achillea millefolium'], 
+                ['Agraulis vanillae', 'Pieris rapae', 'Vanessa atalanta', 'Harmonia axyridis', 'Plathemis lydia', 'Junonia coenia', 'Pachydiplax longipennis', 'Erythemis simplicicollis', 'Danaus plexippus', 'Apis mellifera'], 
+                ['Thamnophis sirtalis sirtalis', 'Trachemys scripta elegans', 'Crotalus atrox', 'Elgaria multicarinata', 'Pituophis catenifer', 'Anolis carolinensis', 'Uta stansburiana', 'Chelydra serpentina', 'Sceloporus occidentalis', 'Alligator mississippiensis'], 
+                ['Canis latrans', 'Procyon lotor', 'Sciurus niger', 'Lynx rufus', 'Odocoileus hemionus', 'Sylvilagus floridanus', 'Sciurus carolinensis', 'Otospermophilus beecheyi', 'Castor canadensis', 'Odocoileus virginianus'], 
+                ['Plethodon cinereus', 'Taricha torosa', 'Pseudacris sierra', 'Incilius nebulifer', 'Acris blanchardi', 'Lithobates catesbeianus', 'Lithobates clamitans', 'Anaxyrus americanus', 'Notophthalmus viridescens', 'Batrachoseps attenuatus'], 
+                ['Cornu aspersum', 'Mytilus californianus', 'Okenia rosacea', 'Triopha maculata', 'Otala lactea', 'Limax maximus', 'Peltodoris nobilis', 'Triopha catalinae', 'Phidiana hiltoni', 'Rumina decollata'], 
+                ['Lobaria pulmonaria', 'Laetiporus sulphureus', 'Ramalina menziesii', 'Polyporus squamosus', 'Amanita muscaria', 'Coprinus comatus', 'Trametes versicolor', 'Pleurotus ostreatus', 'Schizophyllum commune', 'Ganoderma applanatum'], 
+                ['Dermasterias imbricata', 'Pisaster ochraceus', 'Procambarus clarkii', 'Strongylocentrotus purpuratus', 'Armadillidium vulgare', 'Patiria miniata', 'Anthopleura xanthogrammica', 'Pollicipes polymerus', 'Pachygrapsus crassipes', 'Anthopleura sola'], 
+                ['Gasteracantha cancriformis', 'Argiope argentata', 'Araneus diadematus', 'Argiope aurantia', 'Phidippus audax', 'Nephila clavipes', 'Leucauge venusta', 'Peucetia viridans', 'Argiope trifasciata', 'Latrodectus geometricus']
+            ]
+            return label_list
+        
+        # der ori random order
+        elif trial_i == 3:
+            label_list = [
+                ['Odocoileus hemionus', 'Rumina decollata', 'Lobaria pulmonaria', 'Nephila clavipes', 'Trachemys scripta elegans', 'Uta stansburiana', 'Anthopleura sola', 'Phidippus audax', 'Triopha maculata', 'Otospermophilus beecheyi'], 
+                ['Acris blanchardi', 'Sceloporus occidentalis', 'Patiria miniata', 'Notophthalmus viridescens', 'Amanita muscaria', 'Apis mellifera', 'Limax maximus', 'Ganoderma applanatum', 'Castor canadensis', 'Pachydiplax longipennis'], 
+                ['Lithobates catesbeianus', 'Leucauge venusta', 'Pituophis catenifer', 'Achillea millefolium', 'Ardea herodias', 'Argiope argentata', 'Incilius nebulifer', 'Anthopleura xanthogrammica', 'Turdus migratorius', 'Argiope aurantia'], 
+                ['Schizophyllum commune', 'Lynx rufus', 'Pinus strobus', 'Toxicodendron diversilobum', 'Sciurus carolinensis', 'Erythemis simplicicollis', 'Alligator mississippiensis', 'Mytilus californianus', 'Batrachoseps attenuatus', 'Junonia coenia'], 
+                ['Taricha torosa', 'Trametes versicolor', 'Pollicipes polymerus', 'Gasteracantha cancriformis', 'Pleurotus ostreatus', 'Procambarus clarkii', 'Pisaster ochraceus', 'Peucetia viridans', 'Peltodoris nobilis', 'Okenia rosacea'], 
+                ['Dermasterias imbricata', 'Buteo jamaicensis', 'Argiope trifasciata', 'Agraulis vanillae', 'Toxicodendron radicans', 'Harmonia axyridis', 'Latrodectus geometricus', 'Melospiza melodia', 'Crotalus atrox', 'Danaus plexippus'], 
+                ['Plathemis lydia', 'Triopha catalinae', 'Pseudacris sierra', 'Cathartes aura', 'Thamnophis sirtalis sirtalis', 'Passer domesticus', 'Taraxacum officinale', 'Pieris rapae', 'Sciurus niger', 'Arisaema triphyllum'], 
+                ['Branta canadensis', 'Daucus carota', 'Cornu aspersum', 'Ramalina menziesii', 'Otala lactea', 'Elgaria multicarinata', 'Armadillidium vulgare', 'Plethodon cinereus', 'Strongylocentrotus purpuratus', 'Anaxyrus americanus'], 
+                ['Sylvilagus floridanus', 'Anolis carolinensis', 'Araneus diadematus', 'Laetiporus sulphureus', 'Polyporus squamosus', 'Chelydra serpentina', 'Ardea alba', 'Procyon lotor', 'Fagus grandifolia', 'Pachygrapsus crassipes'], 
+                ['Eschscholzia californica', 'Anas platyrhynchos', 'Lithobates clamitans', 'Vanessa atalanta', 'Phidiana hiltoni', 'Asclepias syriaca', 'Odocoileus virginianus', 'Coprinus comatus', 'Canis latrans', 'Haemorhous mexicanus']]
+            return label_list
+        
+        # joint train
+        elif trial_i == 4:
+            label_list = [[
+                'Turdus migratorius', 'Melospiza melodia', 'Ardea herodias', 'Cathartes aura', 'Buteo jamaicensis', 'Haemorhous mexicanus', 'Branta canadensis', 'Anas platyrhynchos', 'Passer domesticus', 'Ardea alba', 
+                'Toxicodendron radicans', 'Eschscholzia californica', 'Pinus strobus', 'Fagus grandifolia', 'Asclepias syriaca', 'Daucus carota', 'Toxicodendron diversilobum', 'Taraxacum officinale', 'Arisaema triphyllum', 'Achillea millefolium', 
+                'Agraulis vanillae', 'Pieris rapae', 'Vanessa atalanta', 'Harmonia axyridis', 'Plathemis lydia', 'Junonia coenia', 'Pachydiplax longipennis', 'Erythemis simplicicollis', 'Danaus plexippus', 'Apis mellifera', 
+                'Thamnophis sirtalis sirtalis', 'Trachemys scripta elegans', 'Crotalus atrox', 'Elgaria multicarinata', 'Pituophis catenifer', 'Anolis carolinensis', 'Uta stansburiana', 'Chelydra serpentina', 'Sceloporus occidentalis', 'Alligator mississippiensis', 
+                'Canis latrans', 'Procyon lotor', 'Sciurus niger', 'Lynx rufus', 'Odocoileus hemionus', 'Sylvilagus floridanus', 'Sciurus carolinensis', 'Otospermophilus beecheyi', 'Castor canadensis', 'Odocoileus virginianus', 
+                'Plethodon cinereus', 'Taricha torosa', 'Pseudacris sierra', 'Incilius nebulifer', 'Acris blanchardi', 'Lithobates catesbeianus', 'Lithobates clamitans', 'Anaxyrus americanus', 'Notophthalmus viridescens', 'Batrachoseps attenuatus', 
+                'Cornu aspersum', 'Mytilus californianus', 'Okenia rosacea', 'Triopha maculata', 'Otala lactea', 'Limax maximus', 'Peltodoris nobilis', 'Triopha catalinae', 'Phidiana hiltoni', 'Rumina decollata', 
+                'Lobaria pulmonaria', 'Laetiporus sulphureus', 'Ramalina menziesii', 'Polyporus squamosus', 'Amanita muscaria', 'Coprinus comatus', 'Trametes versicolor', 'Pleurotus ostreatus', 'Schizophyllum commune', 'Ganoderma applanatum', 
+                'Dermasterias imbricata', 'Pisaster ochraceus', 'Procambarus clarkii', 'Strongylocentrotus purpuratus', 'Armadillidium vulgare', 'Patiria miniata', 'Anthopleura xanthogrammica', 'Pollicipes polymerus', 'Pachygrapsus crassipes', 'Anthopleura sola', 
+                'Gasteracantha cancriformis', 'Argiope argentata', 'Araneus diadematus', 'Argiope aurantia', 'Phidippus audax', 'Nephila clavipes', 'Leucauge venusta', 'Peucetia viridans', 'Argiope trifasciata', 'Latrodectus geometricus'
+            ]]
+            return label_list
+            
+
+        else:
+            raise(NotImplementedError)
+

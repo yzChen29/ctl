@@ -55,6 +55,11 @@ class IncrementalDataset:
             ds_name = 'imagenet-ilsvrc2012'
         elif 'plankton' in dataset_name:
             ds_name = 'workshop2019_v2_datasets'
+        elif 'iNat' in dataset_name:
+            if dataset_name == 'iNat100':
+                ds_name = 'iNat_1010_max600'
+            else:
+                raise ('check dataset name')
         else:
             ds_name = dataset_name
         self.data_folder = get_data_folder(data_folder, ds_name)
@@ -203,7 +208,7 @@ class IncrementalDataset:
 
     def _select_from_idx(self, data_dict, label_map, train=True):
         x_selected = np.empty([0, 32, 32, 3], dtype=np.uint8)
-        if self.dataset_name == 'imagenet100' or self.dataset_name == 'plankton29':
+        if self.dataset_name in ['imagenet100', 'plankton29', 'iNat100']:
             x_selected = np.empty([0], dtype='<U74')
         y_selected = np.empty([0], dtype=np.uint8)
         if train:

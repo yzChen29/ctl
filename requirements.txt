@@ -3,7 +3,6 @@ easydict
 tensorboardX~=2.5.1
 sacred~=0.8.2
 matplotlib~=3.3.4
-torchvision
 pandas~=1.1.5
 scipy~=1.5.4
 opencv-python-headless~=4.6.0.66

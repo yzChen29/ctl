@@ -175,6 +175,13 @@ def train(_run, _rnd, _seed):
             factory.set_device(cfg)
         if cfg["device"].type == 'cuda' and ('imagenet' in cfg["dataset"] or 'plankton' in cfg["dataset"]):
             cfg.data_folder = '/datasets'
+
+        elif 'iNat' in cfg["dataset"]:
+            if cfg['dataset_path'] == '':
+                cfg.data_folder = '/datasets/iNat_datasets'
+            else:
+                cfg.data_folder = cfg['dataset_path']
+                
         else:
             cfg.data_folder = osp.join(base_dir, "data")
 
@@ -268,11 +275,13 @@ if __name__ == "__main__":
     # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
     # ex.add_config("./codes/base/configs/ctl2_gpu_plankton29.yaml")
+    ex.add_config("./codes/base/configs/ctl2_gpu_iNat100.yaml")
 
     
     # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     # ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
-    ex.add_config("./configs/ctl2_gpu_plankton29.yaml")
+    # ex.add_config("./configs/ctl2_gpu_plankton29.yaml")
+    # ex.add_config("./configs/ctl2_gpu_iNat100.yaml")
 
     ex.run_commandline()
 
