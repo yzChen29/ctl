@@ -1,8 +1,3 @@
-"""
-@Author : Yan Shipeng, Xie Jiangwei
-@Contact: yanshp@shanghaitech.edu.cn, xiejw@shanghaitech.edu.cn
-"""
-
 import sys
 import os
 import os.path as osp
@@ -16,6 +11,7 @@ from easydict import EasyDict as edict
 from tensorboardX import SummaryWriter
 from copy import deepcopy
 import shutil
+from ptflops import get_model_complexity_info
 
 repo_name = 'ctl'
 base_dir = osp.realpath(".")[:osp.realpath(".").index(repo_name) + len(repo_name)]
@@ -33,18 +29,13 @@ from inclearn.tools.metrics import IncConfusionMeter
 
 
 def initialization(config, seed, mode, exp_id):
-    # Add it if your input size is fixed
-    # ref: https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
-    torch.backends.cudnn.benchmark = True  # This will result in non-deterministic results.
-    # ex.captured_out_filter = lambda text: 'Output capturing turned off.'
+    torch.backends.cudnn.benchmark = True
     cfg = edict(config)
     utils.set_seed(cfg['seed'])
     utils.set_save_paths(cfg, mode)
 
     if exp_id is None:
         exp_id = -1
-    #     cfg.exp.savedir = "./logs"
-
     if cfg['auto_retrain']:
         ckpt_list = os.listdir(f"{cfg['exp']['load_model_name']}/train/ckpts")
         for i in range(1, 30):
@@ -58,24 +49,16 @@ def initialization(config, seed, mode, exp_id):
         cfg['retrain_from_task'] = retrain_task
         cfg['load_mem'] = True
         cfg['save_ckpt'] = list(range(retrain_task, 30))
-
     logger = utils.make_logger(f"{mode}", savedir=cfg['sp']['log'])
-
-    # Tensorboard
-    # exp_name = f'{exp_id}_{cfg["exp"]["name"]}' if exp_id is not None else f'../inbox/{cfg["exp"]["name"]}'
-    # tensorboard_dir = cfg["exp"]["tensorboard_dir"] + f"/{exp_name}"
-
     tensorboard = SummaryWriter(cfg['sp']['tensorboard'])
+
     if cfg['dataset'] == 'cifar100':
         try:
             shutil.copyfile('./codes/base/configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
         except:
+            
             shutil.copyfile('./configs/ctl2_gpu_cifar100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_cifar100.yaml")
-    else:
-        try:
-            shutil.copyfile('./codes/base/configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
-        except:
-            shutil.copyfile('./configs/ctl2_gpu_imagenet100.yaml', f"{cfg['sp']['log']}/ctl2_gpu_imagenet100.yaml")
+    
     return cfg, logger, tensorboard
 
 
@@ -96,24 +79,17 @@ def _train(rank, cfg, world_size, logger=None):
     logger.info(inc_dataset.curriculum)
 
     for task_i in range(inc_dataset.n_tasks):
-    # for task_i in range(1):
-        model.new_task()
-        model.before_task(inc_dataset)
+        model.before_task()
         enforce_decouple = False
-
-
         if task_i >= cfg['retrain_from_task']:
             model.train_task()
         elif task_i == cfg['retrain_from_task']-1:
 
             if task_i == 0:
-#                 state_dict = torch.load(f"result/{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
                 state_dict = torch.load(f"{cfg['exp']['load_model_name']}/train/ckpts/step0.ckpt")
 
             else:
-#                 load_path = f"result/{cfg['exp']['load_model_name']}/train/ckpts"
                 load_path = f"{cfg['exp']['load_model_name']}/train/ckpts"
-
 
                 if os.path.exists(f'{load_path}/decouple_step{task_i}.ckpt'):
                     state_dict = torch.load(f'{load_path}/decouple_step{task_i}.ckpt')
@@ -123,23 +99,11 @@ def _train(rank, cfg, world_size, logger=None):
             model._parallel_network.load_state_dict(state_dict)
         else:
             print(f'passing task {task_i}')
-        # if not cfg['debug']:
-        #     if task_i >= cfg['retrain_from_task'] - 1 and task_i not in cfg['coarse_task_num']:
-
-        #         if cfg['device'].type == 'cuda':
-        #             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='eval_before_decouple', save_option={
-        #                 "acc_details": True,
-        #                 "acc_aux_details": True,
-        #                 "preds_details": True,
-        #                 "preds_aux_details": True
-        #             })
-
-   
 
         model.after_task(inc_dataset, enforce_decouple=enforce_decouple)
 
         if not cfg['debug']:
-            if task_i >= cfg['retrain_from_task'] - 1 and task_i not in cfg['coarse_task_num']:
+            if task_i >= cfg['retrain_from_task'] - 1:
                 if cfg['device'].type == 'cuda':
                     model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='eval_after_decouple', save_option={
                         "acc_details": True,
@@ -147,17 +111,6 @@ def _train(rank, cfg, world_size, logger=None):
                         "preds_details": True,
                         "preds_aux_details": True
                     })
-
-
-    #         if cfg['device'].type == 'cuda' and cfg['dataset'] == 'cifar100':
-    #             model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name='test', save_option={
-    #                 "acc_details": True,
-    #                 "acc_aux_details": True,
-    #                 "preds_details": True,
-    #                 "preds_aux_details": True
-    #             })
-
-
 @ex.command
 def train(_run, _rnd, _seed):
 
@@ -181,7 +134,6 @@ def train(_run, _rnd, _seed):
                 cfg.data_folder = '/datasets/iNat_datasets'
             else:
                 cfg.data_folder = cfg['dataset_path']
-                
         else:
             cfg.data_folder = osp.join(base_dir, "data")
 
@@ -193,14 +145,10 @@ def train(_run, _rnd, _seed):
             _train(0, cfg, 1, ex.logger)
 
         ex.logger.info("Training finished in {}s.".format(int(time.time() - start_time)))
-        # with open(cfg["exp"]["name"] + '/delete_warning.txt', 'a') as dw:
-        #     dw.write('This is a fully conducted experiment without errors and interruptions. Please be careful as deleting'
-        #              ' it may lose important data and results. See log file for configuration details.')
-
     except Exception as e:
         import traceback
         traceback.print_exc(file=open(
-            '/datasets/imagenet100_results/terminal_log.txt','a'))
+            '/cifar100_results/terminal_log.txt','a'))
         print('Error Message', e)
         print('\n\n\n\n')
         raise('Error')
@@ -236,53 +184,9 @@ def do_pretrain(cfg, ex, model, device, train_loader, test_loader):
         pretrain(cfg, ex, model, device, train_loader, test_loader, model_path)
 
 
-@ex.command
-def test(_run, _rnd, _seed):
-    cfg, ex.logger, tensorboard = initialization(_run.config, _seed, "test", _run._id)
-    cfg.data_folder = osp.join(base_dir, "data")
-    if cfg["device_auto_detect"]:
-        cfg["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu", index=0)
-    else:
-        factory.set_device(cfg)
-    cfg["exp"]["mode_train"] = False
-    ex.logger.info(cfg)
-
-    inc_dataset = factory.get_data(cfg)
-    model = factory.get_model(cfg, _run, ex, tensorboard, inc_dataset)
-    # model._network.task_size = cfg.increment
-
-    test_results = results_utils.get_template_results(cfg)
-    for task_i in range(inc_dataset.n_tasks):
-        model.new_task()
-        model.before_task(inc_dataset)
-        if task_i == 20:
-            model_path = 'results/' + cfg['exp']['load_model_name'] + f'/train/ckpts/decouple_step{task_i}.ckpt'
-            state_dict = torch.load(model_path)
-            # state_dict = torch.load(f'../../../cyz_codes/ctl/codes/base/ckpts/step{task_i}.ckpt')
-            model._parallel_network.load_state_dict(state_dict)
-            model.eval()
-            model.eval_task(model._cur_test_loader, save_path=model.sp['exp'], name=cfg['exp']['name'], save_option={
-                "acc_details": True,
-                "acc_aux_details": True,
-                "preds_details": True,
-                "preds_aux_details": True
-            })
-            # model.save_acc_detail_info('test')
-
 
 if __name__ == "__main__":
-    # ex.add_config('./codes/base/configs/default.yaml')
-    # ex.add_config("./codes/base/configs/ctl2_gpu_cifar100.yaml")
-    # ex.add_config("./codes/base/configs/ctl2_gpu_imagenet100.yaml")
-    # ex.add_config("./codes/base/configs/ctl2_gpu_plankton29.yaml")
-    ex.add_config("./codes/base/configs/ctl2_gpu_iNat100.yaml")
-
-    
-    # ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
-    # ex.add_config("./configs/ctl2_gpu_imagenet100.yaml")
-    # ex.add_config("./configs/ctl2_gpu_plankton29.yaml")
-    # ex.add_config("./configs/ctl2_gpu_iNat100.yaml")
-
+    ex.add_config("./configs/ctl2_gpu_cifar100.yaml")
     ex.run_commandline()
 
 

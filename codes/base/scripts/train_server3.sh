@@ -1,1 +1,0 @@
-python -m main train with "./configs/ctl2_gpu_plankton29.yaml" --force

@@ -9,7 +9,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.nn import functional as F
 
-from inclearn.convnet import network
+from inclearn.convnet import network, network_connect
 from inclearn.models.base import IncrementalLearner
 from inclearn.tools import factory, utils
 from inclearn.tools.metrics import ClassErrorMeter
@@ -23,10 +23,12 @@ from inclearn.datasets.data import tgt_to_tgt0, tgt0_to_tgt, tgt_to_aux_tgt, aux
 import pandas as pd
 import time
 import pynvml
+from inclearn.tools.utils import set_seed
 import copy
 
 # Constants
 EPSILON = 1e-8
+rec_loss = []
 
 
 class IncModel(IncrementalLearner):
@@ -67,8 +69,7 @@ class IncModel(IncrementalLearner):
 
         # Model
         self._der = cfg['der']  # Whether to expand the representation
-        self.sp = cfg['sp']
-        self._network = network.TaxonomicDer(
+        self._network = network_connect.TaxConnectionDer(
             cfg["convnet"],
             cfg=cfg,
             nf=cfg["channel"],
@@ -76,7 +77,7 @@ class IncModel(IncrementalLearner):
             use_bias=cfg["use_bias"],
             dataset=cfg["dataset"],
             feature_mode=cfg['feature_mode'],
-            sp = self.sp
+            connect = cfg['use_connection'],
         )
         if self._cfg["is_distributed"]:
             self._parallel_network = DDP(self._network, device_ids=[self._rank], output_device=self._rank)
@@ -116,9 +117,11 @@ class IncModel(IncrementalLearner):
         self.curr_targets_aux = torch.tensor([])
 
         # Task info
+        # self.task_info = {}
+        self.at_info, self.ct_info = {}, {}
         self._task = 0
         self._task_size = 0
-        self._current_tax_tree = None
+        self._part_tree = None
         self._n_train_data = 0
         self._n_test_data = 0
         self._n_tasks = self._inc_dataset.n_tasks
@@ -130,9 +133,9 @@ class IncModel(IncrementalLearner):
 
         # Save paths
         self.train_save_option = cfg['train_save_option']
+        self.sp = cfg['sp']
         self.check_cgpu_batch_period = self._cfg['check_cgpu_batch_period']
         self.check_cgpu_info = self._cfg['check_cgpu_info']
-        self.id_list_2  = {}
 
     def eval(self):
         # self._parallel_network.eval()
@@ -141,52 +144,44 @@ class IncModel(IncrementalLearner):
     def set_task_info(self, task_info):
         if self._cfg["is_distributed"]:
             self._logger.info(f'process {self._cfg["rank"]} begin set task info')
-        self._task = task_info["task"]
+        self.at_info = task_info
+        ct_info = task_info.iloc[len(task_info)-1]  # default is the last row
+        
+        self._task = ct_info["task_order"]
         # task size for current task
         # n_classes for total number of classes (history + present)
-        self._task_size = task_info["task_size"]
+        self._task_size = ct_info["task_size"]
 
-        # rtc
-        if self._cfg["taxonomy"] == 'rtc':
-            self._current_tax_tree = task_info["partial_tree"]
-            self._n_classes = len(self._current_tax_tree.leaf_nodes)
-        elif self._cfg["taxonomy"] == 'der_baseline':
-            self._current_tax_tree = task_info["partial_tree"]
-            if self._task not in self._cfg['coarse_task_num']:
-                self._n_classes += self._task_size
-        else:
-            # prob
-            self._current_tax_tree = None
+        if self._cfg["taxonomy"] is None:
+            self._part_tree = None
             self._n_classes += self._task_size
+        elif self._cfg["taxonomy"] == 'rtc':
+            self._part_tree = ct_info["part_tree"]
+            self._n_classes = len(self._part_tree.leaf_nodes)
 
-        self._n_train_data = task_info["n_train_data"]
-        self._n_test_data = task_info["n_test_data"]
+        self._n_train_data = ct_info["n_train_data"]
+        self._n_test_data = ct_info["n_test_data"]
 
     def train(self):
         if self._der:
+            self._network.set_train()
             # self._parallel_network.train()
             # self._parallel_network.module.convnets[-1].train()
-            self._parallel_network.train()
-            self._parallel_network.module.convnets[-1].train()
-            if self._task >= 1:
-                for i in range(self._task):
-                    # self._parallel_network.module.convnets[i].eval()
-                    self._parallel_network.module.convnets[i].eval()
+            # if self._task >= 1:
+            #     for i in range(self._task):
+            #         self._parallel_network.module.convnets[i].eval()
         else:
-            # self._parallel_network.train()
             self._parallel_network.train()
 
-    def _new_task(self):
-        self._logger.info('begin new task')
-        task_info, train_loader, val_loader, test_loader = self._inc_dataset.new_task(coarse_task_num=self._cfg['coarse_task_num'])
+    def _before_task(self):
+        # Set task info
+        task_info, train_loader, val_loader, test_loader = self._inc_dataset.new_task()
         self.set_task_info(task_info)
         self._cur_train_loader = train_loader
         self._cur_val_loader = val_loader
         self._cur_test_loader = test_loader
-        # print(self._cur_val_loader.sampler)
 
-    def _before_task(self, inc_dataset):
-        self._logger.info(f"Begin step {self._task}")
+        self._logger.info(f"Begin task {self._task}")
 
         # Memory
         self._memory_size.update_n_classes(self._n_classes)
@@ -194,22 +189,10 @@ class IncModel(IncrementalLearner):
         self._logger.info("Now {} examplars per class.".format(self._memory_per_class))
 
         # Network
-        self._network.current_tax_tree = self._current_tax_tree
-
-        node2id_dict = {}
-        for i in self._current_tax_tree.leaf_nodes.values():
-            node2id_dict[i] = self._current_tax_tree.nodes[i].label_index
-        for i in node2id_dict:
-            if node2id_dict[i] >= 0 and node2id_dict[i] not in self.id_list_2:
-                self.id_list_2[node2id_dict[i]] = len(self.id_list_2)
-
-        self._network.task_size = self._task_size
-        self._network.current_task = self._task
-
-        self._network.add_classes(self._task_size, feature_mode=self._cfg['feature_mode'])
-        self._network.n_classes = self._n_classes
-        print('finest_level_class number', self._n_classes)
+        self._network.new_task(self.at_info, feature_mode=self._cfg['feature_mode'])
+        # self._network.n_classes = self._n_classes
         self.set_optimizer()
+    
 
     def set_optimizer(self, lr=None):
         if lr is None:
@@ -226,11 +209,13 @@ class IncModel(IncrementalLearner):
 
         # In DER model, freeze the previous network parameters
         # only updates parameters for the current network
-        if self._der and self._task > 0:
-            for i in range(self._task):
-                # for p in self._parallel_network.module.convnets[i].parameters():
-                for p in self._parallel_network.module.convnets[i].parameters():
-                    p.requires_grad = False
+        # if self._der and self._task > 0:
+
+        self._network.set_train()
+            # for i in range(self._task):
+            #     # for p in self._parallel_network.module.convnets[i].parameters():
+            #     for p in self._parallel_network.module.convnets[i].parameters():
+            #         p.requires_grad = False
 
         self._optimizer = factory.get_optimizer(filter(lambda p: p.requires_grad, self._network.parameters()),
                                                 self._opt_name, lr, weight_decay)
@@ -258,18 +243,19 @@ class IncModel(IncrementalLearner):
         # utils.display_feature_norm(self._logger, self._parallel_network, train_loader, self._n_classes,
         #                            self._increments, "Initial trainset")
 
-        # self._parallel_network.to(self._device)
 
         acc_list, acc_list_k, acc_list_aux = [], [], []
         self.curr_preds, self.curr_preds_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
         self.curr_targets, self.curr_targets_aux = self._to_device(torch.tensor([])), self._to_device(torch.tensor([]))
-
-        
         class_index = set(train_loader.dataset.y)
-        class_count = {self._current_tax_tree.label2name[i]: np.sum(train_loader.dataset.y==i) for i in class_index}
+        class_count = {self._part_tree.label2name[i]: np.sum(train_loader.dataset.y==i) for i in class_index}
         print(f'task{self._task}: class_count —— {class_count}')
-        print()
         
+        #important
+        # if self._task >= 1:
+        #     a = np.load('aux_classifier_para.npy')
+        #     self._network.aux_classifier.weight = torch.nn.Parameter(torch.from_numpy(a))
+        print()
         for epoch in range(self._n_epochs):
             _ce_loss, _joint_ce_loss, _loss_aux, _total_loss = 0.0, 0.0, 0.0, 0.0
 
@@ -306,6 +292,8 @@ class IncModel(IncrementalLearner):
             load_start_time = time.time()
 
             batch_start_time = time.time()
+            #important
+            # set_seed(0)
             for i, data in enumerate(train_loader, start=1):
                 load_end_time = time.time()
 
@@ -337,8 +325,14 @@ class IncModel(IncrementalLearner):
 
                 para_net_start_time = time.time()
                 if epoch == 0 and i == 1:
+                    #important
+                    # self._to_device(self._parallel_network)
+                    # self._to_device(inputs)
                     outputs = self._parallel_network(inputs)
                 else:
+                    #important
+                    # self._to_device(self._parallel_network)
+                    # self._to_device(inputs)
                     outputs = self._parallel_network(inputs)
 
                 para_net_end_time = time.time()
@@ -356,14 +350,13 @@ class IncModel(IncrementalLearner):
 
                 if self._cfg["use_aux_cls"] and self._task > 0:
                     total_loss = ce_loss + loss_aux
+                    # total_loss = ce_loss
+
                 else:
                     total_loss = ce_loss + self._to_device(torch.tensor([0]))
 
                 if self._cfg["use_joint_ce_loss"]:
                     total_loss += joint_ce_loss
-
-
-
 
                 # if ce_loss < 0:
                 #     print('ce_loss: ', ce_loss)
@@ -376,13 +369,12 @@ class IncModel(IncrementalLearner):
                 #             print(a[x])
                 # print(total_loss)
                 backward_start_time = time.time()
+                # rec_loss.append(total_loss)
+
                 total_loss.backward()
                 backward_end_time = time.time()
 
-                backward_time_list.append(np.round(backward_end_time - backward_start_time, 3))
-
-                # a = self._optimizer.param_groups[0]['params']
-                # print(a[0].grad)
+                backward_time_list.append(np.round(backward_end_time - backward_start_time, 3))                
                 step_start_time = time.time()
                 self._optimizer.step()
                 step_end_time = time.time()
@@ -413,7 +405,6 @@ class IncModel(IncrementalLearner):
                 batch_end_time = time.time()
                 batch_total_time_list.append(np.round(batch_end_time - batch_start_time, 3))
                 batch_start_time = time.time()
-
             _ce_loss = _ce_loss.item()
             _joint_ce_loss = _joint_ce_loss.item()
             _loss_aux = _loss_aux.item()
@@ -427,6 +418,9 @@ class IncModel(IncrementalLearner):
             else:
                 avg_detail_dict_topk = {'total_avg': None}
 
+            # important
+            # print(f'Task {self._task + 1}/{self._n_tasks}, Epoch {epoch + 1}/{self._n_epochs}, total_loss: {_total_loss / i}, ce_loss: {_ce_loss / i}, joint_ce_loss: {_joint_ce_loss / i}, aux_loss: {_loss_aux / i}')
+            
             if self._cfg['show_detail']:
                 self._logger.info(
                     "Task {}/{}, Epoch {}/{} => Avg Total Loss: {}, Avg CE Loss: {}, Avg Joint CE Loss: {}, Avg Aux Loss: {}, "
@@ -500,25 +494,23 @@ class IncModel(IncrementalLearner):
         self.save_details(self.sp['acc_detail']['train'], self.train_save_option)
 
     def record_details(self, outputs, targets, acc, acc_k, acc_aux, save_option=None):
-        # rtc
-        # if self._cfg["taxonomy"] == 'der_ori':
-        if False:
-            targets_0 = tgt_to_tgt0_no_tax(targets, self._inc_dataset.targets_all_unique, self._device)   
+        if self._cfg["taxonomy"] is not None:
+            targets_0 = tgt_to_tgt0(targets, self._network.leaf_id, self._device)
         else:
-            if self._task not in self._cfg['coarse_task_num']:
-                # targets_0 = tgt_to_tgt0(targets, self._network.leaf_id, self._device)
-                targets_0 = tgt_to_tgt0(targets, self.id_list_2, self._device)
-            else:
-                target_list = sorted(set(self._cur_train_loader.dataset.y))
-                leaf_id_dic = {target_list[i]:i for i in range(len(target_list))}
-                targets_0 = tgt_to_tgt0(targets, leaf_id_dic, self._device)
-            
+            targets_0 = tgt_to_tgt0_no_tax(targets, self._inc_dataset.targets_all_unique, self._device)
 
         # if self._cfg["taxonomy"] is not None:
         output = outputs['output']
         aux_output = outputs['aux_logit']
 
-        self.record_accuracy(output, targets_0, acc, acc_k)
+        # for correct avg acc start
+        fine_cate_index_list = [self._network.leaf_id[i] for i in self._network.leaf_id if i >= 0 ]
+        self.record_accuracy(output, targets_0, acc, acc_k, fine_cate_index_list)
+        # for correct avg acc end
+
+        # self.record_accuracy(output, targets_0, acc, acc_k)
+
+
         # record to self.curr_acc_list
         if save_option["acc_details"]:
             self.record_acc_details(output, targets, targets_0, acc, acc_k)
@@ -556,8 +548,7 @@ class IncModel(IncrementalLearner):
 
     def _compute_loss(self, outputs, targets, nlosses, jointcelosses, stslosses, losses):
         batch_size = targets.size(0)
-        # rtc
-        if self._cfg["taxonomy"] == 'rtc':
+        if self._cfg["taxonomy"] is not None:
             targets_0 = tgt_to_tgt0(targets, self._network.leaf_id, self._device)
             output = outputs['output']
             aux_output = outputs['aux_logit']
@@ -579,44 +570,9 @@ class IncModel(IncrementalLearner):
             stsloss = torch.mean(-gt_z + torch.log(torch.clamp(sfmx_base.view(-1, 1), 1e-17, 1e17)))
             stslosses.update(stsloss.item(), batch_size)
 
-            loss = nloss + stsloss * 0
-            losses.update(loss.item(), batch_size)
-            # if stsloss < 0:
-            # print('stsloss: ', stsloss)
-
-        elif self._cfg["taxonomy"] == 'der_baseline':
-            output = outputs['output']
-            aux_output = outputs['aux_logit']
-            criterion = torch.nn.CrossEntropyLoss(reduction='none')
-            if self._task not in self._cfg['coarse_task_num']:
-                # leaf_id_2_list = sorted([i for i in self._network.leaf_id if i>=0])
-                # leaf_id_2 = {leaf_id_2_list[i]:i for i in range(len(leaf_id_2_list))}
-                targets_0 = tgt_to_tgt0(targets, self.id_list_2, self._device)
-            else:
-                target_list = sorted(set(self._cur_train_loader.dataset.y))
-                leaf_id_dic = {target_list[i]:i for i in range(len(target_list))}
-                targets_0 = tgt_to_tgt0(targets, leaf_id_dic, self._device)
-            aux_loss = self._compute_aux_loss(targets, aux_output)
-            loss = torch.mean(criterion(output, targets_0.long()))
-            losses.update(loss.item(), batch_size)
-            joint_ce_loss = torch.tensor([0])
-            
-            # if self._cfg["use_joint_ce_loss"]:
-            #     joint_ce_loss = self._compute_joint_ce_loss(targets_0, output)
-            #     jointcelosses.update(joint_ce_loss.item(), batch_size)
-            # else:
-            #     joint_ce_loss = torch.tensor([0])
-            # nloss = deep_rtc_nloss(nout, targets, self._network.leaf_id, self._network.node_labels, self._device)
-
-            # nlosses.update(nloss.item(), batch_size)
-            # # print(nloss)
-
-            # gt_z = torch.gather(output, 1, targets_0.view(-1, 1))
-            # stsloss = torch.mean(-gt_z + torch.log(torch.clamp(sfmx_base.view(-1, 1), 1e-17, 1e17)))
-            # stslosses.update(stsloss.item(), batch_size)
-
             # loss = nloss + stsloss * 0
-            # losses.update(loss.item(), batch_size)
+            loss = nloss
+            losses.update(loss.item(), batch_size)
             # if stsloss < 0:
             # print('stsloss: ', stsloss)
         else:
@@ -676,13 +632,10 @@ class IncModel(IncrementalLearner):
             # save_path = os.path.join(os.getcwd(), "ckpts")
             torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
 
-        coarse_task_num_tmp = copy.deepcopy(self._cfg['coarse_task_num'])
-        for i in range(len(coarse_task_num_tmp)+1):
-            if i not in coarse_task_num_tmp:
-                coarse_task_num_tmp.append(i)
-                break
+        if taski == 0 and taski in self._cfg["save_ckpt"]:
+                torch.save(network.cpu().state_dict(), "{}/step{}.ckpt".format(self.sp['model'], self._task))
 
-        if enforce_decouple or ((self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task) and self._task not in coarse_task_num_tmp):
+        if enforce_decouple or (self._cfg["decouple"]['enable'] and taski > 0 and taski >= self._train_from_task):
             if self._cfg["decouple"]["fullset"]:
                 train_loader = inc_dataset._get_loader(inc_dataset.data_inc, inc_dataset.targets_inc, mode="train")
             else:
@@ -692,10 +645,20 @@ class IncModel(IncrementalLearner):
 
             # finetuning
             # only hiernet on cuda needs .module
-            if self._cfg['taxonomy']=='rtc':
-                self._network.classifier.reset_parameters(self._network.node2TFind_dict, feature_mode=self._cfg['feature_mode'], ancestor_self_nodes_list=self._network.ancestor_self_nodes_list)
-            else:
-                self._network.classifier.reset_parameters()
+            # for k in range(self._network.classifier.num_nodes):
+            #     for j in range(self._network.classifier.cur_task):
+            #         fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
+            #         fc_new = getattr(self._network.classifier, fc_name, None)
+
+
+            # self._network.classifier.reset_parameters(self._network.node2TFind_dict, feature_mode=self._cfg['feature_mode'], ancestor_self_nodes_list=self._network.ancestor_self_nodes_list)
+            self._network.exp_classifier.reset_parameters()
+
+            # for k in range(self._network.classifier.num_nodes):
+            #     for j in range(self._network.classifier.cur_task):
+            #         fc_name = self._network.classifier.nodes[k].name + f'_TF{j}'
+            #         fc_new = getattr(self._network.classifier, fc_name, None)
+
 
             finetune_last_layer(self._logger,
                                 # self._parallel_network,
@@ -712,27 +675,15 @@ class IncModel(IncrementalLearner):
                                 loss_type="ce",
                                 temperature=self._decouple["temperature"],
                                 save_path=f"{self.sp['acc_detail']['train']}/task_{self._task}_decouple",
-                                index_map=self._inc_dataset.targets_all_unique,
-                                id_list_2=self.id_list_2)
+                                index_map=self._inc_dataset.targets_all_unique, 
+                                # feature_mode=self._cfg['feature_mode']
+                                )
             # network = deepcopy(self._parallel_network)
-            # network = deepcopy(self._parallel_network)
-            # if taski in self._cfg["save_ckpt"]:
-            #     # save_path = os.path.join(os.getcwd(), "ckpts")
-            #     torch.save(network.cpu().state_dict(),
-            #                "{}/decouple_step{}.ckpt".format(self.sp['model'], self._task))
-            
-        # if self._task in coarse_task_num_tmp:
-        if True:
-            network = deepcopy(self._parallel_network)      
+            network = deepcopy(self._parallel_network)
             if taski in self._cfg["save_ckpt"]:
-                    # save_path = os.path.join(os.getcwd(), "ckpts")
-                if taski != 0:
-                    torch.save(network.cpu().state_dict(),
-                                "{}/decouple_step{}.ckpt".format(self.sp['model'], self._task))
-                else:
-                    torch.save(network.cpu().state_dict(),
-                                "{}/step{}.ckpt".format(self.sp['model'], self._task))
-                    
+                # save_path = os.path.join(os.getcwd(), "ckpts")
+                torch.save(network.cpu().state_dict(),
+                           "{}/decouple_step{}.ckpt".format(self.sp['model'], self._task))
 
         if self._cfg["postprocessor"]["enable"]:
             self._update_postprocessor(inc_dataset)
@@ -741,10 +692,8 @@ class IncModel(IncrementalLearner):
             self._logger.info("compute prototype")
             self.update_prototype()
 
-        # careful
-        if self._cfg['memory_enable'] and self._memory_size.memsize != 0 and self._task not in self._cfg['coarse_task_num']:
+        if self._cfg['memory_enable'] and self._memory_size.memsize != 0:
             self._logger.info("build memory")
-    
             self.build_exemplars(inc_dataset, self._coreset_strategy)
 
             if self._cfg["save_mem"]:
@@ -780,15 +729,6 @@ class IncModel(IncrementalLearner):
             raise ValueError()
 
     def _compute_accuracy_by_netout(self, data_loader, name='default', save_path='', save_option=None):
-        data_loader_x = data_loader.dataset.x
-        data_loader_y = data_loader.dataset.y
-        full_index = np.array([], dtype=int)
-        for i in set(self._cur_train_loader.dataset.y):
-            index_i = np.where(data_loader_y==i)[0]
-            full_index = np.concatenate((full_index, index_i))
-        data_loader.dataset.x = data_loader_x[full_index]
-        data_loader.dataset.y = data_loader_y[full_index]
-
         self._logger.info(f"Begin evaluation: {name}")
         factory.print_dataset_info(data_loader)
         acc = averageMeter()
@@ -826,10 +766,9 @@ class IncModel(IncrementalLearner):
                 to_device_time_list.append(np.round(to_device_end_time - to_device_start_time, 3))
                 para_net_start_time = time.time()
                 outputs = self._parallel_network(inputs)
-                if self._cfg['taxonomy'] == 'rtc':
-                    if self._cfg['show_noutput_detail']:
-                        self.show_detail_nout(outputs, targets, nout_dict)
-                        self.show_detail_output(outputs, targets, output_dict, self._network.leaf_id)
+                if self._cfg['show_noutput_detail']:
+                    self.show_detail_nout(outputs, targets, nout_dict)
+                    self.show_detail_output(outputs, targets, output_dict, self._network.leaf_id)
 
                 para_net_end_time = time.time()
 
@@ -857,6 +796,8 @@ class IncModel(IncrementalLearner):
                               f"{round(np.mean(load_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg para_net_time {round(np.mean(para_net_time_list), 3)}s —— " +
                               f"{round(np.mean(para_net_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, avg to_device_time " +
                               f"{round(np.mean(to_device_time_list), 3)}s —— {round(np.mean(to_device_time_list) / np.mean(batch_total_time_list) * 100, 3)}%, ")
+
+            
         else:
             self._logger.info(
                 f"Evaluation {name}, avg total: {avg_detail_dict['total_avg']}, finest avg: {avg_detail_dict['finest_avg']} with {avg_detail_dict['finest_count']} classes, " + \
@@ -1114,13 +1055,36 @@ class IncModel(IncrementalLearner):
              })
         df_aux.to_csv(f'{save_path}_task_{self._task}_aux.csv', index=False)
 
-    def record_accuracy(self, output, targets, acc, acc_k=None):
-        iscorrect = (output.argmax(1) == targets)
+    
+    # def record_accuracy(self, output, targets, acc, acc_k=None):
+    #     iscorrect = (output.argmax(1) == targets)
+    #     acc.update(float(iscorrect.count_nonzero() / iscorrect.size(0)), iscorrect.size(0))
+    #     if acc_k is not None:
+    #         _, pred = output.topk(max((1, self._cfg['acc_k'])), 1, True, True)
+    #         iscorrect_k = (pred == targets.view(-1,1)).sum(1).bool()
+    #         acc_k.update(float(iscorrect_k.count_nonzero() / iscorrect_k.size(0)), iscorrect_k.size(0))
+
+    # for correct avg acc start
+    def record_accuracy(self, output, targets, acc, acc_k=None, fine_cate_index_list=[]):
+        if fine_cate_index_list:
+            fine_cate_index_map = {i: fine_cate_index_list.index(i) for i in fine_cate_index_list}
+            output_fine = output[:, fine_cate_index_list]
+            targets_fine = copy.deepcopy(targets)
+            for i in fine_cate_index_map:
+                index_i = torch.where(targets == i)
+                targets_fine[index_i] = fine_cate_index_map[i]
+
+            iscorrect = (output_fine.argmax(1) == targets_fine)
+        else:
+            iscorrect = (output.argmax(1) == targets)
+
         acc.update(float(iscorrect.count_nonzero() / iscorrect.size(0)), iscorrect.size(0))
         if acc_k is not None:
             _, pred = output.topk(max((1, self._cfg['acc_k'])), 1, True, True)
             iscorrect_k = (pred == targets.view(-1,1)).sum(1).bool()
             acc_k.update(float(iscorrect_k.count_nonzero() / iscorrect_k.size(0)), iscorrect_k.size(0))
+    # for correct avg acc end
+
 
     def record_acc_details(self, output, targets, targets_0, acc, acc_k=None):
         # targets is the real label
@@ -1147,12 +1111,7 @@ class IncModel(IncrementalLearner):
         # TODO: fix the output!
         preds_ori = output.argmax(1)
         if self._cfg['taxonomy']:
-            if self._task not in self._cfg['coarse_task_num']:
-                # leaf_id_2_list = sorted([i for i in self._network.leaf_id if i>=0])
-                # leaf_id_2 = {leaf_id_2_list[i]:i for i in range(len(leaf_id_2_list))}
-                preds = tgt0_to_tgt(preds_ori, self.id_list_2)
-            else:
-                preds = tgt0_to_tgt(preds_ori, self._network.leaf_id)
+            preds = tgt0_to_tgt(preds_ori, self._network.leaf_id)
         elif preds_ori.device.type == 'cuda':
             preds = preds_ori.cpu()
         else:

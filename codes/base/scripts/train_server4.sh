@@ -1,1 +1,0 @@
-python -m main train with "./configs/ctl2_gpu_iNat100.yaml" --force

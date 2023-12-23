@@ -1,1 +1,0 @@
-img_path = '/datasets/iNat_datasets/iNat_1010_max600/train_val_images/Aves/Ardea herodias/7496a76e41786c2798dfc2947d666978.jpg'

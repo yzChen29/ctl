@@ -8,13 +8,11 @@ from inclearn.convnet.imbalance import BiC, WA
 from inclearn.convnet.classifier import CosineClassifier, RealTaxonomicClassifier
 from inclearn.deeprtc import get_model
 from inclearn.deeprtc.pivot import Pivot
-import copy
-import torch
-import numpy as np
+
 
 class TaxonomicDer(nn.Module):  # used in incmodel.py
     def __init__(self, convnet_type, cfg, nf=64, use_bias=False, init="kaiming", device=None, dataset="cifar100",
-                 current_tax_tree=None, current_task=0, feature_mode='full', sp=''):
+                 current_tax_tree=None, current_task=0, feature_mode='full'):
         super(TaxonomicDer, self).__init__()
         self.nf = nf
         self.init = init
@@ -32,7 +30,6 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
         self.module_pivot = cfg['model_pivot']
         self.current_tax_tree = current_tax_tree
         self.current_task = current_task
-        self.coarse_task_num = cfg['coarse_task_num']
 
         if self.der:
             print("Enable dynamical representation expansion!")
@@ -70,8 +67,7 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
                 self.postprocessor = WA()
         else:
             self.postprocessor = None
-        self.sp = sp
-        self.inherit_cls_saved_flag = False
+
         self.to(self.device)
 
     def forward(self, x):
@@ -79,18 +75,12 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
             raise Exception("Add some classes before training.")
 
         if self.der:
-            if self.current_task in self.coarse_task_num:
-                # only using feature from coarse level
-                features = []
-                for i in self.coarse_task_num[:self.coarse_task_num.index(self.current_task)+1]:
-                    features.append(self.convnets[i](x))
-            else:
-                features = [convnet(x) for convnet in self.convnets]
+            features = [convnet(x) for convnet in self.convnets]
             features = torch.cat(features, 1)
         else:
             features = self.convnet(x)
 
-        if self.taxonomy == 'rtc':
+        if self.taxonomy is not None:
             gate = self.model_pivot(torch.ones([x.size(0), len(self.used_nodes)]))
             # gate[:, 0] = 1
             # print(features)
@@ -101,16 +91,8 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
             nout, sfmx_base = None, None
 
         if self.use_aux_cls:
-            coarse_task_num_tmp = copy.deepcopy(self.coarse_task_num)
-            for i in range(len(coarse_task_num_tmp)+1):
-                if i not in coarse_task_num_tmp:
-                    coarse_task_num_tmp.append(i)
-                    break
-            # coarse_task_num_tmp = self.coarse_task_num + index of first task not in self.coarse_task_num
-            if self.current_task not in coarse_task_num_tmp:
-                aux_logits = self.aux_classifier(features[:, -self.out_dim:])
-            else:
-                aux_logits = None
+            aux_logits = self.aux_classifier(features[:, -self.out_dim:]) \
+                if features.shape[1] > self.out_dim else None
         else:
             aux_logits = None
         return {'feature': features, 'output': output, 'nout': nout, 'sfmx_base': sfmx_base, 'aux_logit': aux_logits}
@@ -140,11 +122,9 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
         # self.n_classes += n_classes
 
     def _add_classes_multi_fc(self, n_classes, feature_mode='full'):
-        if self.taxonomy == 'rtc':
+        if self.taxonomy:
             all_classes = len(self.current_tax_tree.leaf_nodes)
         else:
-            # here
-            # self.n_classes = exist finest level classes
             all_classes = self.n_classes + n_classes
 
         if self.current_task > 0:
@@ -153,35 +133,11 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
                                           dataset=self.dataset,
                                           start_class=self.start_class,
                                           remove_last_relu=self.remove_last_relu).to(self.device)
-            
-
-            # coarse_task_num_tmp = copy.deepcopy(self.coarse_task_num)
-            # for i in range(len(coarse_task_num_tmp)+1):
-            #     if i not in coarse_task_num_tmp:
-            #         coarse_task_num_tmp.append(i)
-            #         break
-
-            # if self.current_task not in coarse_task_num_tmp:
-            #     state_dict = torch.load(f"{self.sp['model']}/tmp_conv.ckpt")
-            #     new_net.load_state_dict(state_dict)
-            #     new_net.to(self.device)
-            # if self.current_task not in self.coarse_task_num:
-            #     torch.save(self.convnets[-1].cpu().state_dict(), f"{self.sp['model']}/tmp_conv.ckpt")
-            #     self.convnets[-1].to(self.device)
-
             new_net.load_state_dict(self.convnets[-1].state_dict())
-
             self.convnets.append(new_net)
 
-        # here
-        if self.current_task in self.coarse_task_num:
-
-            # new_clf = self._gen_classifier(self.out_dim * len(self.convnets), n_classes)
-            new_clf = self._gen_classifier(self.out_dim * (self.coarse_task_num.index(self.current_task)+1), n_classes)
-
-        else:
-            new_clf = self._gen_classifier(self.out_dim * len(self.convnets), all_classes)
-        if self.taxonomy == 'rtc':
+        new_clf = self._gen_classifier(self.out_dim * len(self.convnets), all_classes)
+        if self.taxonomy:
             if self.classifier is None:
                 self.node2TFind_dict['root'] = self.current_task
 
@@ -251,45 +207,9 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
                     fc_new = getattr(new_clf, fc_name, None)
 
         else:
-            # here
-
-            self.inherit_cls_flag = False
-            self.inherit_cls_saved_flag = False
-
-            # save classifier as npy before coarse_level and then load it after training coarse_level
-            coarse_task_num_tmp = copy.deepcopy(self.coarse_task_num)
-            for i in range(len(coarse_task_num_tmp)+1):
-                if i not in coarse_task_num_tmp:
-                    coarse_task_num_tmp.append(i)
-                    break
-            # if self.classifier is not None and self.reuse_oldfc and self.current_task not in self.coarse_task_num:
-            #     if self.current_task not in coarse_task_num_tmp:
-            #         print(f'n_classes_test: task {self.current_task}, n_classes {self.n_classes}')
-            #         new_clf.weight.data[:self.n_classes, :self.out_dim * (len(self.convnets) - 1)] = torch.Tensor(np.load(f"{self.sp['model']}/tmp_clas.npy"))
-            #     if self.current_task not in self.coarse_task_num:
-            #         np.save(f"{self.sp['model']}/tmp_clas.npy", np.array(self.classifier.weight.data.cpu()))
-
-            if self.classifier is not None and self.current_task in self.coarse_task_num and not self.inherit_cls_saved_flag:
-                np.save(f"{self.sp['model']}/tmp_clas.npy", np.array(self.classifier.weight.data.cpu()))
-                self.inherit_cls_saved_flag = True
-                print(f'tmp_clas.npy saved at {self.current_task}')
-
-
-            if self.classifier is not None and self.reuse_oldfc and self.current_task not in coarse_task_num_tmp:
-                if self.current_task-1 in self.coarse_task_num:
-                    weight =  torch.Tensor(np.load(f"{self.sp['model']}/tmp_clas.npy"))
-                    new_clf.weight.data[:weight.shape[0], :weight.shape[1]] = weight
-                    self.inherit_cls_saved_flag = False
-                    print(f'tmp_clas.npy loaded at {self.current_task}')
-                else:
-                    weight = copy.deepcopy(self.classifier.weight.data)
-                    # new_clf.weight.data[:self.n_classes, :self.out_dim * (len(self.convnets) - 1)] = weight
-                    new_clf.weight.data[:weight.shape[0], :weight.shape[1]] = weight
-                # print(f'n_classes_test: task {self.current_task}, n_classes {self.n_classes}')
-
-                # weight = copy.deepcopy(self.classifier.weight.data)
-                # new_clf.weight.data[:self.n_classes, :self.out_dim * (len(self.convnets) - 1)] = weight
-
+            if self.classifier is not None and self.reuse_oldfc:
+                weight = copy.deepcopy(self.classifier.weight.data)
+                new_clf.weight.data[:self.n_classes, :self.out_dim * (len(self.convnets) - 1)] = weight
 
         del self.classifier
         self.classifier = new_clf
@@ -323,30 +243,29 @@ class TaxonomicDer(nn.Module):  # used in incmodel.py
         del self.classifier
         self.classifier = classifier
 
-    def _gen_classifier(self, in_features, n_classes, ):
-        #test
-        if self.taxonomy in ['rtc', 'der_baseline']:
+    def _gen_classifier(self, in_features, n_classes):
+        if self.taxonomy is not None:
             self._update_tree_info()
-        if self.taxonomy == 'rtc':
-            # classifier
-            # used_nodes = setup_tree(self.current_task, self.current_tax_tree)
-            model_dict = {'arch': self.module_cls, 'feat_size': in_features}
-            if self.device.type == 'cuda':
-                model_cls = get_model(model_dict, self.used_nodes, self.reuse_oldfc).cuda()
-                # model_cls = nn.DataParallel(model_cls, device_ids=range(torch.cuda.device_count()))
+            if self.taxonomy == 'rtc':
+                # classifier
+                # used_nodes = setup_tree(self.current_task, self.current_tax_tree)
+                model_dict = {'arch': self.module_cls, 'feat_size': in_features}
+                if self.device.type == 'cuda':
+                    model_cls = get_model(model_dict, self.used_nodes, self.reuse_oldfc).cuda()
+                    # model_cls = nn.DataParallel(model_cls, device_ids=range(torch.cuda.device_count()))
+                else:
+                    model_cls = get_model(model_dict, self.used_nodes, self.reuse_oldfc)
+                    # model_cls = nn.DataParallel(model_cls, device_ids=range(0))
+                classifier = model_cls
+
+                # pivot
+                self._gen_pivot()
             else:
-                model_cls = get_model(model_dict, self.used_nodes, self.reuse_oldfc)
-                # model_cls = nn.DataParallel(model_cls, device_ids=range(0))
-            classifier = model_cls
-
-            # pivot
-            self._gen_pivot()
-
+                raise NotImplementedError('')
         else:
             if self.weight_normalization:
                 classifier = CosineClassifier(in_features, n_classes).to(self.device)
             else:
-                # here
                 classifier = nn.Linear(in_features, n_classes, bias=self.use_bias).to(self.device)
                 if self.init == "kaiming":
                     nn.init.kaiming_normal_(classifier.weight, nonlinearity="linear")

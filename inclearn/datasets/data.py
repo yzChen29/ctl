@@ -7,6 +7,7 @@ import multiprocessing as mp
 import albumentations as A
 import random
 import torch
+import pandas as pd
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import datasets, transforms
@@ -15,9 +16,9 @@ from torchvision.transforms import functional as F
 from .dataset import get_dataset
 from inclearn.deeprtc.libs import Tree
 from inclearn.tools.data_utils import construct_balanced_subset
+from inclearn.tools.utils import set_feature_size
 from collections import OrderedDict
 import warnings
-import copy
 warnings.filterwarnings("ignore", "Corrupt EXIF data", UserWarning)
 
 
@@ -27,8 +28,9 @@ def get_data_folder(data_folder, dataset_name):
 
 class IncrementalDataset:
     def __init__(self, trial_i, dataset_name, is_distributed=False, random_order=False, shuffle=True, workers=10,
-                 device=None, batch_size=128, seed=1, sample_rate=[0.15, 0.15, 0.3], increment=10, validation_split=0.0,
-                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, debug=False, coarse_task_num = []):
+                 device=None, batch_size=128, seed=1, sample_rate=[0.1, 0.2, 0.3], increment=10, validation_split=0.0,
+                 resampling=False, data_folder="./data", start_class=0, mode_train=True, taxonomy=None, connect_fs=512, debug=False, 
+                 full_connect=True, df_name=''):
         # The info about incremental split
         self.trial_i = trial_i
         self.start_class = start_class
@@ -42,6 +44,8 @@ class IncrementalDataset:
         self._device = device
 
         self._seed = seed
+        self.connect_fs = connect_fs
+        self.full_connect = full_connect
         # self._s_rate = sample_rate
         self._s_rate = sample_rate
         self._workers = workers
@@ -51,10 +55,12 @@ class IncrementalDataset:
         # -------------------------------------
         # Dataset Info
         # -------------------------------------
+        # self.data_folder = get_data_folder(data_folder, dataset_name)
         if 'imagenet' in dataset_name:
             ds_name = 'imagenet-ilsvrc2012'
         elif 'plankton' in dataset_name:
             ds_name = 'workshop2019_v2_datasets'
+
         elif 'iNat' in dataset_name:
             if dataset_name == 'iNat100':
                 ds_name = 'iNat_1010_max600'
@@ -69,7 +75,9 @@ class IncrementalDataset:
         self.n_tot_cls = -1
         # datasets is the object
         dataset_class = get_dataset(dataset_name)
+
         self.debug = debug
+        self.df_name = df_name
         self._setup_data(dataset_class)
 
         # Currently, don't support multiple datasets
@@ -84,7 +92,7 @@ class IncrementalDataset:
         self._setup_curriculum(dataset_class)
         self._current_task = 0
         self.taxonomy_tree = dataset_class.taxonomy_tree
-        self.current_partial_tree = Tree(self.dataset_name)
+        self.cur_part_tree = Tree(self.dataset_name)
         self.current_ordered_dict = OrderedDict()
 
         # memory Mt
@@ -101,14 +109,21 @@ class IncrementalDataset:
         # self.targets_ori = None
         # Available data stored in cpu memory.
         self.shared_data_inc, self.shared_test_data = None, None
-        self.coarse_task_num = coarse_task_num
+        self.task_info = pd.DataFrame()
 
     @property
     def n_tasks(self):
         return len(self.curriculum)
 
-    def new_task(self, coarse_task_num=None):
+    def new_task(self):
         x_train, y_train, x_val, y_val, x_test, y_test = self._get_cur_data_for_all_children()
+
+        # for correct avg acc start
+        fine_level_index = np.where(y_test>=0)
+        if fine_level_index[0].shape[0] != 0:
+            x_test, y_test = x_test[fine_level_index], y_test[fine_level_index]
+        # for correct avg acc end 
+        
         self.data_cur, self.targets_cur = x_train, y_train
         self.targets_cur_unique = list(OrderedDict.fromkeys(self.targets_cur))
         print(self.targets_cur_unique)
@@ -116,15 +131,13 @@ class IncrementalDataset:
         self.targets_all_unique += self.targets_cur_unique
         if self._current_task >= len(self.curriculum):
             raise Exception("No more tasks.")
+
+        # important
         if not self.debug:
-            coarse_task_num_tmp = copy.deepcopy(self.coarse_task_num)
-            for i in range(len(coarse_task_num_tmp)+1):
-                if i not in coarse_task_num_tmp:
-                    coarse_task_num_tmp.append(i)
-                    break
-            if self.mode_train and self._current_task not in coarse_task_num_tmp:
+            if self.mode_train:
                 if self._current_task > 0:
                     self._update_memory_for_new_task(self.curriculum[self._current_task])
+
                 # if self.data_memory is not None:
                     data_memory, targets_memory = self.gen_memory_array_from_dict()
                     print("Set memory of size: {}.".format(len(data_memory)))
@@ -137,36 +150,48 @@ class IncrementalDataset:
 
         train_loader = self._get_loader(x_train, y_train, mode="train")
         val_loader = self._get_loader(x_val, y_val, shuffle=False, mode="test")
+        # print(val_loader.sampler)
         test_loader = self._get_loader(x_test, y_test, shuffle=False, mode="test")
 
         # old method
         # task_until_now = self.curriculum[:self._current_task + 1]
         # cur_parent_node = self.taxonomy_tree.get_task_parent(self.curriculum[self._current_task])
         # self.current_ordered_dict[cur_parent_node] = self.curriculum[self._current_task]
-        # self.current_partial_tree = self.taxonomy_tree.gen_partial_tree(task_until_now)
+        # self.cur_part_tree = self.taxonomy_tree.gen_partial_tree(task_until_now)
 
         # new method
-        self.taxonomy_tree.expand_tree(self.current_partial_tree, self.curriculum[self._current_task])
-        
-        self.current_partial_tree.reset_params()
-        # self.current_partial_tree = self.taxonomy_tree.reset_params_2(self.current_partial_tree)
+        self.taxonomy_tree.expand_tree(self.cur_part_tree, self.curriculum[self._current_task])
+        self.cur_part_tree.reset_params()
+        # self.cur_part_tree = self.taxonomy_tree.reset_params_2(self.cur_part_tree)
 
-        print(self.current_partial_tree.label_dict_hier)
-        # self.current_partial_tree = Tree(self.current_partial_tree.dataset_name,
-        #                                  self.current_partial_tree.label_dict_hier,
-        #                                  self.taxonomy_tree.label_dict_index)
-
-        task_info = {
-            "task": self._current_task,
-            "task_size": len(self.curriculum[self._current_task]),
-            "full_tree": self.taxonomy_tree,
-            "partial_tree": self.current_partial_tree,
-            "n_train_data": len(x_train),
-            "n_test_data": len(y_train),
-        }
-
+        new_task_info = self.get_new_task_info(len(x_train), len(y_train))
+        self.task_info= pd.concat([self.task_info, new_task_info])
         self._current_task += 1
-        return task_info, train_loader, val_loader, test_loader
+        return self.task_info, train_loader, val_loader, test_loader
+    
+    def get_new_task_info(self, xlen, ylen):
+        cur_classes = self.curriculum[self._current_task]
+        pnode_name = self.taxonomy_tree.get_parent(cur_classes[0])
+        depth = self.taxonomy_tree.nodes.get(pnode_name).depth
+        feature_size = set_feature_size(depth, self.connect_fs)
+        if self.full_connect and len(self.task_info) > 0:
+            ancestors = list(self.task_info['parent_node'])
+        else: 
+            ancestors = self.taxonomy_tree.get_ancestor_list(pnode_name)
+        new_task_info = {}
+        new_task_info["task_order"] = [self._current_task]
+        new_task_info["child_nodes"] = [cur_classes]
+        new_task_info["parent_node"] = [pnode_name]
+        new_task_info["depth"] = [depth]
+        new_task_info["feature_size"] = [feature_size]
+        new_task_info["base_nf"] = [int(feature_size / 8)]
+        new_task_info["ancestor_tasks"] = [ancestors]
+        new_task_info["task_size"] = [len(cur_classes)]
+        new_task_info["n_train_data"] = [xlen]
+        new_task_info["n_test_data"] = [ylen]
+        new_task_info["part_tree"] = [self.cur_part_tree]
+        return pd.DataFrame(new_task_info)
+
 
     def _update_memory_for_new_task(self, labels):
         # delete the memory data with parent labels that have been replaced by finer labels
@@ -174,9 +199,7 @@ class IncrementalDataset:
             parent_names = set([self.taxonomy_tree.nodes[x].parent for x in labels])
             parent_labels = set([self.taxonomy_tree.nodes[x].label_index for x in parent_names])
             for lb in parent_labels:
-                tmp = self.memory_dict.pop(lb, -1)
-                if tmp != -1:
-                    raise('Memory pop more')
+                self.memory_dict.pop(lb, -1)
 
     def gen_memory_array_from_dict(self):
         data_memory = []
@@ -221,13 +244,8 @@ class IncrementalDataset:
                 # if coarse node, select by a fraction; if leaf node, select all remaining
                 data_frac = self._sample_rate(label_map[lf][1], label_map[lf][2])
 
-                
-
                 if self._device.type == 'cuda':
                     if data_frac > 0 and self.taxonomy:
-                        # important
-
-                        # sel_ind = random.sample(list(idx_available), round(data_frac * len(lfx_all)))
                         sel_ind = random.sample(list(idx_available), round(data_frac * len(lfx_all)))
                         
                     else:
@@ -238,7 +256,7 @@ class IncrementalDataset:
                         sel_ind = idx_available
                     else:
                         sel_ind = random.sample(list(idx_available), 2)
-                    # sel_ind = idx_available
+                        
 
                 x_selected = np.concatenate((x_selected, lfx_all[sel_ind]))
                 y_selected = np.concatenate((y_selected, lfy_all[sel_ind]))
@@ -246,40 +264,22 @@ class IncrementalDataset:
                 print(f'task{self._current_task}, finest class: {self.taxonomy_tree.nodes.get(self.taxonomy_tree.label2name[lf]).name}, sample rate: {data_frac}')
         else:
             for lf in label_map:
-                if label_map[lf][0] >= 0:
-                    lfx_all = data_dict[lf]
-                    lfy_all = np.array([label_map[lf][0]] * len(lfx_all))  # position 0: coarse label
-
-                    # x_selected = np.concatenate((x_selected, lfx_all))
-                    # y_selected = np.concatenate((y_selected, lfy_all))
-                    
-                    # important
-                    
+                lfx_all = data_dict[lf]
+                lfy_all = np.array([label_map[lf][0]] * len(lfx_all))  # position 0: coarse label
+                if not self.debug:
                     x_selected = np.concatenate((x_selected, lfx_all))
                     y_selected = np.concatenate((y_selected, lfy_all))
-                    
+                else:
 
-            if y_selected.shape[0] == 0:
-                for lf in label_map:
-                    lfx_all = data_dict[lf]
-                    lfy_all = np.array([label_map[lf][0]] * len(lfx_all))  # position 0: coarse label
-
-                    x_selected = np.concatenate((x_selected, lfx_all))
-                    y_selected = np.concatenate((y_selected, lfy_all))
-                    
-                    # # important
-                    # idx_available = np.arange(len(lfx_all))
-                    # # sel_ind = random.sample(list(idx_available), 1)
-
-                    # sel_ind = list(idx_available)[:10]
-                    # x_selected = np.concatenate((x_selected, lfx_all[sel_ind]))
-                    # y_selected = np.concatenate((y_selected, lfy_all[sel_ind]))
-
+                    idx_available = np.arange(len(lfx_all))
+                    sel_ind = list(idx_available)[:10]
+                    x_selected = np.concatenate((x_selected, lfx_all[sel_ind]))
+                    y_selected = np.concatenate((y_selected, lfy_all[sel_ind]))
         return x_selected, y_selected
 
     def _sample_rate(self, leaf_depth, parent_depth):
-        # assert leaf_depth >= parent_depth
-        # return -1 if leaf_depth == parent_depth else self._s_rate
+        assert leaf_depth >= parent_depth
+
         if isinstance(self._s_rate[0], float):
             # balance tree
             if leaf_depth == parent_depth:
@@ -292,6 +292,9 @@ class IncrementalDataset:
                 return -1
             else:
                 return self._s_rate[leaf_depth-2][parent_depth-1]
+        
+
+
 
     def _get_cur_step_data_for_raw_data(self, ):
         min_class = sum(self.increments[:self._current_task])
@@ -310,8 +313,8 @@ class IncrementalDataset:
         self.data_val, self.targets_val = [], []
         self.dict_val, self.dict_train, self.dict_test = {}, {}, {}
         # current_class_idx = 0  # When using multiple datasets
-        self.train_dataset = dataset(self.data_folder, train=True, device=self._device, debug = self.debug)
-        self.test_dataset = dataset(self.data_folder, train=False, device=self._device, debug = self.debug)
+        self.train_dataset = dataset(self.data_folder, train=True, device=self._device, debug=self.debug, df_name=self.df_name)
+        self.test_dataset = dataset(self.data_folder, train=False, device=self._device, debug=self.debug, df_name=self.df_name)
         if self.dataset_name == 'imagenet100':
             train_idx = np.isin(self.train_dataset.targets, self.train_dataset.index_list)
             test_idx = np.isin(self.test_dataset.targets, self.test_dataset.index_list)
@@ -433,10 +436,10 @@ class IncrementalDataset:
         return data, targets, self._get_loader(data, targets, shuffle=False, mode=mode)
 
     def _get_loader(self, x, y, share_memory=None, shuffle=True, mode="train", batch_size=None, resample=None):
+        if x.shape[0] == 0 or len(y)==0:
+            return None
         if "balanced" in mode:
             x, y = construct_balanced_subset(x, y)
-        if x.shape[0] == 0 or len(y) == 0:
-            return None
 
         batch_size = batch_size if batch_size is not None else self._batch_size
 
@@ -535,21 +538,13 @@ class DummyDataset(torch.utils.data.Dataset):
         if isinstance(x, np.ndarray):
             # assume cifar
             x = Image.fromarray(np.uint8(x))
-            
+            # add padding + resize here
+
         else:
             # Assume the dataset is ImageNet
-            x = cv2.imread(x) 
+            x_tmp = x
+            x = cv2.imread(x)
             x = x[:, :, ::-1]
-            # if idx < len(self.share_memory):
-            #     if self.share_memory[idx] is not None:
-            #         x = self.share_memory[idx]
-            #     else:
-            #         x = cv2.imread(x)
-            #         x = x[:, :, ::-1]
-            #         self.share_memory[idx] = x
-            # else:
-            #     x = cv2.imread(x)
-            #     x = x[:, :, ::-1]
 
         if 'plankton' in self.dataset_name:
             # add padding   
@@ -603,7 +598,6 @@ def aux_tgt_to_tgt(aux_targets, targets_unique_list, device):
 
 
 def tgt_to_tgt0(targets, leaf_id, device):
-    
     targets0 = []
     for target_i in list(np.array(targets.cpu())):
         if target_i in leaf_id.keys():
